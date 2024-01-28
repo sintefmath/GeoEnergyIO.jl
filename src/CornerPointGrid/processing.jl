@@ -478,7 +478,7 @@ function grid_from_primitives(primitives)
             col_a = columns[a]
             col_b = columns[b]
 
-            cell_pairs, overlaps = JutulDarcy.traverse_column_pair(col_a, col_b, l1, l2)
+            cell_pairs, overlaps = traverse_column_pair(col_a, col_b, l1, l2)
             int_pairs, int_overlaps, bnd_pairs, bnd_overlaps = split_overlaps_into_interior_and_boundary(cell_pairs, overlaps)
 
             F_interior = (l, r, node_indices) -> insert_face!(l, r, node_indices, is_boundary = false, is_vertical = true)

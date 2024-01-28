@@ -108,6 +108,12 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:RS})
     data["RS"] = rs
 end
 
+function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:RV})
+    rs = parse_grid_vector(f, outer_data["GRID"]["cartDims"], Float64)
+    swap_unit_system!(rs, units, :u_rv)
+    data["RV"] = rs
+end
+
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:ACTNUM})
     parse_and_set_grid_data!(data, outer_data, units, cfg, f, :ACTNUM, T = Bool)
 end

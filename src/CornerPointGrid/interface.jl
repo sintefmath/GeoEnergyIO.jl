@@ -20,8 +20,8 @@ function mesh_from_grid_section(f, actnum = missing)
     if haskey(grid, "COORD")
         coord = grid["COORD"]
         zcorn = grid["ZCORN"]
-        primitives = JutulDarcy.cpgrid_primitives(coord, zcorn, cartdims, actnum = actnum)
-        G = JutulDarcy.grid_from_primitives(primitives)
+        primitives = cpgrid_primitives(coord, zcorn, cartdims, actnum = actnum)
+        G = grid_from_primitives(primitives)
     else
         @assert haskey(grid, "DX")
         @assert haskey(grid, "DY")

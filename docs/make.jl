@@ -8,7 +8,7 @@ makedocs(;
     authors="Olav Møyner <olav.moyner@gmail.com> and contributors",
     sitename="GeoEnergyIO.jl",
     format=Documenter.HTML(;
-        canonical="https://moyner.github.io/GeoEnergyIO.jl",
+        canonical="https://sintefmath.github.io/GeoEnergyIO.jl",
         edit_link="main",
         assets=String[],
     ),
@@ -18,6 +18,6 @@ makedocs(;
 )
 
 deploydocs(;
-    repo="github.com/moyner/GeoEnergyIO.jl",
+    repo="github.com/sintefmath/GeoEnergyIO.jl",
     devbranch="main",
 )

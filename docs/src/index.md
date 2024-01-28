@@ -4,7 +4,7 @@ CurrentModule = GeoEnergyIO
 
 # GeoEnergyIO
 
-Documentation for [GeoEnergyIO](https://github.com/moyner/GeoEnergyIO.jl).
+Documentation for [GeoEnergyIO](https://github.com/sintefmath/GeoEnergyIO.jl).
 
 ```@index
 ```

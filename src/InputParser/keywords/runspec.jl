@@ -24,7 +24,8 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:START})
 end
 
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:TITLE})
-    m = next_keyword!(f)
+    m = readline(f)
+    m = strip(m)
     data["TITLE"] = m
 end
 

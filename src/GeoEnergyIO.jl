@@ -1,5 +1,6 @@
 module GeoEnergyIO
+    export parse_data_file, parse_grdecl_file
 
-# Write your package code here.
-
+    include("InputParser/InputParser.jl")
+    import .InputParser: parse_data_file, parse_grdecl_file
 end

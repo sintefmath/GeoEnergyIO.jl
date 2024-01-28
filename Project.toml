@@ -3,6 +3,14 @@ uuid = "3b1dd628-313a-45bb-9d8d-8f3c48dcb5d4"
 authors = ["Olav Møyner <olav.moyner@gmail.com> and contributors"]
 version = "1.0.0-DEV"
 
+[deps]
+Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
+DelimitedFiles = "8bb1440f-4735-579b-a4ab-409b98df4dab"
+Jutul = "2b460a1a-8a2b-45b2-b125-b5c536396eb9"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+OrderedCollections = "bac558e1-5e72-5ebc-8fee-abe8a469f55d"
+Parsers = "69de0a69-1ddd-5017-9359-2bf0b02dc9f0"
+
 [compat]
 julia = "1.6"
 

@@ -11,7 +11,7 @@ Currently contains two main features:
 - Parser for .DATA reservoir simulation cases. The format originated with the Eclipse reservoir simulator produced by SLB and is now used by many reservoir simulators. The most useful publicly available description of one such dialect is found in the [OPM Flow manual](https://opm-project.org/?page_id=955).
 - A corner-point grid processor that converts parsed GRDECL files into unstructured meshes that handles general faults through the unstructured mesh from [Jutul.jl](https://github.com/sintefmath/Jutul.jl).
 
-This module is unregistered and work-in-progress. It is extracted from the Julia reservoir simulation package [JutulDarcy.jl](https://github.com/sintefmath/JutulDarcy.jl) and will eventually replace the parser in JutulDarcy.
+This module is unregistered and work-in-progress. It is extracted from the Julia reservoir simulation package [JutulDarcy.jl](https://github.com/sintefmath/JutulDarcy.jl) and will eventually replace the parser in JutulDarcy. Contributions for additional keywords or other relevant input formats are welcome.
 
 ## License and acknowledgements
 

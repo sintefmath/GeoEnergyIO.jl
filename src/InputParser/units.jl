@@ -206,6 +206,27 @@ function swap_unit_system!(x::AbstractArray, systems, k)
     return swap_unit_system!(x, systems, Val(k))
 end
 
+function swap_unit_system_fast!(v, systems::Union{Nothing, Missing}, k::Val)
+    # No systems - trivial conversion
+    return v
+end
+
+function swap_unit_system_fast!(x::AbstractArray, systems, k::Val)
+    (; to, from) = systems
+
+    to_unit = deck_unit(to, k)
+    from_unit = deck_unit(from, k)
+
+    val_si = convert_to_si(1.0, from_unit)
+    val_final = convert_from_si(val_si, to_unit)
+
+    val_final::Float64
+    for i in eachindex(x)
+        x[i] *= val_final
+    end
+    return x
+end
+
 function swap_unit_system!(x::AbstractArray, systems, k::Val)
     for i in eachindex(x)
         x[i] = swap_unit_system(x[i], systems, k)

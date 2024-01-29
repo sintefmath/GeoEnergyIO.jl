@@ -97,13 +97,13 @@ end
 
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:COORD})
     coord = parse_deck_vector(f, Float64)
-    coord = swap_unit_system!(coord, units, Val(:length))
+    coord = swap_unit_system_fast!(coord, units, Val(:length))
     data["COORD"] = coord
 end
 
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:ZCORN})
     zcorn = parse_deck_vector(f, Float64)
-    zcorn = swap_unit_system!(zcorn, units, Val(:length))
+    zcorn = swap_unit_system_fast!(zcorn, units, Val(:length))
     data["ZCORN"] = zcorn
 end
 

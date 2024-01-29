@@ -28,4 +28,3 @@ number_of_tables
 
 ```@index
 ```
-

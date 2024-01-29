@@ -59,14 +59,16 @@ function parser_message(cfg::ParserVerbosityConfig, outer_data, keyword, msg::PA
 end
 
 """
-    parse_data_file(filename; unit = :si)
+    parse_data_file(filename; units = :si)
+    parse_data_file(filename; units = :field)
     data = parse_data_file("MY_MODEL.DATA")
 
-Parse a .DATA file given by the `filename` (industry standard input file) into a
-Dict. Units will be converted to strict SI unless you pass something else like
-`units = :field`. Setting `units = nothing` will skip unit conversion. Note that
-JutulDarcy assumes that the unit system is internally consistent. It is highly
-recommended to parse to the SI units if you want to perform simulations.
+Parse a .DATA file given by the path in `filename` (industry standard input
+file) into a Dict with String keys. Units will be converted to strict SI unless
+you pass an alternative unit system like `units = :field`. Setting `units = nothing` will
+skip unit conversion. Note that the simulators in JutulDarcy.jl assumes that the
+unit system is internally consistent. It is highly recommended to parse to the
+SI units if you want to perform simulations with JutulDarcy.jl.
 
 The best publicly available documentation on this format is available from the
 Open Porous Media (OPM) project's webpages: [OPM Flow manual
@@ -76,17 +78,23 @@ Open Porous Media (OPM) project's webpages: [OPM Flow manual
 - `warn_parsing=true`: Produce a warning when keywords are not supported (or
   partially supported) by the parser.
 - `warn_feature`=true`: Produce a warning when keywords are supported, but have
-  limited or missing support in the numerical solvers.
+  limited or missing support in the numerical solvers in `JutulDarcy.jl`.
 - `units=:si`: Symbol that indicates the unit system to be used in the output.
   Setting this to `nothing` will return values without conversion, i.e. exactly
   what is in the input files. `:si` will use strict SI. Other alternatives are
   `:field` and `:metric`. `:lab` is currently unsupported.
+- `verbose=false`: Produce verbose output about parsing progress. For larger
+  files, a lot of output will be generated. Useful when figuring out where a
+  parser fails or spends a lot of time.
 
 # Note
-This function is experimental and only covers a small portion of the keywords
-that exist for various simulators. You will get warnings that indicate the level
-of support for keywords in both the parser and the numerical solvers when known
-keywords with limited support. Pull requests for new keywords are welcome!
+This function only covers a small portion of the keywords that exist for various
+simulators. You will get warnings that indicate the level of support for
+keywords in both the parser and the numerical solvers when known keywords with
+limited support. Pull requests for new keywords are welcome!
+
+The SUMMARY section is skipped due to the large volume of available keywords
+that are not essential to define simulation cases.
 """
 function parse_data_file(filename; kwarg...)
     outer_data = Dict{String, Any}()
@@ -227,17 +235,22 @@ section does not contain units - passing the `input_units` keyword is therefore
 highly recommended.
 
 # Keyword arguments
+ - `actnum_path=missing`: Path to ACTNUM file, if this is not included in the main file.
  - `units=:si`: Units to use for return values. Requires `input_units` to be set.
  - `input_units=nothing`: The units the file is given in.
  - `verbose=false`: Toggle verbosity.
 
 """
-function parse_grdecl_file(filename; actnum_path = missing, kwarg...)
+function parse_grdecl_file(filename;
+        actnum_path = missing,
+        input_units = :metric,
+        kwarg...
+    )
     outer_data = Dict{String, Any}()
     data = new_section(outer_data, :GRID)
     parse_data_file!(outer_data, filename, data; kwarg...)
     if !ismissing(actnum_path)
-        parse_data_file!(outer_data, actnum_path, data; kwarg...)
+        parse_data_file!(outer_data, actnum_path, data; input_units = input_units, kwarg...)
     end
     if !haskey(data, "ACTNUM")
         data["ACTNUM"] = fill(true, data["cartDims"])

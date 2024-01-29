@@ -13,6 +13,7 @@ Parsers = "69de0a69-1ddd-5017-9359-2bf0b02dc9f0"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 
 [compat]
+DelimitedFiles = "1"
 julia = "1.6"
 
 [extras]

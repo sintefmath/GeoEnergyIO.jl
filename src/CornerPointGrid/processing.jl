@@ -315,11 +315,17 @@ function grid_from_primitives(primitives)
         columns,
         active,
         nodes,
-        cartdims
+        cartdims,
+        coord_normal
     ) = primitives
     if sum(active) == 0
         error("Grid has no active cells.")
     end
+
+    Nx, Ny, Nz = coord_normal
+    # A not very rigorous test for flipped coordinate systems.
+    # The normal situation is Nx < 0, Ny > 0 and Nz > 0
+    flipped = Nx < 0 && Ny > 0 && Nz < 0
     # Faces mapping to nodes
     faces = Vector{Int}()
     face_pos = [1]
@@ -360,6 +366,9 @@ function grid_from_primitives(primitives)
         n_global_nodes = length(primitives.nodes)
         n_local_nodes = length(nodes)
         @assert n_local_nodes > 2
+        if flipped
+            nodes = Base.Iterators.Reverse(nodes)
+        end
         for n in nodes
             @assert n <= n_global_nodes
             @assert n > 0

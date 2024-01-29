@@ -239,6 +239,11 @@ function cpgrid_primitives(coord, zcorn, cartdims; actnum = missing, pinch = mis
             end
         end
     end
+    # Get a normal vector to estimate the direction of the coordiante system
+    x1_l, = get_line(coord, 2, 1, nlinex, nliney)
+    x1_r, = get_line(coord, 1, 2, nlinex, nliney)
+    coord_normal = cross(x1_l - x1, x1_r - x1)
+    coord_normal = coord_normal./norm(coord_normal, 2)
 
     return (
         lines = lines,
@@ -249,7 +254,8 @@ function cpgrid_primitives(coord, zcorn, cartdims; actnum = missing, pinch = mis
         columns = columns,
         active = active_cell_indices,
         nodes = nodes,
-        cartdims = cartdims
+        cartdims = cartdims,
+        coord_normal = coord_normal
     )
 end
 

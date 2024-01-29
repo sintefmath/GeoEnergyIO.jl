@@ -373,7 +373,6 @@ function cpgrid_get_or_add_crossing_node!(extra_node_lookup, nodes, pt)
 end
 
 function traverse_column_pair(col_a, col_b, l1, l2)
-    cell_pairs = Tuple{Int, Int}[]
     # TODO: Deal with horrible type. We could just compute this on the fly.
     overlaps = @NamedTuple{line1::@NamedTuple{category::CPGRID_PILLAR_AB_INTERSECTION, overlap::UnitRange{Int64}, range_a::UnitRange{Int64}, range_b::UnitRange{Int64}}, line2::@NamedTuple{category::CPGRID_PILLAR_AB_INTERSECTION, overlap::UnitRange{Int64}, range_a::UnitRange{Int64}, range_b::UnitRange{Int64}}}[]
 
@@ -405,19 +404,21 @@ function traverse_column_pair(col_a, col_b, l1, l2)
     end
 
     function gen_category(t::CPGRID_PILLAR_AB_INTERSECTION, rng, range_a, range_b)
-    return (
-        category = t,
-        overlap = rng,
-        range_a = range_a,
-        range_b = range_b
-    )
-end
+        return (
+            category = t,
+            overlap = rng,
+            range_a = range_a,
+            range_b = range_b
+        )
+    end
 
     function determine_overlap(pos_a, pos_b, is_line1)
         a_start, a_stop = get_local_line(pos_a, is_line1)
         b_start, b_stop = get_local_line(pos_b, is_line1)
         return determine_cell_overlap_inside_line(a_start, a_stop, b_start, b_stop)
     end
+    cell_pairs = Tuple{Int, Int}[]
+    sizehint!(cell_pairs, 2*max(length(ord_a), length(ord_b)))
     for pos_a in ord_a
         for pos_b in ord_b
             # @info "Cell pair: $((pos_a.cell, pos_b.cell))"

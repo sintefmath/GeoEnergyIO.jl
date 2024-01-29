@@ -494,7 +494,11 @@ end
 """
     number_of_tables(outer_data, t::Symbol)
 
-Number of tables for given type `t`: one of `:satnum`, `:pvtnum` or `:eqlnum`.
+Number of declared tables for given type `t`. Should be one of the following:
+ - `:satnum` (saturation function region)
+ - `:pvtnum` (PVT function region)
+ - `:eqlnum` (equilibriation region)
+ - `:eosnum` (equation-of-state region)
 """
 function number_of_tables(outer_data, t::Symbol)
     rs = outer_data["RUNSPEC"]

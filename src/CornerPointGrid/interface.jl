@@ -1,7 +1,17 @@
 """
     mesh_from_grid_section(f, actnum = missing)
 
-TBW
+Generate a Jutul unstructured mesh from a grid section. The input arugment `f`
+can be one of the following:
+
+ - An already parsed complete data file read using [`parse_data_file`](@ref).
+   The "GRID" field will be used.
+ - A parsed "GRID" section from [`parse_grdecl_file`](@ref).
+ - The file-name of a `.GRDECL` file to be parsed before processing.
+
+Optionally the `actnum` can be specified separately. The `actnum` should have
+equal length to the number of logical cells in the grid with true/false
+indicating if a cell is to be included in the processed mesh.
 """
 function mesh_from_grid_section(f, actnum = missing)
     if f isa String

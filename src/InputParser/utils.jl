@@ -219,19 +219,26 @@ function parse_deck_vector(f, T = Float64)
     sizehint!(out, n)
     for split_rec in record_lines
         for el in split_rec
-            if occursin('*', el)
-                n_rep, el = split(el, '*')
-                n_rep = parse(Int, n_rep)
-            else
-                n_rep = 1
-            end
-            parsed = parse(T, el)::T
+            el, n_rep = handle_repeats(el)
+            parsed = Parsers.parse(T, el)
+            parsed::T
             for i in 1:n_rep
                 push!(out, parsed)
             end
         end
     end
     return out
+end
+
+function handle_repeats(el::String)
+    if occursin('*', el)
+        n_rep, el = split(el, '*')
+        el = String(el)
+        n_rep = Parsers.parse(Int, n_rep)
+    else
+        n_rep = 1
+    end
+    (el, n_rep)::Tuple{String, Int}
 end
 
 function skip_record(f)

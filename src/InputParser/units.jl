@@ -211,7 +211,7 @@ function swap_unit_system_fast!(v, systems::Union{Nothing, Missing}, k::Val)
     return v
 end
 
-function swap_unit_system_fast!(x::AbstractArray, systems, k::Val)
+function swap_unit_system_fast!(x::AbstractArray, systems::NamedTuple, k::Val)
     (; to, from) = systems
 
     to_unit = deck_unit(to, k)

@@ -540,9 +540,17 @@ function grid_from_primitives(primitives)
         cell_map = primitives.active,
         z_is_depth = true
     )
-    set_mesh_entity_tag!(g, Faces(), :orientation, :horizontal, horizontal_face_tag)
-    set_mesh_entity_tag!(g, Faces(), :orientation, :vertical, vertical_face_tag)
-    set_mesh_entity_tag!(g, BoundaryFaces(), :orientation, :horizontal, horizontal_bnd_face_tag)
-    set_mesh_entity_tag!(g, BoundaryFaces(), :orientation, :vertical, vertical_bnd_face_tag)
+    if length(horizontal_face_tag) > 0
+        set_mesh_entity_tag!(g, Faces(), :orientation, :horizontal, horizontal_face_tag)
+    end
+    if length(vertical_face_tag) > 0
+        set_mesh_entity_tag!(g, Faces(), :orientation, :vertical, vertical_face_tag)
+    end
+    if length(horizontal_bnd_face_tag) > 0
+        set_mesh_entity_tag!(g, BoundaryFaces(), :orientation, :horizontal, horizontal_bnd_face_tag)
+    end
+    if length(vertical_bnd_face_tag) > 0
+        set_mesh_entity_tag!(g, BoundaryFaces(), :orientation, :vertical, vertical_bnd_face_tag)
+    end
     return g
 end

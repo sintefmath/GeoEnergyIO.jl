@@ -58,4 +58,54 @@ import Jutul: number_of_cells, number_of_boundary_faces, number_of_faces
         @test number_of_faces(g) == 25665
         @test number_of_boundary_faces(g) == 2670
     end
+    @testset "Basic GRDECL parsing" begin
+        pth = test_input_file_path("grdecl", "1cell.txt", base = missing)
+        grdecl = parse_grdecl_file(pth)
+        @test grdecl["SPECGRID"] == [1, 1, 1, 1, "F"]
+        @test grdecl["cartDims"] == (1, 1, 1)
+        @test grdecl["ZCORN"] == [0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0]
+        @test sum(grdecl["COORD"]) == 12.0
+        @test only(grdecl["ACTNUM"]) == true
+    end
+
+    grdecl_cases = [
+        (name="1_1_node_pinch.txt", nf=2, nc=3, bnf=14)
+        (name="2_1_node_pinch.txt", nf=2, nc=3, bnf=13)
+        (name="3_1_node_pinch.txt", nf=2, nc=3, bnf=12)
+        (name="model3_5_5_5.txt", nf=189, nc=70, bnf=131)
+        (name="1_2_node_pinch.txt", nf=2, nc=3, bnf=14)
+        (name="2_2_node_pinch.txt", nf=2, nc=3, bnf=13)
+        (name="3_2_node_pinch.txt", nf=2, nc=3, bnf=12)
+        (name="model3_abc.txt", nf=15, nc=10, bnf=38)
+        (name="1_3_node_pinch.txt", nf=2, nc=3, bnf=14)
+        (name="2_3_node_pinch.txt", nf=2, nc=3, bnf=14)
+        (name="3_3_node_pinch.txt", nf=2, nc=3, bnf=12)
+        (name="pinched_layers_5_5_5.txt", nf=134, nc=64, bnf=128)
+        (name="1_4_node_pinch.txt", nf=2, nc=3, bnf=14)
+        (name="2_4_node_pinch.txt", nf=2, nc=3, bnf=14)
+        (name="3_4_node_pinch.txt", nf=2, nc=3, bnf=12)
+        (name="raised_col_sloped.txt", nf=5, nc=4, bnf=18)
+        (name="1cell.txt", nf=0, nc=1, bnf=6)
+        (name="2_5_node_pinch.txt", nf=2, nc=3, bnf=13)
+        (name="4_1_node_pinch.txt", nf=2, nc=3, bnf=10)
+        (name="raised_col.txt", nf=5, nc=4, bnf=17)
+        (name="1col.txt", nf=2, nc=3, bnf=14)
+        (name="2_6_node_pinch.txt", nf=2, nc=3, bnf=13)
+        (name="sloped.txt", nf=14, nc=8, bnf=28)
+        (name="2col.txt", nf=7, nc=6, bnf=22)
+        (name="model3_20_20_50.txt", nf=43743, nc=15250, bnf=4890)
+    ]
+    for (name, nf_ref, nc_ref, nbf_ref) in grdecl_cases
+        @testset "$name" begin
+            pth = test_input_file_path("grdecl", name, base = missing)
+            grdecl = parse_grdecl_file(pth)
+            g = mesh_from_grid_section(grdecl)
+            nc = number_of_cells(g)
+            nf = number_of_faces(g)
+            nbf = number_of_boundary_faces(g)
+            @test nc == nc_ref
+            @test nbf == nbf_ref
+            @test nf == nf_ref
+        end
+    end
 end

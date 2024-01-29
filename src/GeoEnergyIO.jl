@@ -14,11 +14,15 @@ module GeoEnergyIO
     function test_input_file_path(folder, name = missing; base = "mrst")
         pth, = splitdir(pathof(GeoEnergyIO))
         test_dir = joinpath(pth, "..", "test", "data")
-        deck_dir = joinpath(test_dir, base)
-        if ismissing(name)
-            out = joinpath(deck_dir, folder)
+        if ismissing(base)
+            input_file_dir = test_dir
         else
-            out = joinpath(deck_dir, folder, name)
+            input_file_dir = joinpath(test_dir, base)
+        end
+        if ismissing(name)
+            out = joinpath(input_file_dir, folder)
+        else
+            out = joinpath(input_file_dir, folder, name)
         end
         return out
     end

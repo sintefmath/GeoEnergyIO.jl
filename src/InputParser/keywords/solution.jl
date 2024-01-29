@@ -91,7 +91,7 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:PRESSURE})
 end
 
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:RTEMP})
-    nreg = number_of_tables(outer_data, :eos)
+    nreg = number_of_tables(outer_data, :eosnum)
     out = Float64[]
     for i in 1:nreg
         rec = read_record(f)
@@ -119,7 +119,7 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:ACTNUM})
 end
 
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:RSVD})
-    n = number_of_tables(outer_data, :equil)
+    n = number_of_tables(outer_data, :eqlnum)
     out = []
     for i = 1:n
         rs = parse_deck_matrix(f)
@@ -130,7 +130,7 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:RSVD})
 end
 
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:PBVD})
-    n = number_of_tables(outer_data, :equil)
+    n = number_of_tables(outer_data, :eqlnum)
     out = []
     for i = 1:n
         rs = parse_deck_matrix(f)
@@ -141,7 +141,7 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:PBVD})
 end
 
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:ZMFVD})
-    n = number_of_tables(outer_data, :equil)
+    n = number_of_tables(outer_data, :eqlnum)
     out = []
     ncomp = compositional_number_of_components(outer_data)
     for i = 1:n
@@ -156,7 +156,7 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:ZMFVD})
 end
 
 function parse_keyword!(data, outer_data, units, cfg, f, ::Union{Val{:TEMPVD}, Val{:RTEMPVD}})
-    n = number_of_tables(outer_data, :equil)
+    n = number_of_tables(outer_data, :eqlnum)
     out = []
     for i = 1:n
         tvd = parse_deck_matrix(f)
@@ -168,7 +168,7 @@ end
 
 
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:RVVD})
-    n = number_of_tables(outer_data, :equil)
+    n = number_of_tables(outer_data, :eqlnum)
     out = []
     for i = 1:n
         rs = parse_deck_matrix(f)
@@ -179,7 +179,7 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:RVVD})
 end
 
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:EQUIL})
-    n = number_of_tables(outer_data, :equil)
+    n = number_of_tables(outer_data, :eqlnum)
     def = [0.0, NaN, 0.0, 0.0, 0.0, 0.0, 0, 0, 0, 1, 0]
     eunits = (:length, :pressure, :length, :pressure, :length, :pressure, :id, :id, :id, :id, :id)
     out = []
@@ -202,7 +202,7 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:FIELDSEP})
     # TODO: Can be improved.
     p = si_unit(:atm)
 
-    n = number_of_tables(outer_data, :equil)
+    n = number_of_tables(outer_data, :eqlnum)
     def = [1, temp, p, 0, 0, 0, 0, 1, NaN, NaN]
     eunits = (:id, :relative_temperature, :pressure, :id, :id, :id, :id, :id, :relative_temperature, :pressure)
     out = []

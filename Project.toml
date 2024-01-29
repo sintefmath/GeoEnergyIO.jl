@@ -1,7 +1,7 @@
 name = "GeoEnergyIO"
 uuid = "3b1dd628-313a-45bb-9d8d-8f3c48dcb5d4"
 authors = ["Olav Møyner <olav.moyner@gmail.com> and contributors"]
-version = "1.0.0-DEV"
+version = "1.0.0"
 
 [deps]
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
@@ -14,6 +14,12 @@ StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 
 [compat]
 julia = "1.6"
+DelimitedFiles = "1.9.1"
+Jutul = "0.2.20"
+LinearAlgebra = "1"
+OrderedCollections = "1.6.2"
+Parsers = "2.7.1"
+StaticArrays = "1.4.4"
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"

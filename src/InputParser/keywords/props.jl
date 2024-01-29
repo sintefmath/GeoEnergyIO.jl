@@ -181,7 +181,7 @@ end
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:PVTW})
     tdims = [NaN, NaN, NaN, NaN, 0.0]
     utypes = (:pressure, :liquid_formation_volume_factor, :compressibility, :viscosity, :compressibility)
-    nreg = number_of_tables(outer_data, :pvt)
+    nreg = number_of_tables(outer_data, :pvtnum)
     out = []
     for i = 1:nreg
         rec = read_record(f)
@@ -196,7 +196,7 @@ end
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:PVCDO})
     tdims = [NaN, NaN, NaN, NaN, NaN]
     utypes = (:pressure, :liquid_formation_volume_factor, :compressibility, :viscosity, :compressibility)
-    nreg = number_of_tables(outer_data, :pvt)
+    nreg = number_of_tables(outer_data, :pvtnum)
     out = []
     for i = 1:nreg
         rec = read_record(f)
@@ -220,7 +220,7 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:ROCK})
     tdims = [NaN, NaN, NaN, NaN, NaN, NaN]
     utypes = [:pressure, :compressibility, :compressibility, :compressibility, :id, :id]
     out = []
-    nreg = number_of_tables(outer_data, :pvt)
+    nreg = number_of_tables(outer_data, :pvtnum)
     for i = 1:nreg
         rec = read_record(f)
         l = parse_defaulted_line(rec, tdims)
@@ -232,7 +232,7 @@ end
 
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:DIFFC})
     parser_message(cfg, outer_data, "DIFFC", PARSER_MISSING_SUPPORT)
-    nreg = number_of_tables(outer_data, :pvt)
+    nreg = number_of_tables(outer_data, :pvtnum)
     for i = 1:nreg
         rec = read_record(f)
     end
@@ -240,7 +240,7 @@ end
 
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:SPECROCK})
     parser_message(cfg, outer_data, "SPECROCK", PARSER_MISSING_SUPPORT)
-    nreg = number_of_tables(outer_data, :saturation)
+    nreg = number_of_tables(outer_data, :satnum)
     for i = 1:nreg
         rec = read_record(f)
     end
@@ -271,7 +271,7 @@ end
 
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:DENSITY})
     tdims = [NaN, NaN, NaN]
-    nreg = number_of_tables(outer_data, :pvt)
+    nreg = number_of_tables(outer_data, :pvtnum)
     out = []
     for i = 1:nreg
         rec = read_record(f)

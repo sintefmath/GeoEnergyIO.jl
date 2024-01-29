@@ -253,17 +253,17 @@ function parse_grid_vector(f, dims, T = Float64)
 end
 
 function parse_saturation_table(f, outer_data)
-    ns = number_of_tables(outer_data, :saturation)
+    ns = number_of_tables(outer_data, :satnum)
     return parse_region_matrix_table(f, ns)
 end
 
 function parse_dead_pvt_table(f, outer_data)
-    np = number_of_tables(outer_data, :pvt)
+    np = number_of_tables(outer_data, :pvtnum)
     return parse_region_matrix_table(f, np)
 end
 
 function parse_live_pvt_table(f, outer_data)
-    nreg = number_of_tables(outer_data, :pvt)
+    nreg = number_of_tables(outer_data, :pvtnum)
     out = []
     for i = 1:nreg
         current = Vector{Vector{Float64}}()
@@ -491,17 +491,17 @@ function number_of_tables(outer_data, t::Symbol)
     else
         td = [1 1]
     end
-    if t == :saturation
+    if t == :satnum
         return td[1]
-    elseif t == :pvt
+    elseif t == :pvtnum
         return td[2]
-    elseif t == :equil
+    elseif t == :eqlnum
         if haskey(rs, "EQLDIMS")
             return rs["EQLDIMS"][1]
         else
             return 1
         end
-    elseif t == :eos
+    elseif t == :eosnum
         if haskey(rs, "TABDIMS")
             return rs["TABDIMS"][9]
         else
@@ -515,7 +515,14 @@ function compositional_number_of_components(outer_data)
     return outer_data["RUNSPEC"]["COMPS"]
 end
 
-function table_region(outer_data, t::Symbol; active = nothing)
+"""
+    get_data_file_cell_region(outer_data, t::Symbol; active = nothing)
+
+Get the region indicator of some type for each cell of the domain.
+
+`t` should be one of `:satnum`, `:pvtnum` or `:eqlnum`.
+"""
+function get_data_file_cell_region(outer_data, t::Symbol; active = nothing)
     num = number_of_tables(outer_data, t)
     if num == 1
         dim = outer_data["GRID"]["cartDims"]
@@ -532,11 +539,11 @@ function table_region(outer_data, t::Symbol; active = nothing)
             end
         end
 
-        if t == :saturation
+        if t == :satnum
             d = get_or_default("SATNUM")
-        elseif t == :pvt
+        elseif t == :pvtnum
             d = get_or_default("PVTNUM")
-        elseif t == :equil
+        elseif t == :eqlnum
             d = get_or_default("EQLNUM")
         else
             error(":$t is not known")

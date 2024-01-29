@@ -3,9 +3,10 @@ module GeoEnergyIO
     export parse_grdecl_file
     export mesh_from_grid_section
     export get_data_file_cell_region
+    export number_of_tables
 
     include("InputParser/InputParser.jl")
-    import .InputParser: parse_data_file, parse_grdecl_file, get_data_file_cell_region
+    import .InputParser: parse_data_file, parse_grdecl_file, get_data_file_cell_region, number_of_tables
 
     include("CornerPointGrid/CornerPointGrid.jl")
     import .CornerPointGrid: mesh_from_grid_section

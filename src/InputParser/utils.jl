@@ -484,6 +484,11 @@ function next_keyword!(f)
     return m
 end
 
+"""
+    number_of_tables(outer_data, t::Symbol)
+
+Number of tables for given type `t`: one of `:satnum`, `:pvtnum` or `:eqlnum`.
+"""
 function number_of_tables(outer_data, t::Symbol)
     rs = outer_data["RUNSPEC"]
     if haskey(rs, "TABDIMS")

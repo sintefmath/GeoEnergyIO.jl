@@ -4,9 +4,9 @@
 Generate a Jutul unstructured mesh from a grid section. The input arugment `f`
 can be one of the following:
 
- - An already parsed complete data file read using [`parse_data_file`](@ref).
+ - An already parsed complete data file read using `parse_data_file`.
    The "GRID" field will be used.
- - A parsed "GRID" section from [`parse_grdecl_file`](@ref).
+ - A parsed "GRID" section from `parse_grdecl_file`.
  - The file-name of a `.GRDECL` file to be parsed before processing.
 
 Optionally the `actnum` can be specified separately. The `actnum` should have

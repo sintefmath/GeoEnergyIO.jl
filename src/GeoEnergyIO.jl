@@ -11,7 +11,8 @@ module GeoEnergyIO
     import .CornerPointGrid: mesh_from_grid_section
 
     function test_input_file_path(folder, name = missing; base = "mrst")
-        test_dir = joinpath(pathof(GeoEnergyIO), "..", "..", "test", "data")
+        pth, = splitdir(pathof(GeoEnergyIO))
+        test_dir = joinpath(pth, "..", "test", "data")
         deck_dir = joinpath(test_dir, base)
         if ismissing(name)
             out = joinpath(deck_dir, folder)

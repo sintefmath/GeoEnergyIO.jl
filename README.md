@@ -11,6 +11,10 @@ Currently contains two main features:
 - Parser for .DATA reservoir simulation cases. The format originated with the Eclipse reservoir simulator produced by SLB and is now used by many reservoir simulators. The most useful publicly available description of one such dialect is found in the [OPM Flow manual](https://opm-project.org/?page_id=955).
 - A corner-point grid processor that converts parsed GRDECL files into unstructured meshes that handles general faults through the unstructured mesh from [Jutul.jl](https://github.com/sintefmath/Jutul.jl).
 
+Here is an example mesh parsed from the [OLYMPUS Optimization Benchmark Challenge](https://doi.org/10.1007/s10596-020-10003-4):
+
+![image](docs/src/assets/olympus_small.gif)
+
 
 The supported file formats contain a great number of possible keywords. Not all keywords are supported. For keywords with limited support, a warning will be emitted. Contributions for additional keywords or other relevant input formats are welcome. If you have an example that you'd like to get working, please post it under the [issues tab](https://github.com/sintefmath/GeoEnergyIO.jl/issues). GeoEnergyIO.jl originated as a part of the Julia reservoir simulation package [JutulDarcy.jl](https://github.com/sintefmath/JutulDarcy.jl) where it enables reservoir simulation of simulation cases read from input files.
 

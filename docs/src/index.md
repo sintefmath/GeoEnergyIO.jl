@@ -79,12 +79,18 @@ plot_cell_data!(ax, g, ix, shading = NoShading, rasterize = true, colormap = :se
 fig
 ```
 
+The parser has been tested on many complex models. Here is an example mesh parsed from the [OLYMPUS Optimization Benchmark Challenge](https://doi.org/10.1007/s10596-020-10003-4) where the parsed porosity is plotted together with the wells:
+
+![image](assets/olympus_small.gif)
+
 ## Utilities
 
 ```@docs
 get_data_file_cell_region
 number_of_tables
 ```
+
+## Index of functions
 
 ```@index
 ```

@@ -107,9 +107,17 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:ZCORN})
     data["ZCORN"] = zcorn
 end
 
+function unit_type(::Union{Val{:COORD}, Val{:ZCORN}})
+    return :length
+end
+
 function parse_keyword!(data, outer_data, units, cfg, f, v::Union{Val{:PERMX}, Val{:PERMY}, Val{:PERMZ}})
     k = unpack_val(v)
-    parse_and_set_grid_data!(data, outer_data, units, cfg, f, k, unit = :permeability)
+    parse_and_set_grid_data!(data, outer_data, units, cfg, f, k, unit = unit_type(k))
+end
+
+function unit_type(::Union{Val{:PERMX}, Val{:PERMY}, Val{:PERMZ}})
+    return :permeability
 end
 
 function parse_keyword!(data, outer_data, units, cfg, f, v::Val{:MULTREGT})
@@ -162,6 +170,10 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:NTG})
     parse_and_set_grid_data!(data, outer_data, units, cfg, f, :NTG)
 end
 
+function unit_type(::Union{Val{:PORO}, Val{:NTG}})
+    return :id
+end
+
 function parse_keyword!(data, outer_data, units, cfg, f, v::Union{Val{:DX}, Val{:DY}, Val{:DZ}})
     k = unpack_val(v)
     data["$k"] = parse_grid_vector(f, get_cartdims(outer_data), Float64)
@@ -170,6 +182,10 @@ end
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:TOPS})
     tops = parse_deck_vector(f, Float64)
     data["TOPS"] = swap_unit_system!(tops, units, Val(:length))
+end
+
+function unit_type(::Val{:TOPS})
+    return :length
 end
 
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:DIMENS})

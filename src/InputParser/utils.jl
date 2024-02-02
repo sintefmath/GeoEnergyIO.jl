@@ -655,3 +655,16 @@ function push_and_create!(data, k, vals, T = Any)
     end
     return data
 end
+
+function unit_type(x)
+    return unit_type(Symbol(x))
+end
+
+function unit_type(x::Symbol)
+    return unit_type(Val(x))
+end
+
+function unit_type(::Val{k}) where k
+    @warn "Unit type not defined for $k."
+    return :id
+end

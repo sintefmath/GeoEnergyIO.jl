@@ -74,6 +74,8 @@ function parse_keyword!(data, outer_data, units, cfg, f, kval::Union{Val{:COPY},
             end
             if k == :ADD
                 # add is a const
+                u = unit_type(dst)
+                op = swap_unit_system(op, units, u)
                 apply_add!(data[dst], op, IJK, dims)
             else
                 # multiply is a const
@@ -273,7 +275,8 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:EQUALS})
         d = "Default"
         parsed = parse_defaulted_line(rec, [d, 1.0, il, iu, jl, ju, kl, ku])
         dst = parsed[1]
-        constval = parsed[2]
+        u = unit_type(dst)
+        constval = swap_unit_system(parsed[2], units, u)
         @assert dst != "Default"
         target = get_operation_section(outer_data, dst)
         if ismissing(target)
@@ -327,7 +330,9 @@ function edit_apply_clamping!(f, outer_data, FUNCTION)
         d = "Default"
         parsed = parse_defaulted_line(rec, [d, 1.0, il, iu, jl, ju, kl, ku])
         dst = parsed[1]
-        lim = parsed[2]
+        u = unit_type(dst)
+        lim = swap_unit_system(parsed[2], units, u)
+
         @assert dst != "Default"
         target = get_operation_section(outer_data, dst)
         # Box can be kept.

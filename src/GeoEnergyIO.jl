@@ -26,4 +26,15 @@ module GeoEnergyIO
         end
         return out
     end
+
+    using PrecompileTools
+    @compile_workload begin
+        spe1_pth = test_input_file_path("spe1", "BENCH_SPE1.DATA")
+        spe1 = parse_data_file(spe1_pth)
+        spe9_pth = test_input_file_path("spe9", "SPE9_CP.DATA", base = "opm-tests")
+        spe9 = parse_data_file(spe9_pth)
+        pth = test_input_file_path("grdecl", "raised_col_sloped.txt", base = missing)
+        grdecl = parse_grdecl_file(pth)
+        nothing
+    end
 end

@@ -216,8 +216,6 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Union{Val{:WELLTARG},
 end
 
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:WEFAC})
-    parser_message(cfg, outer_data, "WEFAC", PARSER_JUTULDARCY_PARTIAL_SUPPORT)
-
     defaults = ["Default", 1.0, "YES"]
     wells = get_wells(outer_data)
     parsed = parse_defaulted_group_well(f, defaults, wells, 1)

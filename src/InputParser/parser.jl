@@ -77,7 +77,7 @@ Open Porous Media (OPM) project's webpages: [OPM Flow manual
 # Keyword arguments
 - `warn_parsing=true`: Produce a warning when keywords are not supported (or
   partially supported) by the parser.
-- `warn_feature`=true`: Produce a warning when keywords are supported, but have
+- `warn_feature=true`: Produce a warning when keywords are supported, but have
   limited or missing support in the numerical solvers in `JutulDarcy.jl`.
 - `units=:si`: Symbol that indicates the unit system to be used in the output.
   Setting this to `nothing` will return values without conversion, i.e. exactly

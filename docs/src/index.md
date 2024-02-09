@@ -72,7 +72,7 @@ using GeoEnergyIO, Jutul, CairoMakie
 pth = GeoEnergyIO.test_input_file_path("grdecl", "model3_20_20_50.txt", base = missing)
 grdecl = parse_grdecl_file(pth)
 g = mesh_from_grid_section(grdecl)
-ix = 1:number_of_cells(g)
+ix = collect(1:number_of_cells(g))
 fig = Figure()
 ax = Axis3(fig[1,1], zreversed = true, azimuth = 2.0)
 plot_cell_data!(ax, g, ix, shading = NoShading, rasterize = true, colormap = :seaborn_icefire_gradient)

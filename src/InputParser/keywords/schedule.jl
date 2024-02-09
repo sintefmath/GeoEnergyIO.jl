@@ -67,7 +67,7 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:COMPDAT})
     for cd in compdat
         swap_unit_system_axes!(cd, units, utypes)
     end
-    data["COMPDAT"] = compdat
+    push_and_create!(data, "COMPDAT", compdat)
 end
 
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:WELOPEN})
@@ -75,8 +75,8 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:WELOPEN})
     defaults = [d, "OPEN", -1, -1, -1, -1, -1]
     wells = get_wells(outer_data)
     welopen = parse_defaulted_group_well(f, defaults, wells, 1)
-    parser_message(cfg, outer_data, "WELTARG", PARSER_JUTULDARCY_MISSING_SUPPORT)
-    data["WELOPEN"] = welopen
+    parser_message(cfg, outer_data, "WELOPEN", PARSER_JUTULDARCY_MISSING_SUPPORT)
+    push_and_create!(data, "WELOPEN", welopen)
 end
 
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:WCONPROD})
@@ -107,7 +107,7 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:WCONPROD})
     for wp in wconprod
         swap_unit_system_axes!(wp, units, utypes)
     end
-    data["WCONPROD"] = wconprod
+    push_and_create!(data, "WCONPROD", wconprod)
 end
 
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:WCONHIST})
@@ -125,7 +125,7 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:WCONHIST})
     for o in out
         swap_unit_system_axes!(o, units, utypes)
     end
-    data["WCONHIST"] = out
+    push_and_create!(data, "WCONHIST", out)
 end
 
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:WCONINJ})
@@ -150,7 +150,7 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:WCONINJ})
         end
         swap_unit_system_axes!(o, units, utypes)
     end
-    data["WCONINJ"] = out
+    push_and_create!(data, "WCONINJ", out)
 end
 
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:WCONINJE})
@@ -180,7 +180,7 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:WCONINJE})
         end
         swap_unit_system_axes!(o, units, utypes)
     end
-    data["WCONINJE"] = out
+    push_and_create!(data, "WCONINJE", out)
 end
 
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:WCONINJH})
@@ -204,7 +204,7 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:WCONINJH})
         end
         swap_unit_system_axes!(o, units, utypes)
     end
-    data["WCONINJH"] = out
+    push_and_create!(data, "WCONINJH", out)
 end
 
 function parse_keyword!(data, outer_data, units, cfg, f, ::Union{Val{:WELLTARG}, Val{:WELTARG}})
@@ -212,7 +212,7 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Union{Val{:WELLTARG},
     wells = get_wells(outer_data)
     out = parse_defaulted_group_well(f, defaults, wells, 1)
     parser_message(cfg, outer_data, "WELTARG", PARSER_JUTULDARCY_MISSING_SUPPORT)
-    data["WELTARG"] = out
+    push_and_create!(data, "WELTARG", out)
 end
 
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:WEFAC})

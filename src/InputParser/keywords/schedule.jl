@@ -318,14 +318,14 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:WELLSTRE})
         end
         @assert sum ≈ 1.0 "Compositions in well stream $(r[1]) defined by WELLSTRE must sum up to one (was $sum)"
     end
-    data["WELLSTRE"] = rec
+    push_and_create!(data, "WELLSTRE", rec)
 end
 
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:WINJGAS})
     defaults = ["Default", "GRUP", "Default", "Default", 0]
     wells = get_wells(outer_data)
     d = parse_defaulted_group_well(f, defaults, wells, 1)
-    data["WINJGAS"] = d
+    push_and_create!(data, "WINJGAS", d)
 end
 
 

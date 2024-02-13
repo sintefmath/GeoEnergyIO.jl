@@ -243,7 +243,6 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:MULTFLT})
     d = "*"
     tdims = [d, 1.0, 1.0]
     faults = outer_data["GRID"]["FAULTS"]
-    parser_message(cfg, outer_data, "MULTFLT", PARSER_JUTULDARCY_MISSING_SUPPORT)
     out = parse_defaulted_group_well(f, tdims, faults);
     if !haskey(data, "MULTFLT")
         data["MULTFLT"] = Dict{String, Tuple{Float64, Float64}}()

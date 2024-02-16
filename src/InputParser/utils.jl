@@ -603,10 +603,12 @@ function clean_include_path(basedir, include_file_name)
     return include_path
 end
 
-function get_section(outer_data, name::Symbol)
+function get_section(outer_data, name::Symbol; set_current = true)
     s = "$name"
     is_sched = name == :SCHEDULE
-    outer_data["CURRENT_SECTION"] = name
+    if set_current
+        outer_data["CURRENT_SECTION"] = name
+    end
     T = OrderedDict{String, Any}
     if is_sched
         if !haskey(outer_data, s)

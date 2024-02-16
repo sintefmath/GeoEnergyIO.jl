@@ -120,6 +120,17 @@ function unit_type(::Union{Val{:PERMX}, Val{:PERMY}, Val{:PERMZ}})
     return :permeability
 end
 
+const ENDPOINT_TYPE = Union{Val{:SWL}, Val{:SGL}, Val{:SWCR}, Val{:SWU}, Val{:SGCR}, Val{:SGU}, Val{:SOWCR}, Val{:SOGCR}}
+
+function parse_keyword!(data, outer_data, units, cfg, f, v::ENDPOINT_TYPE)
+    k = unpack_val(v)
+    parse_and_set_grid_data!(data, outer_data, units, cfg, f, k, unit = unit_type(k))
+end
+
+function unit_type(::ENDPOINT_TYPE)
+    return :id
+end
+
 function parse_keyword!(data, outer_data, units, cfg, f, v::Val{:MULTREGT})
     parser_message(cfg, outer_data, "MULTREGT", PARSER_MISSING_SUPPORT)
     skip_record(f)

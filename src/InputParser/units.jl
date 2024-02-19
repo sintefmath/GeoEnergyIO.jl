@@ -48,6 +48,7 @@ Base.@kwdef struct DeckUnitSystem{S, T}
     molar_mass::T = 1.0
     relative_temperature::Symbol = :Celsius
     absolute_temperature::Symbol = :Kelvin
+    absolute_temperature_numeric::T = 1.0
 end
 
 function DeckUnitSystem(sys::Symbol, T = Float64)
@@ -91,6 +92,7 @@ function DeckUnitSystem(sys::Symbol, T = Float64)
         mass_heat_capacity = kJ/(mass*K)
         relative_temperature = :Celsius
         absolute_temperature = :Kelvin
+        absolute_temperature_numeric = K
     elseif sys == :field
         len = ft
         time = day
@@ -111,6 +113,7 @@ function DeckUnitSystem(sys::Symbol, T = Float64)
         mass_heat_capacity = btu / (pound*rankine)
         relative_temperature = :Fahrenheit
         absolute_temperature = :Rankine
+        absolute_temperature_numeric = rankine
     elseif sys == :lab
         error("Not implemented")
     else
@@ -134,6 +137,7 @@ function DeckUnitSystem(sys::Symbol, T = Float64)
         molar_mass = 1.0
         relative_temperature = :Celsius
         absolute_temperature = :Kelvin
+        absolute_temperature_numeric = K
     end
     area = len^2
     volume = len^3
@@ -170,7 +174,8 @@ function DeckUnitSystem(sys::Symbol, T = Float64)
         volume_heat_capacity = volume_heat_capacity,
         mass_heat_capacity = mass_heat_capacity,
         relative_temperature = relative_temperature,
-        absolute_temperature = absolute_temperature
+        absolute_temperature = absolute_temperature,
+        absolute_temperature_numeric = absolute_temperature_numeric
     )
 end
 
@@ -316,4 +321,13 @@ end
 
 function deck_unit(sys::DeckUnitSystem, ::Val{:critical_volume})
     return deck_unit(sys, :volume)/deck_unit(sys, :mol)
+end
+
+function deck_unit(sys::DeckUnitSystem, ::Val{:thermal_expansion_c1})
+    return 1.0/deck_unit(sys, :absolute_temperature_numeric)
+end
+
+function deck_unit(sys::DeckUnitSystem, ::Val{:thermal_expansion_c2})
+    u = deck_unit(sys, :absolute_temperature_numeric)
+    return 1.0/u^2
 end

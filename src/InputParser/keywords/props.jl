@@ -232,9 +232,31 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:VISCREF})
     data["VISCREF"] = viscref
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Union{Val{:VISCREF}, Val{:VISCREF}})
+function parse_keyword!(data, outer_data, units, cfg, f, v::Union{Val{:WATVISCT}, Val{:OILVISCT}})
+    k = unpack_val(v)
+    nreg = number_of_tables(outer_data, :pvtnum)
+    visct = parse_region_matrix_table(f, nreg)
+    for tab in visct
+        swap_unit_system_axes!(tab, units, (:relative_temperature, :viscosity))
+    end
+    parser_message(cfg, outer_data, "$k", PARSER_PARTIAL_SUPPORT)
+    parser_message(cfg, outer_data, "$k", PARSER_JUTULDARCY_MISSING_SUPPORT)
+    data["k"] = visct
+end
 
-
+function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:WATDENT})
+    nreg = number_of_tables(outer_data, :pvtnum)
+    watdent = []
+    tdims = [NaN, NaN, NaN]
+    for tab in 1:nreg
+        rec = read_record(f)
+        tab = parse_defaulted_line(rec, tdims)
+        swap_unit_system_axes!(tab, units, (:absolute_temperature, :thermal_expansion_c1, :thermal_expansion_c2))
+        push!(watdent, tab)
+    end
+    parser_message(cfg, outer_data, "WATDENT", PARSER_PARTIAL_SUPPORT)
+    parser_message(cfg, outer_data, "WATDENT", PARSER_JUTULDARCY_MISSING_SUPPORT)
+    data["WATDENT"] = watdent
 end
 
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:ROCK})

@@ -349,6 +349,18 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:AQUANCON})
     skip_record(f)
 end
 
+function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:WTEMP})
+    d = "Default"
+    defaults = [d, NaN]
+    wells = get_wells(outer_data)
+    wtemp = parse_defaulted_group_well(f, defaults, wells, 1)
+    for wt in wtemp
+        swap_unit_system_axes!(wt, units, (:id, :relative_temperature))
+    end
+    parser_message(cfg, outer_data, "WTEMP", PARSER_JUTULDARCY_MISSING_SUPPORT)
+    push_and_create!(data, "WTEMP", wtemp)
+end
+
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:WELSEGS})
     d = "Default"
     # TODO: Last two entries for heat capacity / thermal conductivity are not

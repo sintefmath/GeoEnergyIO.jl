@@ -239,9 +239,18 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:SPECHEAT})
         rec = read_record(f)
         swap_unit_system_axes!(tab, units, (:relative_temperature, :mass_heat_capacity, :mass_heat_capacity, :mass_heat_capacity))
     end
-    parser_message(cfg, outer_data, "SPECHEAT", PARSER_PARTIAL_SUPPORT)
     parser_message(cfg, outer_data, "SPECHEAT", PARSER_JUTULDARCY_MISSING_SUPPORT)
     data["SPECHEAT"] = speacheat
+end
+
+function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:SPECROCK})
+    nreg = number_of_tables(outer_data, :satnum)
+    specrock = parse_region_matrix_table(f, nreg)
+    for tab in specrock
+        rec = read_record(f)
+        swap_unit_system_axes!(tab, units, (:relative_temperature, :mass_heat_capacity))
+    end
+    data["SPECROCK"] = specrock
 end
 
 function parse_keyword!(data, outer_data, units, cfg, f, v::Union{Val{:WATVISCT}, Val{:OILVISCT}})
@@ -251,7 +260,6 @@ function parse_keyword!(data, outer_data, units, cfg, f, v::Union{Val{:WATVISCT}
     for tab in visct
         swap_unit_system_axes!(tab, units, (:relative_temperature, :viscosity))
     end
-    parser_message(cfg, outer_data, "$k", PARSER_PARTIAL_SUPPORT)
     parser_message(cfg, outer_data, "$k", PARSER_JUTULDARCY_MISSING_SUPPORT)
     data["k"] = visct
 end
@@ -266,7 +274,6 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:WATDENT})
         swap_unit_system_axes!(tab, units, (:absolute_temperature, :thermal_expansion_c1, :thermal_expansion_c2))
         push!(watdent, tab)
     end
-    parser_message(cfg, outer_data, "WATDENT", PARSER_PARTIAL_SUPPORT)
     parser_message(cfg, outer_data, "WATDENT", PARSER_JUTULDARCY_MISSING_SUPPORT)
     data["WATDENT"] = watdent
 end
@@ -288,14 +295,6 @@ end
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:DIFFC})
     parser_message(cfg, outer_data, "DIFFC", PARSER_MISSING_SUPPORT)
     nreg = number_of_tables(outer_data, :pvtnum)
-    for i = 1:nreg
-        rec = read_record(f)
-    end
-end
-
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:SPECROCK})
-    parser_message(cfg, outer_data, "SPECROCK", PARSER_MISSING_SUPPORT)
-    nreg = number_of_tables(outer_data, :satnum)
     for i = 1:nreg
         rec = read_record(f)
     end

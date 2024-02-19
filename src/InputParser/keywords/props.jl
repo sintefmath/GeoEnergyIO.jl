@@ -236,7 +236,6 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:SPECHEAT})
     nreg = number_of_tables(outer_data, :pvtnum)
     speacheat = parse_region_matrix_table(f, nreg)
     for tab in speacheat
-        rec = read_record(f)
         swap_unit_system_axes!(tab, units, (:relative_temperature, :mass_heat_capacity, :mass_heat_capacity, :mass_heat_capacity))
     end
     parser_message(cfg, outer_data, "SPECHEAT", PARSER_JUTULDARCY_MISSING_SUPPORT)
@@ -261,7 +260,7 @@ function parse_keyword!(data, outer_data, units, cfg, f, v::Union{Val{:WATVISCT}
         swap_unit_system_axes!(tab, units, (:relative_temperature, :viscosity))
     end
     parser_message(cfg, outer_data, "$k", PARSER_JUTULDARCY_MISSING_SUPPORT)
-    data["k"] = visct
+    data["$k"] = visct
 end
 
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:WATDENT})

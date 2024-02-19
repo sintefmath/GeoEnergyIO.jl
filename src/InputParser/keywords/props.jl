@@ -216,6 +216,27 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:PVDO})
     data["PVDO"] = pvdo
 end
 
+function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:VISCREF})
+    nreg = number_of_tables(outer_data, :pvtnum)
+    viscref = []
+    tdims = [NaN, NaN, NaN]
+    for tab in 1:nreg
+        rec = read_record(f)
+        tab = parse_defaulted_line(rec, tdims)
+        # TODO: Last entry here is API related, should have a unit added.
+        swap_unit_system_axes!(tab, units, (:pressure, :u_rs, :id))
+        push!(viscref, tab)
+    end
+    parser_message(cfg, outer_data, "VISCREF", PARSER_PARTIAL_SUPPORT)
+    parser_message(cfg, outer_data, "VISCREF", PARSER_JUTULDARCY_MISSING_SUPPORT)
+    data["VISCREF"] = viscref
+end
+
+function parse_keyword!(data, outer_data, units, cfg, f, ::Union{Val{:VISCREF}, Val{:VISCREF}})
+
+
+end
+
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:ROCK})
     tdims = [NaN, NaN, NaN, NaN, NaN, NaN]
     utypes = [:pressure, :compressibility, :compressibility, :compressibility, :id, :id]

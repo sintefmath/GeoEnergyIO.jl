@@ -232,6 +232,18 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:VISCREF})
     data["VISCREF"] = viscref
 end
 
+function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:SPECHEAT})
+    nreg = number_of_tables(outer_data, :pvtnum)
+    speacheat = parse_region_matrix_table(f, nreg)
+    for tab in speacheat
+        rec = read_record(f)
+        swap_unit_system_axes!(tab, units, (:relative_temperature, :mass_heat_capacity, :mass_heat_capacity, :mass_heat_capacity))
+    end
+    parser_message(cfg, outer_data, "SPECHEAT", PARSER_PARTIAL_SUPPORT)
+    parser_message(cfg, outer_data, "SPECHEAT", PARSER_JUTULDARCY_MISSING_SUPPORT)
+    data["SPECHEAT"] = speacheat
+end
+
 function parse_keyword!(data, outer_data, units, cfg, f, v::Union{Val{:WATVISCT}, Val{:OILVISCT}})
     k = unpack_val(v)
     nreg = number_of_tables(outer_data, :pvtnum)

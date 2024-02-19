@@ -146,6 +146,17 @@ function parse_keyword!(data, outer_data, units, cfg, f, v::Union{
     parse_and_set_grid_data!(data, outer_data, units, cfg, f, k, unit = :id)
 end
 
+const THERMAL_CONDUCTIVITY_TYPE = Union{Val{:THCROCK}, Val{:THCWATER}, Val{:THCGAS}, Val{:THCSOLID}, Val{:THCAVE}}
+
+function parse_keyword!(data, outer_data, units, cfg, f, v::THERMAL_CONDUCTIVITY_TYPE)
+    k = unpack_val(v)
+    parse_and_set_grid_data!(data, outer_data, units, cfg, f, k, unit = unit_type(k))
+end
+
+function unit_type(::THERMAL_CONDUCTIVITY_TYPE)
+    return :rock_conductivity
+end
+
 function parse_keyword!(data, outer_data, units, cfg, f, v::Val{:MULTPV})
     k = unpack_val(v)
     parse_and_set_grid_data!(data, outer_data, units, cfg, f, k)

@@ -45,7 +45,11 @@ function mesh_from_grid_section(f, actnum = missing)
         tops = only(unique(grid["TOPS"]))
         G = CartesianMesh(cartdims, cartdims.*(dx, dy, dz))
         # We always want to return an unstructured mesh.
-        G = UnstructuredMesh(G)
+        G = UnstructuredMesh(G, z_is_depth = true)
+        offset = [0.0, 0.0, tops]
+        for i in eachindex(G.node_points)
+            G.node_points[i] += offset
+        end
     end
     if haskey(grid, "FAULTS")
         mesh_add_fault_tags!(G, grid["FAULTS"])

@@ -238,7 +238,6 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:SPECHEAT})
     for tab in speacheat
         swap_unit_system_axes!(tab, units, (:relative_temperature, :mass_heat_capacity, :mass_heat_capacity, :mass_heat_capacity))
     end
-    parser_message(cfg, outer_data, "SPECHEAT", PARSER_JUTULDARCY_MISSING_SUPPORT)
     data["SPECHEAT"] = speacheat
 end
 

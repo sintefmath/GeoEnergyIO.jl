@@ -75,7 +75,6 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:WELOPEN})
     defaults = [d, "OPEN", -1, -1, -1, -1, -1]
     wells = get_wells(outer_data)
     welopen = parse_defaulted_group_well(f, defaults, wells, 1)
-    parser_message(cfg, outer_data, "WELOPEN", PARSER_JUTULDARCY_MISSING_SUPPORT)
     push_and_create!(data, "WELOPEN", welopen)
 end
 
@@ -357,7 +356,6 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:WTEMP})
     for wt in wtemp
         swap_unit_system_axes!(wt, units, (:id, :relative_temperature))
     end
-    parser_message(cfg, outer_data, "WTEMP", PARSER_JUTULDARCY_MISSING_SUPPORT)
     push_and_create!(data, "WTEMP", wtemp)
 end
 

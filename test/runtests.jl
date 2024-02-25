@@ -2,7 +2,7 @@ using GeoEnergyIO
 using Test
 
 import GeoEnergyIO: test_input_file_path
-import Jutul: number_of_cells, number_of_boundary_faces, number_of_faces
+import Jutul: number_of_cells, number_of_boundary_faces, number_of_faces, convert_from_si
 
 @testset "GeoEnergyIO.jl" begin
     import GeoEnergyIO.InputParser: clean_include_path, parse_defaulted_line

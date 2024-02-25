@@ -265,11 +265,12 @@ end
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:WATDENT})
     nreg = number_of_tables(outer_data, :pvtnum)
     watdent = []
-    tdims = [NaN, NaN, NaN]
+    uids = (:absolute_temperature, :thermal_expansion_c1, :thermal_expansion_c2)
+    tdims = defaults_for_unit(units.from, uids, metric = [293.15, 3.0, 3.0e-6])
     for tab in 1:nreg
         rec = read_record(f)
         tab = parse_defaulted_line(rec, tdims)
-        swap_unit_system_axes!(tab, units, (:absolute_temperature, :thermal_expansion_c1, :thermal_expansion_c2))
+        swap_unit_system_axes!(tab, units, uids)
         push!(watdent, tab)
     end
     parser_message(cfg, outer_data, "WATDENT", PARSER_JUTULDARCY_MISSING_SUPPORT)

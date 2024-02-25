@@ -677,3 +677,49 @@ function unit_type(::Val{k}) where k
     @warn "Unit type not defined for $k."
     return :id
 end
+
+function defaults_for_unit(units::Symbol, unit_ids; kwarg...)
+    return defaults_for_unit(DeckUnitSystem(units), unit_ids; kwarg...)
+end
+
+function defaults_for_unit(units::NamedTuple, unit_ids; kwarg...)
+    return defaults_for_unit(units.from, unit_ids; kwarg...)
+end
+
+function defaults_for_unit(usys::DeckUnitSystem{S, T}, eachunit; kwarg...) where {S, T}
+    defaults = Dict{Symbol, Any}(
+        :metric => missing,
+        :field => missing,
+        :lab => missing,
+        :si => missing
+    )
+    n = length(eachunit)
+    previous_key = missing
+    for (k, v) in kwarg
+        haskey(defaults, k) || throw(ArgumentError("Key $k was not present in known set of unit systems $(keys(defaults))"))
+        if ismissing(k)
+            continue
+        end
+        m = length(v)
+        m == n || throw(ArgumentError("$k had length $m but units ids $eachunit had $n entries"))
+        if k == S
+            # Early return
+            return v
+        end
+        defaults[k] = v
+        previous_key = k
+    end
+    !ismissing(previous_key) || throw(ArgumentError("At least one unit system must be specified."))
+    # If our requested unit system was missing we convert the last one we
+    # encountered and hope that entries were consistently defined if defaults
+    # were provided for multiple unit systems.
+    source_usys = DeckUnitSystem(previous_key)
+
+    upair = (to = usys, from = source_usys)
+    old = defaults[previous_key]
+    out = similar(old)
+    for i in eachindex(out)
+        out[i] = swap_unit_system(old[i], upair, eachunit[i])
+    end
+    return out
+end

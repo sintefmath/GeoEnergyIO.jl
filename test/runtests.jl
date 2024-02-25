@@ -158,4 +158,11 @@ import Jutul: number_of_cells, number_of_boundary_faces, number_of_faces
             end
         end
     end
+    @testset "defaults_for_unit" begin
+        import GeoEnergyIO.InputParser: defaults_for_unit
+        ft = convert_from_si(1.0, :feet)
+        @test defaults_for_unit(:si, (:length, :volume), si = [1.0, 2.0]) ≈ [1.0, 2.0]
+        @test defaults_for_unit(:field, (:length, :volume), si = [1.0, 2.0]) ≈ [ft, 2.0*ft^3]
+        @test defaults_for_unit(:field, (:length, :volume), si = [1.0, 2.0], field = [200.0, 500.0]) ≈ [200.0, 500.0]
+    end
 end

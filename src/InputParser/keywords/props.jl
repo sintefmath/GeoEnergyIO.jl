@@ -228,7 +228,6 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:VISCREF})
         push!(viscref, tab)
     end
     parser_message(cfg, outer_data, "VISCREF", PARSER_PARTIAL_SUPPORT)
-    parser_message(cfg, outer_data, "VISCREF", PARSER_JUTULDARCY_MISSING_SUPPORT)
     data["VISCREF"] = viscref
 end
 
@@ -258,7 +257,6 @@ function parse_keyword!(data, outer_data, units, cfg, f, v::Union{Val{:WATVISCT}
     for tab in visct
         swap_unit_system_axes!(tab, units, (:relative_temperature, :viscosity))
     end
-    parser_message(cfg, outer_data, "$k", PARSER_JUTULDARCY_MISSING_SUPPORT)
     data["$k"] = visct
 end
 
@@ -273,7 +271,6 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:WATDENT})
         swap_unit_system_axes!(tab, units, uids)
         push!(watdent, tab)
     end
-    parser_message(cfg, outer_data, "WATDENT", PARSER_JUTULDARCY_MISSING_SUPPORT)
     data["WATDENT"] = watdent
 end
 

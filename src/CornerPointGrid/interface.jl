@@ -37,7 +37,7 @@ function mesh_from_grid_section(f, actnum = missing)
         @assert haskey(grid, "DY")
         @assert haskey(grid, "DZ")
         @assert haskey(grid, "TOPS")
-        @warn "DX+DY+DZ+TOPS format is only supported if all cells are equally sized. If you get an error, this is the cause."
+        @warn "DX+DY+DZ+TOPS format is only supported if all cells are equally sized and at same TOPS depth. If you get an error, this is the cause."
         @assert all(actnum)
         dx = only(unique(grid["DX"]))
         dy = only(unique(grid["DY"]))

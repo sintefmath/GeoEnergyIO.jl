@@ -586,6 +586,7 @@ function clean_include_path(basedir, include_file_name)
         include_file_name = m.match[2:end-1]
     end
     include_file_name = strip(include_file_name)
+    include_file_name = replace(include_file_name, '\\' => '/')
     if startswith(include_file_name, "./")
         include_file_name = include_file_name[3:end]
     end

@@ -23,7 +23,7 @@ function cpgrid_primitives(coord, zcorn, cartdims; actnum = missing, pinch = mis
     @assert nliney*nlinex == size(coord, 1)
 
     function generate_line(p1, p2)
-        line_length_hint = nz
+        line_length_hint = 4*nz
         z = sizehint!(Vector{Float64}(), line_length_hint)
         cells = sizehint!(Vector{Int}(), line_length_hint)
         cellpos = sizehint!(Vector{Int}(), line_length_hint)
@@ -51,7 +51,7 @@ function cpgrid_primitives(coord, zcorn, cartdims; actnum = missing, pinch = mis
         return layer_offset - ij_to_linear(i, j, cartdims[1:2])
     end
 
-    function cell_index(i, j, k)
+    function cell_index(i, j, k, actnum)
         ix = ijk_to_linear(i, j, k, cartdims)
         if actnum[i, j, k]
             cell = remapped_indices[ix]
@@ -76,7 +76,7 @@ function cpgrid_primitives(coord, zcorn, cartdims; actnum = missing, pinch = mis
         for j = 1:ny
             for k = 1:nz
                 ix = ijk_to_linear(i, j, k, cartdims)
-                active_cell_index = cell_index(i, j, k)
+                active_cell_index = cell_index(i, j, k, actnum)
                 for I1 in (0, 1)
                     for I2 in (0, 1)
                         L = lines[i + I2, j + I1]
@@ -148,7 +148,7 @@ function cpgrid_primitives(coord, zcorn, cartdims; actnum = missing, pinch = mis
                 prev = boundary_index(i, j, true) 
                 push!(col.cells, prev)
                 for k in 1:nz
-                    cell = cell_index(i, j, k)
+                    cell = cell_index(i, j, k, actnum)
                     if cell != prev
                         push!(col.cells, cell)
                     end

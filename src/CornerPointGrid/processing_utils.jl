@@ -393,7 +393,6 @@ function traverse_column_pair(col_a, col_b, l1, l2)
 
     ord_a = cell_top_bottom(col_a.cells, l1, l2)
     ord_b = cell_top_bottom(col_b.cells, l1, l2)
-    sizehint!(overlaps, max(length(ord_a), length(ord_b)))
     function get_local_line(pos, is_line1::Bool)
         if is_line1
             d = pos.line1
@@ -419,7 +418,10 @@ function traverse_column_pair(col_a, col_b, l1, l2)
         return determine_cell_overlap_inside_line(a_start, a_stop, b_start, b_stop)
     end
     cell_pairs = Tuple{Int, Int}[]
-    sizehint!(cell_pairs, 2*max(length(ord_a), length(ord_b)))
+    cellhint = 2*max(length(ord_a), length(ord_b))
+    sizehint!(cell_pairs, cellhint)
+    sizehint!(overlaps, cellhint)
+
     for pos_a in ord_a
         for pos_b in ord_b
             # @info "Cell pair: $((pos_a.cell, pos_b.cell))"

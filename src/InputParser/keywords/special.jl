@@ -307,14 +307,14 @@ function apply_equals!(target, constval, I, J, K, dims)
 end
 
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:MAXVALUE})
-    edit_apply_clamping!(f, outer_data, min)
+    edit_apply_clamping!(f, outer_data, units, min)
 end
 
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:MINVALUE})
-    edit_apply_clamping!(f, outer_data, max)
+    edit_apply_clamping!(f, outer_data, units, max)
 end
 
-function edit_apply_clamping!(f, outer_data, FUNCTION)
+function edit_apply_clamping!(f, outer_data, units, FUNCTION)
     rec = read_record(f)
     l, u = outer_data["GRID"]["CURRENT_BOX"]
     dims = outer_data["GRID"]["cartDims"]

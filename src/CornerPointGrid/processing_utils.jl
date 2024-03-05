@@ -393,6 +393,7 @@ function traverse_column_pair(col_a, col_b, l1, l2)
 
     ord_a = cell_top_bottom(col_a.cells, l1, l2)
     ord_b = cell_top_bottom(col_b.cells, l1, l2)
+    sizehint!(overlaps, max(length(ord_a), length(ord_b)))
     function get_local_line(pos, is_line1::Bool)
         if is_line1
             d = pos.line1

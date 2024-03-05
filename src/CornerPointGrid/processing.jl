@@ -23,11 +23,17 @@ function cpgrid_primitives(coord, zcorn, cartdims; actnum = missing, pinch = mis
     @assert nliney*nlinex == size(coord, 1)
 
     function generate_line(p1, p2)
+        line_length_hint = nz
+        z = sizehint!(Vector{Float64}(), line_length_hint)
+        cells = sizehint!(Vector{Int}(), line_length_hint)
+        cellpos = sizehint!(Vector{Int}(), line_length_hint)
+        nodes = sizehint!(Vector{Int}(), line_length_hint)
+
         return (
-            z = Vector{Float64}(),
-            cells = Vector{Int}(),
-            cellpos = Vector{Int}(),
-            nodes = Vector{Int}(),
+            z = z,
+            cells = cells,
+            cellpos = cellpos,
+            nodes = nodes,
             x1 = SVector{3, Float64}(p1),
             x2 = SVector{3, Float64}(p2),
             equal_points = p1 ≈ p2

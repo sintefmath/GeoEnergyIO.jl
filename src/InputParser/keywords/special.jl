@@ -365,3 +365,19 @@ function apply_minmax!(target, lim, I, J, K, dims, F)
         end
     end
 end
+
+function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:EDITNNC})
+    rec = read_record(f)
+    grid = outer_data["GRID"]
+    dims = grid["cartDims"]
+
+    while length(rec) > 0
+        parsed = parse_defaulted_line(rec, [-1, -1, -1, -1, -1, -1, 1.0, 0, 0, 0, 0, "X+", "X+", 0.0])
+        for i in 1:6
+            @assert parsed[i] > 0 "Entry $i in record $parsed was defaulted."
+        end
+        push_and_create!(data, "EDITNNC", parsed)
+        rec = read_record(f)
+    end
+    parser_message(cfg, outer_data, "EDITNNC", PARSER_JUTULDARCY_MISSING_SUPPORT)
+end

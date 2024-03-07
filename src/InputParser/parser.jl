@@ -176,14 +176,19 @@ function parse_data_file!(outer_data, filename, data = outer_data;
                 data = new_section(outer_data, m)
                 skip_mode = m in skip
             elseif m == :INCLUDE
-                next = strip(readline(f))
+                next = readline(f)
+                if occursin("--", next)
+                    # Strip comments
+                    next = next[1:findfirst("--", next)[1]-1]
+                end
+                next = strip(next)
                 if endswith(next, '/')
                     next = rstrip(next, '/')
                 else
                     readline(f)
                 end
                 include_path = clean_include_path(basedir, next)
-                parser_message(cfg, outer_data, "$m", "Including file: $include_path. Basedir: $basedir with INCLUDE = $next)")
+                parser_message(cfg, outer_data, "$m", "Including file: $include_path. Basedir: $basedir with INCLUDE = $next")
                 parse_data_file!(
                     outer_data, include_path, data,
                     verbose = verbose,

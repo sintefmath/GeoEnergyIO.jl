@@ -415,6 +415,27 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:WELSEGS})
     data["WELSEGS"][wname] = (header = wheader, segments = segments)
 end
 
+function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:WSEGVALV})
+    d = "Default"
+    defaults = [d, -1, NaN, NaN, -1, -1, -1, -1, "OPEN", -1]
+    @assert length(defaults) == 10
+    wells = get_wells(outer_data)
+    compdat = parse_defaulted_group_well(f, defaults, wells, 1)
+    # Unit conversion
+    utypes = identity_unit_vector(defaults)
+    utypes[4] = :area
+    utypes[5] = :length
+    utypes[6] = :length
+    utypes[7] = :length
+    utypes[8] = :area
+    utypes[10] = :area
+    for cd in compdat
+        swap_unit_system_axes!(cd, units, utypes)
+    end
+    push_and_create!(data, "WSEGVALV", compdat)
+    parser_message(cfg, outer_data, "WSEGVALV", PARSER_JUTULDARCY_MISSING_SUPPORT)
+end
+
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:COMPSEGS})
     rec = read_record(f)
     wname = only(parse_defaulted_line(rec, ["Default"]))
@@ -460,3 +481,4 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:UDQ})
     skip_record(f)
     parser_message(cfg, outer_data, "UDQ", PARSER_MISSING_SUPPORT)
 end
+

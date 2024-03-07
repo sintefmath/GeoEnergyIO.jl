@@ -179,7 +179,7 @@ function parse_keyword!(data, outer_data, units, cfg, f, v::Union{Val{:POELCOEF}
     data["$k"] = vals
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, v::Union{Val{:FIPNUM}, Val{:PVTNUM}, Val{:SATNUM}, Val{:EQLNUM}, Val{:ROCKNUM}, Val{:IMBNUM}, Val{:MULTNUM}})
+function parse_keyword!(data, outer_data, units, cfg, f, v::Union{Val{:FIPNUM}, Val{:PVTNUM}, Val{:SATNUM}, Val{:EQLNUM}, Val{:ROCKNUM}, Val{:IMBNUM}, Val{:MULTNUM}, Val{:FIPZON}})
     k = unpack_val(v)
     parse_and_set_grid_data!(data, outer_data, units, cfg, f, k, T = Int)
 end

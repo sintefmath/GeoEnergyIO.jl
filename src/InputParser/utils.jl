@@ -423,6 +423,7 @@ function parse_keyword!(data, outer_data, units, cfg, f, v::Val{T}) where T
     skip_kw!(:NOWARNEP, 0)
     skip_kw!(:NOHYKR, 0)
     skip_kw!(:NOMIX, 0)
+    skip_kw!(:FILLEPS, 0)
     skip_kw!(:NPROCX, 0)
     skip_kw!(:NPROCY, 0)
     skip_kw!(:NONNC, 0)

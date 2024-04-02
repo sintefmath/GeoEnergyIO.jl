@@ -231,6 +231,18 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:VISCREF})
     data["VISCREF"] = viscref
 end
 
+function parse_keyword!(data, outer_data, units, cfg, f, v::Val{:ROCKTAB})
+    nrock = outer_data["RUNSPEC"]["ROCKCOMP"][2]
+    tables = parse_region_matrix_table(f, nrock)
+    for tab in tables
+        for i in axes(tab, 1)
+            tab[i, 1] = swap_unit_system(tab[i, 1], units, :pressure)
+        end
+    end
+    parser_message(cfg, outer_data, "ROCKTAB", PARSER_JUTULDARCY_MISSING_SUPPORT)
+    data["ROCKTAB"] = tables
+end
+
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:SPECHEAT})
     nreg = number_of_tables(outer_data, :pvtnum)
     speacheat = parse_region_matrix_table(f, nreg)

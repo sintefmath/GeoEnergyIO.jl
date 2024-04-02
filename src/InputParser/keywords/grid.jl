@@ -196,10 +196,19 @@ function unit_type(::Union{Val{:PORO}, Val{:NTG}})
     return :id
 end
 
+function unit_type(::Val{:PORV})
+    return :volume
+end
+
 function parse_keyword!(data, outer_data, units, cfg, f, v::Union{Val{:DX}, Val{:DY}, Val{:DZ}})
     k = unpack_val(v)
     data["$k"] = parse_grid_vector(f, get_cartdims(outer_data), Float64)
 end
+
+function unit_type(::Union{Val{:DX}, Val{:DY}, Val{:DZ}})
+    return :length
+end
+
 
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:TOPS})
     tops = parse_deck_vector(f, Float64)

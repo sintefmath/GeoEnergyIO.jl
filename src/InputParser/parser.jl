@@ -19,10 +19,10 @@ function keyword_header(current_data, keyword)
     return out
 end
 
-function parser_message(cfg::ParserVerbosityConfig, outer_data, keyword, msg::String; important = false)
+function parser_message(cfg::ParserVerbosityConfig, outer_data, keyword, msg::String; important = false, color = :yellow)
     if !cfg.silent
         if important || cfg.verbose
-            println("$(keyword_header(outer_data, keyword)): $msg")
+            jutul_message("Parser", "$(keyword_header(outer_data, keyword)): $msg", color = color)
         end
     end
 end
@@ -114,6 +114,7 @@ function parse_data_file!(outer_data, filename, data = outer_data;
         basedir = missing,
         silent = false,
         is_outer = true,
+        extra_out = false,
         input_units::Union{Symbol, Nothing} = nothing,
         unit_systems = missing
     )
@@ -189,7 +190,7 @@ function parse_data_file!(outer_data, filename, data = outer_data;
                 end
                 include_path = clean_include_path(basedir, next)
                 parser_message(cfg, outer_data, "$m", "Including file: $include_path. Basedir: $basedir with INCLUDE = $next")
-                parse_data_file!(
+                outer_data, data = parse_data_file!(
                     outer_data, include_path, data,
                     verbose = verbose,
                     warn_parsing = warn_parsing,
@@ -197,6 +198,7 @@ function parse_data_file!(outer_data, filename, data = outer_data;
                     silent = silent,
                     sections = sections,
                     skip = skip,
+                    extra_out = true,
                     basedir = basedir,
                     skip_mode = skip_mode,
                     is_outer = false,
@@ -229,7 +231,12 @@ function parse_data_file!(outer_data, filename, data = outer_data;
         end
         close(f)
     end
-    return outer_data
+    if extra_out
+        out = (outer_data, data)
+    else
+        out = outer_data
+    end
+    return out
 end
 
 """

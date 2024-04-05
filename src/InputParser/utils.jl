@@ -448,6 +448,11 @@ function parse_keyword!(data, outer_data, units, cfg, f, v::Val{T}) where T
     skip_kw!(:NETBALAN, 1, PARSER_MISSING_SUPPORT)
     skip_kw!(:JFUNC, 1, PARSER_MISSING_SUPPORT)
 
+    skip_kw!(:PSPLITX, Inf, PARSER_MISSING_SUPPORT)
+    skip_kw!(:PSPLITY, Inf, PARSER_MISSING_SUPPORT)
+    skip_kw!(:PSPLITZ, Inf, PARSER_MISSING_SUPPORT)
+    skip_kw!(:COMPLUMP, Inf, PARSER_MISSING_SUPPORT)
+
     skip_kw!(:TRACER, Inf, PARSER_MISSING_SUPPORT)
     skip_kw!(:THPRES, Inf, PARSER_MISSING_SUPPORT)
     skip_kw!(:PIMULTAB, Inf, PARSER_MISSING_SUPPORT)

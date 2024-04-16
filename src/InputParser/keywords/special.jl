@@ -290,17 +290,17 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:EQUALS})
         target = get_operation_section(outer_data, dst)
         if ismissing(target)
             # TODO: Different keywords go in different spots...
-            data[dst] = fill(constval, dims...)
-        else
-            # Box can be kept.
-            il = parsed[3]
-            iu = parsed[4]
-            jl = parsed[5]
-            ju = parsed[6]
-            kl = parsed[7]
-            ku = parsed[8]
-            apply_equals!(target, constval, (il, iu), (jl, ju), (kl, ku), dims)
+            data[dst] = fill(NaN, dims...)
+            target = data[dst]
         end
+        # Box can be kept.
+        il = parsed[3]
+        iu = parsed[4]
+        jl = parsed[5]
+        ju = parsed[6]
+        kl = parsed[7]
+        ku = parsed[8]
+        apply_equals!(target, constval, (il, iu), (jl, ju), (kl, ku), dims)
         rec = read_record(f)
     end
 end

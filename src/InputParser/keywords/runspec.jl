@@ -173,7 +173,6 @@ end
 
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:ENDSCALE})
     rec = read_record(f)
-    parser_message(cfg, outer_data, "ENDSCALE", PARSER_JUTULDARCY_PARTIAL_SUPPORT)
     tdims = ["NODIR", "REVERS", 1, 20, 0];
     props = get_section(outer_data, :PROPS, set_current = false)
     if !haskey(props, "SCALECRS")

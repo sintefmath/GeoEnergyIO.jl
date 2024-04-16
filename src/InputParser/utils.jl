@@ -689,7 +689,7 @@ function unit_type(x::Symbol)
 end
 
 function unit_type(::Val{k}) where k
-    if !(k in (:FIPNUM, :EQLNUM, :PVTNUM, :SATNUM, :EQLNUM))
+    if !(k in (:FIPNUM, :EQLNUM, :PVTNUM, :SATNUM, :EQLNUM, :KRW, :KRO, :KRG))
         @warn "Unit type not defined for $k."
     end
     return :id

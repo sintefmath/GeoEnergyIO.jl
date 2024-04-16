@@ -83,7 +83,6 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:ZCRIT})
 end
 
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:SSHIFT})
-    parser_message(cfg, outer_data, "SSHIFT", PARSER_JUTULDARCY_MISSING_SUPPORT)
     data["SSHIFT"] = parse_compositional_helper!(f, outer_data, data, "SSHIFT")
 end
 

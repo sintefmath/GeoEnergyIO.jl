@@ -143,7 +143,7 @@ function parse_keyword!(data, outer_data, units, cfg, f, v::Union{
     )
     k = unpack_val(v)
     parser_message(cfg, outer_data, "$k", PARSER_JUTULDARCY_MISSING_SUPPORT)
-    parse_and_set_grid_data!(data, outer_data, units, cfg, f, k, unit = :id)
+    parse_and_set_grid_data!(data, outer_data, units, cfg, f, k, unit = :id, default = 1.0)
 end
 
 const THERMAL_CONDUCTIVITY_TYPE = Union{Val{:THCROCK}, Val{:THCWATER}, Val{:THCGAS}, Val{:THCSOLID}, Val{:THCAVE}}
@@ -159,7 +159,7 @@ end
 
 function parse_keyword!(data, outer_data, units, cfg, f, v::Val{:MULTPV})
     k = unpack_val(v)
-    parse_and_set_grid_data!(data, outer_data, units, cfg, f, k)
+    parse_and_set_grid_data!(data, outer_data, units, cfg, f, k, default = 1.0)
 end
 
 function parse_keyword!(data, outer_data, units, cfg, f, v::Union{Val{:PRATIO}, Val{:BIOTCOEF}})

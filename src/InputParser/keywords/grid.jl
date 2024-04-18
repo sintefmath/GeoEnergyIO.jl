@@ -219,6 +219,29 @@ function unit_type(::Val{:TOPS})
     return :length
 end
 
+function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:NNC})
+    defaults = Union{Int, Float64}[
+        -1, -1, -1, -1, -1, -1, # First six are mandatory, 2x I, J, K for pair
+        0.0, 0.0, -1, -1, -1, -1, -1, -1, 0.0, NaN, NaN
+    ]
+    eachunit = fill(:id, 17)
+    eachunit[7] = :transmissibility
+    eachunit[16] = :area
+    eachunit[17] = :permeability
+
+    nnc = []
+    while true
+        rec = read_record(f)
+        if length(rec) == 0
+            break
+        end
+        parsed = parse_defaulted_line(rec, defaults, required_num = 6, keyword = "NNC")
+        swap_unit_system_axes!(parsed, units, eachunit)
+        push!(nnc, parsed)
+    end
+    data["NNC"] = nnc
+end
+
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:DIMENS})
     rec = read_record(f)
     to_int = x -> Parsers.parse(Int, x)

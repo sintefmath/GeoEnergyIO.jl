@@ -312,7 +312,7 @@ function process_lines!(lines)
     return (nodes, active_lines)
 end
 
-function grid_from_primitives(primitives)
+function grid_from_primitives(primitives; nnc = missing)
     (;
         lines,
         lines_active,
@@ -511,6 +511,31 @@ function grid_from_primitives(primitives)
             else
                 add_vertical_cells_from_overlaps!(extra_node_lookup, F_interior, nodes, int_pairs, int_overlaps, l1, l2)
                 add_vertical_cells_from_overlaps!(extra_node_lookup, F_bnd, nodes, bnd_pairs, bnd_overlaps, l1, l2)
+            end
+        end
+    end
+
+    if !ismissing(nnc)
+        to_active_ix = zeros(Int, nx*ny*nz)
+        to_active_ix[active] = eachindex(active)
+        function cell_index(i, j, k)
+            ix = ijk_to_linear(i, j, k, cartdims)
+            aix = to_active_ix[ix]
+            return aix
+        end
+
+        for nnc_entry in nnc
+            c1 = cell_index(nnc_entry[1], nnc_entry[2], nnc_entry[3])
+            c2 = cell_index(nnc_entry[4], nnc_entry[5], nnc_entry[6])
+            if c1 > 0 && c2 > 0
+                @assert c1 != c2 "NNC cell pair must be distinct."
+                push!(face_pos, face_pos[end])
+                push!(face_neighbors, (c1, c2))
+                push!(cell_faces[c1], faceno)
+                push!(cell_faces[c2], faceno)
+                faceno += 1
+            else
+                @warn "NNC connects inactive cells, skipped: $(Tuple(nnc_entry[1:3])) -> $(Tuple(nnc_entry[4:6]))"
             end
         end
     end

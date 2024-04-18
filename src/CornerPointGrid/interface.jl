@@ -27,16 +27,18 @@ function mesh_from_grid_section(f, actnum = missing)
         actnum = get_effective_actnum(grid)
     end
     cartdims = grid["cartDims"]
+    nnc = get(grid, "NNC", missing)
     if haskey(grid, "COORD")
         coord = grid["COORD"]
         zcorn = grid["ZCORN"]
         primitives = cpgrid_primitives(coord, zcorn, cartdims, actnum = actnum)
-        G = grid_from_primitives(primitives)
+        G = grid_from_primitives(primitives, nnc = nnc)
     else
         @assert haskey(grid, "DX")
         @assert haskey(grid, "DY")
         @assert haskey(grid, "DZ")
         @assert haskey(grid, "TOPS")
+        ismissing(nnc) || throw(ArgumentError("NNC is not supported together with DX/DY/DZ/TOPS mesh."))
         @warn "DX+DY+DZ+TOPS format is only supported if all cells are equally sized and at same TOPS depth. If you get an error, this is the cause."
         @assert all(actnum)
         dx = only(unique(grid["DX"]))

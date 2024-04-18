@@ -535,7 +535,7 @@ function grid_from_primitives(primitives; nnc = missing)
                 push!(cell_faces[c2], faceno)
                 faceno += 1
             else
-                @warn "NNC connects inactive cells, skipped: $(Tuple(nnc_entry[1:3])) -> $(Tuple(nnc_entry[4:6]))"
+                error("NNC connects inactive cells, cannot proceed: $(Tuple(nnc_entry[1:3])) -> $(Tuple(nnc_entry[4:6]))")
             end
         end
     end

@@ -569,7 +569,12 @@ function get_data_file_cell_region(outer_data, t::Symbol; active = nothing)
 
         function get_or_default(k)
             if haskey(reg, k)
-                return vec(reg[k])
+                tmp = vec(reg[k])
+                if any(isnan, tmp)
+                    # Hope these get removed by ACTNUM
+                    @. tmp[isnan(tmp)] = 1
+                end
+                return Int.(tmp)
             else
                 dim = outer_data["GRID"]["cartDims"]
                 return ones(Int, prod(dim))
@@ -689,7 +694,7 @@ function unit_type(x::Symbol)
 end
 
 function unit_type(::Val{k}) where k
-    if !(k in (:FIPNUM, :EQLNUM, :PVTNUM, :SATNUM, :EQLNUM, :KRW, :KRO, :KRG))
+    if !(k in (:FIPNUM, :EQLNUM, :ACTNUM, :PVTNUM, :SATNUM, :EQLNUM, :KRW, :KRO, :KRG))
         @warn "Unit type not defined for $k."
     end
     return :id

@@ -50,25 +50,64 @@ end
 function mesh_from_dxdydz_and_tops(grid; actnum = get_effective_actnum(grid))
     nnc = get(grid, "NNC", missing)
     cartdims = grid["cartDims"]
-    to_meshgrid(x) = reshape(x, cartdims)
-    @assert haskey(grid, "DX")
-    @assert haskey(grid, "DY")
-    @assert haskey(grid, "DZ")
-    @assert haskey(grid, "TOPS")
-    @assert ismissing(nnc) || length(nnc) == 0
-    ismissing(nnc) || throw(ArgumentError("NNC is not supported together with DX/DY/DZ/TOPS mesh."))
+    nx, ny, nz = cartdims
+    function meshgrid_section(k)
+        haskey(grid, k) || throw(ArgumentError("Section GRID must have $k section when using DX/DY/DZ/TOPS format."))
+        return reshape(grid[k], cartdims)
+    end
+    ismissing(nnc) || length(nnc) == 0 || throw(ArgumentError("NNC is not supported together with DX/DY/DZ/TOPS mesh."))
     @warn "DX+DY+DZ+TOPS format is only supported if all cells are equally sized and at same TOPS depth. If you get an error, this is the cause."
-    @assert all(actnum)
-    dx = only(unique(grid["DX"]))
-    dy = only(unique(grid["DY"]))
-    dz = only(unique(grid["DZ"]))
-    tops = only(unique(grid["TOPS"]))
-    G = CartesianMesh(cartdims, cartdims.*(dx, dy, dz))
+    # @assert all(actnum)
+    DX = meshgrid_section("DX")
+    dx = vec(DX[:, 1, 1])
+    for i in axes(DX, 1)
+        for j in axes(DX, 2)
+            for k in axes(DX, 3)
+                @assert DX[i, j, k] ≈ DX[i, 1, 1]
+            end
+        end
+    end
+    DY = meshgrid_section("DY")
+    dy = vec(DY[1, :, 1])
+    for i in axes(DY, 1)
+        for j in axes(DY, 2)
+            for k in axes(DY, 3)
+                @assert DY[i, j, k] ≈ DY[1, j, 1]
+            end
+        end
+    end
+    DZ = meshgrid_section("DZ")
+    dz = vec(DZ[1, 1, :])
+    for i in axes(DZ, 1)
+        for j in axes(DZ, 2)
+            for k in axes(DZ, 3)
+                @assert DZ[i, j, k] ≈ DZ[1, 1, k]
+            end
+        end
+    end
+    TOPS = meshgrid_section("TOPS")
+    tops = TOPS[:, :, 1]
+    x_top = zeros(nx)
+    x_top[1] = dx[1]/2.0
+    for i in 2:nx
+        x_top[i] = x_top[i-1] + dx[i]
+    end
+    y_top = zeros(ny)
+    y_top[1] = dy[1]/2.0
+    for i in 2:nx
+        y_top[i] = y_top[i-1] + dy[i]
+    end
+    I_tops = BilinearInterpolant(x_top, y_top, tops)
+    G = CartesianMesh(cartdims, (dx, dy, dz))
     # We always want to return an unstructured mesh.
     G = UnstructuredMesh(G, z_is_depth = true)
-    offset = [0.0, 0.0, tops]
     for i in eachindex(G.node_points)
-        G.node_points[i] += offset
+        node = G.node_points[i]
+        G.node_points[i] += [0.0, 0.0, I_tops(node[1], node[2])]
+    end
+    if !all(actnum)
+        active_cells = findall(x -> x > 0, vec(actnum))
+        G = extract_submesh(G, active_cells)
     end
     return G
 end

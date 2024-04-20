@@ -87,17 +87,19 @@ function mesh_from_dxdydz_and_tops(grid; actnum = get_effective_actnum(grid))
     end
     TOPS = meshgrid_section("TOPS")
     tops = TOPS[:, :, 1]
-    x_top = zeros(nx)
-    x_top[1] = dx[1]/2.0
-    for i in 2:nx
-        x_top[i] = x_top[i-1] + dx[i]
+    x_top, nx = cell_centers_from_deltas(dx)
+    y_top, ny = cell_centers_from_deltas(dy)
+    if nx == 1 && ny == 1
+        I_tops = (x, y) -> only(tops)
+    elseif nx == 1
+        I_y = LinearInterpolant(Y_top, vec(tops))
+        I_tops = (x, y) -> I_y(y)
+    elseif ny == 1
+        I_x = LinearInterpolant(x_top, vec(tops))
+        I_tops = (x, y) -> I_x(x)
+    else
+        I_tops = BilinearInterpolant(x_top, y_top, tops)
     end
-    y_top = zeros(ny)
-    y_top[1] = dy[1]/2.0
-    for i in 2:nx
-        y_top[i] = y_top[i-1] + dy[i]
-    end
-    I_tops = BilinearInterpolant(x_top, y_top, tops)
     G = CartesianMesh(cartdims, (dx, dy, dz))
     # We always want to return an unstructured mesh.
     G = UnstructuredMesh(G, z_is_depth = true)
@@ -110,4 +112,14 @@ function mesh_from_dxdydz_and_tops(grid; actnum = get_effective_actnum(grid))
         G = extract_submesh(G, active_cells)
     end
     return G
+end
+
+function cell_centers_from_deltas(dx, x0 = 0.0)
+    nx = length(dx)
+    x = zeros(nx)
+    x[1] = dx[1]/2.0 + x0
+    for i in 2:nx
+        x[i] = x[i-1] + dx[i]
+    end
+    return (x, nx)
 end

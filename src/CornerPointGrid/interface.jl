@@ -26,35 +26,49 @@ function mesh_from_grid_section(f, actnum = missing)
     if ismissing(actnum)
         actnum = get_effective_actnum(grid)
     end
-    cartdims = grid["cartDims"]
-    nnc = get(grid, "NNC", missing)
     if haskey(grid, "COORD")
-        coord = grid["COORD"]
-        zcorn = grid["ZCORN"]
-        primitives = cpgrid_primitives(coord, zcorn, cartdims, actnum = actnum)
-        G = grid_from_primitives(primitives, nnc = nnc)
+        G = mesh_from_zcorn_and_coord(grid, actnum = actnum)
     else
-        @assert haskey(grid, "DX")
-        @assert haskey(grid, "DY")
-        @assert haskey(grid, "DZ")
-        @assert haskey(grid, "TOPS")
-        ismissing(nnc) || throw(ArgumentError("NNC is not supported together with DX/DY/DZ/TOPS mesh."))
-        @warn "DX+DY+DZ+TOPS format is only supported if all cells are equally sized and at same TOPS depth. If you get an error, this is the cause."
-        @assert all(actnum)
-        dx = only(unique(grid["DX"]))
-        dy = only(unique(grid["DY"]))
-        dz = only(unique(grid["DZ"]))
-        tops = only(unique(grid["TOPS"]))
-        G = CartesianMesh(cartdims, cartdims.*(dx, dy, dz))
-        # We always want to return an unstructured mesh.
-        G = UnstructuredMesh(G, z_is_depth = true)
-        offset = [0.0, 0.0, tops]
-        for i in eachindex(G.node_points)
-            G.node_points[i] += offset
-        end
+        G = mesh_from_dxdydz_and_tops(grid, actnum = actnum)
     end
     if haskey(grid, "FAULTS")
         mesh_add_fault_tags!(G, grid["FAULTS"])
+    end
+    return G
+end
+
+function mesh_from_zcorn_and_coord(grid; actnum = get_effective_actnum(grid))
+    cartdims = grid["cartDims"]
+    nnc = get(grid, "NNC", missing)
+    coord = grid["COORD"]
+    zcorn = grid["ZCORN"]
+    primitives = cpgrid_primitives(coord, zcorn, cartdims, actnum = actnum)
+    G = grid_from_primitives(primitives, nnc = nnc)
+    return G
+end
+
+function mesh_from_dxdydz_and_tops(grid; actnum = get_effective_actnum(grid))
+    nnc = get(grid, "NNC", missing)
+    cartdims = grid["cartDims"]
+    to_meshgrid(x) = reshape(x, cartdims)
+    @assert haskey(grid, "DX")
+    @assert haskey(grid, "DY")
+    @assert haskey(grid, "DZ")
+    @assert haskey(grid, "TOPS")
+    @assert ismissing(nnc) || length(nnc) == 0
+    ismissing(nnc) || throw(ArgumentError("NNC is not supported together with DX/DY/DZ/TOPS mesh."))
+    @warn "DX+DY+DZ+TOPS format is only supported if all cells are equally sized and at same TOPS depth. If you get an error, this is the cause."
+    @assert all(actnum)
+    dx = only(unique(grid["DX"]))
+    dy = only(unique(grid["DY"]))
+    dz = only(unique(grid["DZ"]))
+    tops = only(unique(grid["TOPS"]))
+    G = CartesianMesh(cartdims, cartdims.*(dx, dy, dz))
+    # We always want to return an unstructured mesh.
+    G = UnstructuredMesh(G, z_is_depth = true)
+    offset = [0.0, 0.0, tops]
+    for i in eachindex(G.node_points)
+        G.node_points[i] += offset
     end
     return G
 end

@@ -56,7 +56,6 @@ function mesh_from_dxdydz_and_tops(grid; actnum = get_effective_actnum(grid))
         return reshape(grid[k], cartdims)
     end
     ismissing(nnc) || length(nnc) == 0 || throw(ArgumentError("NNC is not supported together with DX/DY/DZ/TOPS mesh."))
-    @warn "DX+DY+DZ+TOPS format is only supported if all cells are equally sized and at same TOPS depth. If you get an error, this is the cause."
     # @assert all(actnum)
     DX = meshgrid_section("DX")
     dx = vec(DX[:, 1, 1])

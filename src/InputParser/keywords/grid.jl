@@ -202,7 +202,9 @@ end
 
 function parse_keyword!(data, outer_data, units, cfg, f, v::Union{Val{:DX}, Val{:DY}, Val{:DZ}})
     k = unpack_val(v)
-    data["$k"] = parse_grid_vector(f, get_cartdims(outer_data), Float64)
+    Δ = parse_grid_vector(f, get_cartdims(outer_data), Float64)
+    swap_unit_system_fast!(Δ, units, Val(:length))
+    data["$k"] = Δ
 end
 
 function unit_type(::Union{Val{:DX}, Val{:DY}, Val{:DZ}})

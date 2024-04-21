@@ -197,7 +197,7 @@ function unit_type(::Union{Val{:PORO}, Val{:NTG}})
 end
 
 function unit_type(::Val{:PORV})
-    return :volume
+    return :liquid_volume_reservoir
 end
 
 function parse_keyword!(data, outer_data, units, cfg, f, v::Union{Val{:DX}, Val{:DY}, Val{:DZ}})

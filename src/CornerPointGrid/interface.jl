@@ -52,8 +52,16 @@ function mesh_from_dxdydz_and_tops(grid; actnum = get_effective_actnum(grid))
     cartdims = grid["cartDims"]
     nx, ny, nz = cartdims
     function meshgrid_section(k)
+        gvec = grid[k]
         haskey(grid, k) || throw(ArgumentError("Section GRID must have $k section when using DX/DY/DZ/TOPS format."))
-        return reshape(grid[k], cartdims)
+        if k == "TOPS" && length(gvec) < nx*ny*nz
+            # We only need the top layer - extract this and discard the rest if
+            # too little data is provided.
+            out = reshape(gvec[1:nx*ny], nx, ny, 1)
+        else
+            out = reshape(gvec, cartdims)
+        end
+        return out
     end
     ismissing(nnc) || length(nnc) == 0 || throw(ArgumentError("NNC is not supported together with DX/DY/DZ/TOPS mesh."))
     # @assert all(actnum)

@@ -63,7 +63,7 @@ function mesh_from_dxdydz_and_tops(grid; actnum = get_effective_actnum(grid))
         end
         return out
     end
-    ismissing(nnc) || length(nnc) == 0 || throw(ArgumentError("NNC is not supported together with DX/DY/DZ/TOPS mesh."))
+    # ismissing(nnc) || length(nnc) == 0 || throw(ArgumentError("NNC is not supported together with DX/DY/DZ/TOPS mesh."))
     # @assert all(actnum)
     DX = meshgrid_section("DX")
     dx = vec(DX[:, 1, 1])
@@ -114,6 +114,23 @@ function mesh_from_dxdydz_and_tops(grid; actnum = get_effective_actnum(grid))
         node = G.node_points[i]
         G.node_points[i] += [0.0, 0.0, I_tops(node[1], node[2])]
     end
+    if !ismissing(nnc)
+        function cell_index(i, j, k)
+            ix = ijk_to_linear(i, j, k, cartdims)
+        end
+        nnc_neighbors = Tuple{Int, Int}[]
+        for nnc_entry in nnc
+            c1 = cell_index(nnc_entry[1], nnc_entry[2], nnc_entry[3])
+            c2 = cell_index(nnc_entry[4], nnc_entry[5], nnc_entry[6])
+            if c1 > 0 && c2 > 0
+                @assert c1 != c2 "NNC cell pair must be distinct."
+                push!(nnc_neighbors, (c1, c2))
+            else
+                error("NNC connects inactive cells, cannot proceed: $(Tuple(nnc_entry[1:3])) -> $(Tuple(nnc_entry[4:6]))")
+            end
+        end
+        insert_nnc_faces!(G, nnc_neighbors)
+    end
     if !all(actnum)
         active_cells = findall(x -> x > 0, vec(actnum))
         G = extract_submesh(G, active_cells)
@@ -129,4 +146,43 @@ function cell_centers_from_deltas(dx, x0 = 0.0)
         x[i] = x[i-1] + dx[i]
     end
     return (x, nx)
+end
+
+function insert_nnc_faces!(G::UnstructuredMesh, new_faces_neighbors, new_faces_nodes = fill(Int[], length(new_faces_neighbors)))
+    expand_indirection = x -> map(i -> copy(x[i]), 1:length(x))
+    c2f = expand_indirection(G.faces.cells_to_faces)
+    f2n = expand_indirection(G.faces.faces_to_nodes)
+
+    faceno = number_of_faces(G)
+    for neighbors in new_faces_neighbors
+        faceno += 1
+        l, r = neighbors
+        push!(G.faces.neighbors, neighbors)
+        push!(c2f[l], faceno)
+        push!(c2f[r], faceno)
+    end
+
+    for nodes in new_faces_nodes
+        push!(f2n, nodes)
+    end
+    replace_indirection!(G.faces.cells_to_faces, c2f)
+    replace_indirection!(G.faces.faces_to_nodes, f2n)
+
+    @assert number_of_faces(G) == faceno
+    return G
+end
+
+function replace_indirection!(x, expanded)
+    empty!(x.vals)
+    empty!(x.pos)
+
+    push!(x.pos, 1)
+    for vals in expanded
+        n = length(vals)
+        for v in vals
+            push!(x.vals, v)
+        end
+        push!(x.pos, x.pos[end] + n)
+    end
+    return x
 end

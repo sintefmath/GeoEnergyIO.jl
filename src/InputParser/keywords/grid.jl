@@ -111,7 +111,7 @@ function unit_type(::Union{Val{:COORD}, Val{:ZCORN}})
     return :length
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, v::Union{Val{:PERMX}, Val{:PERMY}, Val{:PERMZ}})
+function parse_keyword!(data, outer_data, units, cfg, f, v::Union{Val{:PERMX}, Val{:PERMY}, Val{:PERMZ}, Val{:PORV}, Val{:DEPTH}})
     k = unpack_val(v)
     parse_and_set_grid_data!(data, outer_data, units, cfg, f, k, unit = unit_type(k))
 end

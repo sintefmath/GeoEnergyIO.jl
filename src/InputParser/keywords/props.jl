@@ -18,8 +18,13 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:CNAMES})
 end
 
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:EOS})
-    rec = read_record(f)
-    data["EOS"] = only(parse_defaulted_line(rec, ["PR"]))
+    out = String[]
+    for i in 1:number_of_tables(outer_data, :eosnum)
+        rec = read_record(f)
+        v = only(parse_defaulted_line(rec, ["PR"]))
+        push!(out, v)
+    end
+    data["EOS"] = out
 end
 
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:NCOMPS})
@@ -27,14 +32,14 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:NCOMPS})
     data["NCOMPS"] = parse(Int, only(rec))
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:OMEGAA})
-    parser_message(cfg, outer_data, "OMEGAA", PARSER_JUTULDARCY_MISSING_SUPPORT)
-    data["OMEGAA"] = parse_deck_vector(f)
-end
-
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:OMEGAB})
-    parser_message(cfg, outer_data, "OMEGAB", PARSER_JUTULDARCY_MISSING_SUPPORT)
-    data["OMEGAB"] = parse_deck_vector(f)
+function parse_keyword!(data, outer_data, units, cfg, f, val::Union{Val{:OMEGAA}, Val{:OMEGAB}})
+    k = unpack_val(val)
+    out = []
+    for i in 1:number_of_tables(outer_data, :eosnum)
+        push!(out, parse_deck_vector(f))
+    end
+    parser_message(cfg, outer_data, "$k", PARSER_JUTULDARCY_MISSING_SUPPORT)
+    data["$k"] = out
 end
 
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:LBCCOEF})
@@ -53,24 +58,32 @@ end
 
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:BIC})
     n = compositional_number_of_components(outer_data)
-    bic = parse_deck_vector(f)
-    @assert length(bic) == n*(n-1)÷2 "Bad length for BIC input."
-    m = zeros(n, n)
-    ix = 1
-    for i in 1:n
-        for j in 1:(i-1)
-            m[i, j] = bic[ix]
-            ix += 1
+    out = []
+    for i in 1:number_of_tables(outer_data, :eosnum)
+        bic = parse_deck_vector(f)
+        @assert length(bic) == n*(n-1)÷2 "Bad length for BIC input."
+        m = zeros(n, n)
+        ix = 1
+        for i in 1:n
+            for j in 1:(i-1)
+                m[i, j] = bic[ix]
+                ix += 1
+            end
         end
+        push!(out, Symmetric(collect(m')))
     end
-    data["BIC"] = Symmetric(collect(m'))
+    data["BIC"] = out
 end
 
 function parse_compositional_helper!(f, outer_data, data, k)
     n = compositional_number_of_components(outer_data)
-    val = parse_deck_vector(f)
-    @assert length(val) == n "One $k should be provided per component (expected $n, was $(length(val)))."
-    return val
+    out = Vector{Float64}[]
+    for i in 1:number_of_tables(outer_data, :eosnum)
+        val = parse_deck_vector(f)
+        @assert length(val) == n "One $k should be provided per component (expected $n, was $(length(val)))."
+        push!(out, val)
+    end
+    return out
 end
 
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:ACF})

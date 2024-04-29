@@ -178,7 +178,7 @@ end
 
 function apply_copy!(vals, src, IX, dims)
     I, J, K = IX
-    vals[I, J, K] = src
+    vals[I, J, K] = src[I, J, K]
 end
 
 function apply_add!(vals, src, IX, dims)

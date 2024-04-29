@@ -132,8 +132,21 @@ function unit_type(::ENDPOINT_TYPE)
 end
 
 function parse_keyword!(data, outer_data, units, cfg, f, v::Val{:MULTREGT})
-    parser_message(cfg, outer_data, "MULTREGT", PARSER_MISSING_SUPPORT)
-    skip_record(f)
+    defaults = [-1, -1, 1.0, "XYZ", "ALL", "M"]
+    mreg = []
+    while true
+        rec = read_record(f)
+        if length(rec) == 0
+            break
+        end
+        parsed = parse_defaulted_line(rec, defaults, required_num = 6, keyword = "MULTREGT")
+        @assert parsed[6] in ("M", "O", "F")
+        if parsed[5] != "ALL"
+            parser_message(cfg, outer_data, "MULTREGT", PARSER_JUTULDARCY_PARTIAL_SUPPORT, "Only the \"F\" option is supported in the solvers, not $(parsed[5])")
+        end
+        push!(mreg, parsed)
+    end
+    data["MULTREGT"] = mreg
 end
 
 function parse_keyword!(data, outer_data, units, cfg, f, v::Union{
@@ -178,7 +191,9 @@ function parse_keyword!(data, outer_data, units, cfg, f, v::Union{Val{:POELCOEF}
     data["$k"] = vals
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, v::Union{Val{:FIPNUM}, Val{:PVTNUM}, Val{:SATNUM}, Val{:EQLNUM}, Val{:ROCKNUM}, Val{:IMBNUM}, Val{:MULTNUM}, Val{:FIPZON}})
+const REGION_TYPE = Union{Val{:FIPNUM}, Val{:PVTNUM}, Val{:SATNUM}, Val{:EQLNUM}, Val{:ROCKNUM}, Val{:IMBNUM}, Val{:MULTNUM}, Val{:FIPZON}, Val{:FLUXNUM}, Val{:OPERNUM}, Val{:MULTNUM}}
+
+function parse_keyword!(data, outer_data, units, cfg, f, v::REGION_TYPE)
     k = unpack_val(v)
     parse_and_set_grid_data!(data, outer_data, units, cfg, f, k, T = Int)
 end

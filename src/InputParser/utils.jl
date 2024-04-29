@@ -399,7 +399,6 @@ function parse_keyword!(data, outer_data, units, cfg, f, v::Val{T}) where T
         :EQLOPTS,
         :TRACERS,
         :PIMTDIMS,
-        :FLUXNUM,
         :OPTIONS
     ]
 

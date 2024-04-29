@@ -149,13 +149,15 @@ function parse_keyword!(data, outer_data, units, cfg, f, v::Val{:MULTREGT})
     data["MULTREGT"] = mreg
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, v::Union{
-        Val{:MULTX}, Val{:MULTY}, Val{:MULTZ},
-        Val{Symbol("MULTX-")}, Val{Symbol("MULTY-")}, Val{Symbol("MULTZ-")}
-        }
-    )
+const MULTXYZ_TYPE = Union{Val{:MULTX}, Val{:MULTY}, Val{:MULTZ},Val{Symbol("MULTX-")}, Val{Symbol("MULTY-")}, Val{Symbol("MULTZ-")}}
+
+function parse_keyword!(data, outer_data, units, cfg, f, v::MULTXYZ_TYPE)
     k = unpack_val(v)
     parse_and_set_grid_data!(data, outer_data, units, cfg, f, k, unit = :id, default = 1.0)
+end
+
+function unit_type(::MULTXYZ_TYPE)
+    return :id
 end
 
 const THERMAL_CONDUCTIVITY_TYPE = Union{Val{:THCROCK}, Val{:THCWATER}, Val{:THCGAS}, Val{:THCSOLID}, Val{:THCAVE}}
@@ -196,6 +198,10 @@ const REGION_TYPE = Union{Val{:FIPNUM}, Val{:PVTNUM}, Val{:SATNUM}, Val{:EQLNUM}
 function parse_keyword!(data, outer_data, units, cfg, f, v::REGION_TYPE)
     k = unpack_val(v)
     parse_and_set_grid_data!(data, outer_data, units, cfg, f, k, T = Int)
+end
+
+function unit_type(::REGION_TYPE)
+    return :id
 end
 
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:PORO})

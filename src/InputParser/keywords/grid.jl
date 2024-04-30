@@ -120,7 +120,10 @@ function unit_type(::Union{Val{:PERMX}, Val{:PERMY}, Val{:PERMZ}})
     return :permeability
 end
 
-const ENDPOINT_TYPE = Union{Val{:SWL}, Val{:SGL}, Val{:SWCR}, Val{:SWU}, Val{:SGCR}, Val{:SGU}, Val{:SOWCR}, Val{:SOGCR}}
+const ENDPOINT_TYPE = Union{
+    Val{:SWL}, Val{:SGL}, Val{:SWCR}, Val{:SWU}, Val{:SGCR}, Val{:SGU}, Val{:SOWCR}, Val{:SOGCR},
+    Val{:ISWL}, Val{:ISGL}, Val{:ISWCR}, Val{:ISWU}, Val{:ISGCR}, Val{:ISGU}, Val{:ISOWCR}, Val{:ISOGCR}
+}
 
 function parse_keyword!(data, outer_data, units, cfg, f, v::ENDPOINT_TYPE)
     k = unpack_val(v)

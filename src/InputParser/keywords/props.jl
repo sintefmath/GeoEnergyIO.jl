@@ -393,7 +393,6 @@ end
 
 function parse_keyword!(data, outer_data, units, cfg, f, v::Val{:SWATINIT})
     k = unpack_val(v)
-    parser_message(cfg, outer_data, "SWATINIT", PARSER_JUTULDARCY_MISSING_SUPPORT)
     parse_and_set_grid_data!(data, outer_data, units, cfg, f, k, unit = unit_type(k))
 end
 

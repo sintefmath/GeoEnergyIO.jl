@@ -148,7 +148,7 @@ function parse_data_file!(outer_data, filename, data = outer_data;
         warn_feature = warn_feature,
         silent = silent
     )
-    parser_message(cfg, outer_data, "PARSER", "Starting parse of $filename...")
+    parser_message(cfg, outer_data, "PARSER", "Starting parse of $filename...", color = :green)
     try
         allsections = vcat(sections, skip)
         while !eof(f)
@@ -157,7 +157,7 @@ function parse_data_file!(outer_data, filename, data = outer_data;
                 continue
             end
             parsed_keyword = false
-            parser_message(cfg, outer_data, "$m", "Starting parse...")
+            parser_message(cfg, outer_data, "$m", "Starting parse...", color = :green)
             t_p = @elapsed if m == :SKIP || m == :ENDSKIP
                 if m == :SKIP
                     skip_mode = true
@@ -173,7 +173,7 @@ function parse_data_file!(outer_data, filename, data = outer_data;
                     unit_systems = get_unit_system_pair(current_unit_system(outer_data), units)
                 end
                 finish_current_section!(data, unit_systems, cfg, outer_data)
-                parser_message(cfg, outer_data, "$m", "Starting new section.")
+                parser_message(cfg, outer_data, "$m", "Starting new section.", color = :blue)
                 data = new_section(outer_data, m)
                 skip_mode = m in skip
             elseif m == :INCLUDE
@@ -222,7 +222,7 @@ function parse_data_file!(outer_data, filename, data = outer_data;
                 parsed_keyword = true
             end
             if parsed_keyword
-                parser_message(cfg, outer_data, "$m", "Keyword parsed in $(t_p)s.")
+                parser_message(cfg, outer_data, "$m", "Keyword parsed in $(t_p)s.", color = :green)
             end
         end
     finally

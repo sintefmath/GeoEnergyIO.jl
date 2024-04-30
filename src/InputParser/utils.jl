@@ -438,7 +438,6 @@ function parse_keyword!(data, outer_data, units, cfg, f, v::Val{T}) where T
     skip_kw!(:FLUXNUM, 1, PARSER_MISSING_SUPPORT)
     skip_kw!(:OPTIONS, 1, PARSER_MISSING_SUPPORT)
     skip_kw!(:EHYSTR, 1, PARSER_MISSING_SUPPORT)
-    skip_kw!(:SWATINIT, 1, PARSER_MISSING_SUPPORT)
     skip_kw!(:ZIPPY2, 1, PARSER_MISSING_SUPPORT)
     skip_kw!(:DRSDT, 1, PARSER_MISSING_SUPPORT)
     skip_kw!(:WPAVE, 1, PARSER_MISSING_SUPPORT)

@@ -63,8 +63,6 @@ function mesh_from_dxdydz_and_tops(grid; actnum = get_effective_actnum(grid))
         end
         return out
     end
-    # ismissing(nnc) || length(nnc) == 0 || throw(ArgumentError("NNC is not supported together with DX/DY/DZ/TOPS mesh."))
-    # @assert all(actnum)
     DX = meshgrid_section("DX")
     dx = vec(DX[:, 1, 1])
     for i in axes(DX, 1)

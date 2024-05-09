@@ -5,20 +5,20 @@ end
 # Utilities
 
 function get_cartdims(outer_data)
-    g = get_section(outer_data, :GRID)
+    g = get_section(outer_data, :GRID, set_current = false)
     @assert haskey(g, "cartDims") "Cannot access cartDims, has not been set."
     return g["cartDims"]
 end
 
 function get_boxdims(outer_data)
-    gdata = get_section(outer_data, :GRID)
+    gdata = get_section(outer_data, :GRID, set_current = false)
     box = gdata["CURRENT_BOX"]
     dim = @. box.upper - box.lower + 1
     return dim
 end
 
 function get_box_indices(outer_data)
-    gdata = get_section(outer_data, :GRID)
+    gdata = get_section(outer_data, :GRID, set_current = false)
     box = gdata["CURRENT_BOX"]
     l = box.lower
     u = box.upper
@@ -31,15 +31,15 @@ end
 
 function set_cartdims!(outer_data, dim)
     @assert length(dim) == 3
-    g = get_section(outer_data, :GRID)
+    g = get_section(outer_data, :GRID, set_current = false)
     dim = tuple(dim...)
-    gdata = get_section(outer_data, :GRID)
+    gdata = get_section(outer_data, :GRID, set_current = false)
     gdata["cartDims"] = dim
     reset_current_box!(outer_data)
 end
 
 function reset_current_box!(outer_data)
-    gdata = get_section(outer_data, :GRID)
+    gdata = get_section(outer_data, :GRID, set_current = false)
     gdata["CURRENT_BOX"] = (lower = (1, 1, 1), upper = gdata["cartDims"])
 end
 

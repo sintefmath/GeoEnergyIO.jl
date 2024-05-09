@@ -5,7 +5,7 @@ end
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:BOX})
     rec = read_record(f)
     tdims = [1];
-    gdata = get_section(outer_data, :GRID)
+    gdata = get_section(outer_data, :GRID, set_current = false)
     l, u = gdata["CURRENT_BOX"]
     il, jl, kl = l
     iu, ju, ku = u
@@ -22,7 +22,7 @@ function parse_keyword!(data, outer_data, units, cfg, f, kval::Union{Val{:COPY},
     k = unpack_val(kval)
     is_copy = k == :COPY
     rec = read_record(f)
-    gdata = get_section(outer_data, :GRID)
+    gdata = get_section(outer_data, :GRID, set_current = false)
     l, u = gdata["CURRENT_BOX"]
     dims = get_cartdims(outer_data)
     d = "Default"
@@ -88,7 +88,7 @@ end
 
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:OPERATE})
     rec = read_record(f)
-    gdata = get_section(outer_data, :GRID)
+    gdata = get_section(outer_data, :GRID, set_current = false)
     l, u = gdata["CURRENT_BOX"]
     dims = get_cartdims(outer_data)
 

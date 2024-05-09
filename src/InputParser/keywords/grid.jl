@@ -36,7 +36,7 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Union{Val{:MINPORV}, 
     rec = read_record(f)
     tdims = [1e-6];
     rec = parse_defaulted_line(rec, tdims)
-    zcorn = swap_unit_system!(rec, units, :volume)
+    rec = swap_unit_system!(rec, units, :volume)
     data["MINPV"] = only(rec)
 end
 

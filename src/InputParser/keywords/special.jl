@@ -236,9 +236,8 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:MULTIPLY})
                 # TODO: Bit of a hack
                 target = grid["PORO"]
             elseif dst in ("TRANX", "TRANY", "TRANZ")
-                parser_message(cfg, outer_data, "MULTIPLY", "MULTIPLY on $dst is not currently supported in solvers.", important = true)
                 dir = dst[end]
-                push_and_create!(data, "MULTRAN$dir", (i = Ibox, j = Jbox, k = Kbox, factor = factor))
+                push_and_create!(data, "MULTRAN$dir", [(i = Ibox, j = Jbox, k = Kbox, factor = factor)])
                 do_apply = false
             else
                 throw(ArgumentError("Unable to apply MULTIPLY to non-declared field $dst"))

@@ -24,7 +24,7 @@ import Jutul: number_of_cells, number_of_boundary_faces, number_of_faces, conver
         @test parse_defaulted_line("2*", [1, "Hallo"]) == [1, "Hallo"]
     end
     @testset "SPE1" begin
-        spe1_pth = test_input_file_path("spe1", "BENCH_SPE1.DATA")
+        spe1_pth = test_input_file_path("SPE1", "SPE1.DATA")
         spe1 = parse_data_file(spe1_pth)
         @testset "RUNSPEC" begin
             rs = spe1["RUNSPEC"]
@@ -34,14 +34,14 @@ import Jutul: number_of_cells, number_of_boundary_faces, number_of_faces, conver
             @test haskey(rs, "WATER")
             @test haskey(rs, "GAS")
         end
-        @test spe1["PROPS"]["PVTW"][1] == [2.768038210488301e7, 1.029, 4.539681190955549e-10, 0.00031, 0.0]
+        @test spe1["PROPS"]["PVTW"][1] ≈ [2.7700032163168546e7, 1.038, 4.670215154912738e-10, 0.00031800000000000003, 0.0]
         g = mesh_from_grid_section(spe1)
         @test number_of_cells(g) == 300
         @test number_of_faces(g) == 740
         @test number_of_boundary_faces(g) == 320
     end
     @testset "SPE9" begin
-        spe9_pth = test_input_file_path("spe9", "SPE9_CP.DATA", base = "opm-tests")
+        spe9_pth = test_input_file_path("SPE9", "SPE9.DATA")
         spe9 = parse_data_file(spe9_pth)
         @testset "RUNSPEC" begin
             rs = spe9["RUNSPEC"]
@@ -59,7 +59,7 @@ import Jutul: number_of_cells, number_of_boundary_faces, number_of_faces, conver
         @test number_of_boundary_faces(g) == 2670
     end
     @testset "Basic GRDECL parsing" begin
-        pth = test_input_file_path("grdecl", "1cell.txt", base = missing)
+        pth = test_input_file_path("grdecl", "1cell.txt")
         grdecl = parse_grdecl_file(pth)
         @test grdecl["SPECGRID"] == [1, 1, 1, 1, "F"]
         @test grdecl["cartDims"] == (1, 1, 1)
@@ -97,7 +97,7 @@ import Jutul: number_of_cells, number_of_boundary_faces, number_of_faces, conver
     ]
     for (name, nf_ref, nc_ref, nbf_ref) in grdecl_cases
         @testset "$name" begin
-            pth = test_input_file_path("grdecl", name, base = missing)
+            pth = test_input_file_path("grdecl", name)
             grdecl = parse_grdecl_file(pth)
             g = mesh_from_grid_section(grdecl)
             nc = number_of_cells(g)

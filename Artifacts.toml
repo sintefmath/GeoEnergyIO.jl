@@ -1,0 +1,44 @@
+[EGG]
+git-tree-sha1 = "7e032d3fbc395aa52874443d2168acc1c2d58b93"
+lazy = true
+
+    [[EGG.download]]
+    sha256 = "d12546df972db5963c4cc7953f8b0ac81606ce380cfcb165d025bc6cdba46ae0"
+    url = "https://github.com/sintefmath/GeoEnergyIO.jl/releases/download/v1.1.1/egg.tar.bz2"
+
+[NORNE_NOHYST]
+git-tree-sha1 = "9fdf4749b64a6839ef621b05055487e03cce46a9"
+lazy = true
+
+    [[NORNE_NOHYST.download]]
+    sha256 = "175184d51cfe188a20d2d0c7659d405f174cd7aa189c16628a998c7c3b455668"
+    url = "https://github.com/sintefmath/GeoEnergyIO.jl/releases/download/v1.1.1/norne_nohyst.tar.bz2"
+
+[OLYMPUS_1]
+git-tree-sha1 = "a1523a57602668014ba1ffd3c3b5e21cd2f54ca2"
+lazy = true
+
+    [[OLYMPUS_1.download]]
+    sha256 = "e6b8b0c0d96e4937dda5d0e740d6017f8b5454543a2ee664fce3c911ac8536be"
+    url = "https://github.com/sintefmath/GeoEnergyIO.jl/releases/download/v1.1.1/olympus_1.tar.bz2"
+
+[SPE1]
+git-tree-sha1 = "54a767353e86e26e4706b77e855dfa5b9fec1380"
+
+    [[SPE1.download]]
+    sha256 = "0162bd601f27888e896935b1daead3ad1a85d5310dad4743c8934fd429de14fc"
+    url = "https://github.com/sintefmath/GeoEnergyIO.jl/releases/download/v1.1.1/spe1.tar.bz2"
+
+[SPE9]
+git-tree-sha1 = "c1063fdc96b21cbc18ea8a3bd1a1281aa04ffa3f"
+
+    [[SPE9.download]]
+    sha256 = "0fdeeae365fa39aaea9331b7ace8a5e7717d7a00042dea0a4b97a339657397ce"
+    url = "https://github.com/sintefmath/GeoEnergyIO.jl/releases/download/v1.1.1/spe9.tar.bz2"
+
+[grdecl]
+git-tree-sha1 = "db025f8ad236d29fcb12e4c9d82182adb7c65a35"
+
+    [[grdecl.download]]
+    sha256 = "ff6b1d2f955a427a63af0eb63343f183f3e2126da807613af09a99d77b3e4a8d"
+    url = "https://github.com/sintefmath/GeoEnergyIO.jl/releases/download/v1.1.1/grdecl_tests.tar.bz2"

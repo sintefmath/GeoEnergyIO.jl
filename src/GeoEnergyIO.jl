@@ -1,5 +1,6 @@
 module GeoEnergyIO
     using Artifacts
+    using LazyArtifacts
     export parse_data_file
     export parse_grdecl_file
     export mesh_from_grid_section

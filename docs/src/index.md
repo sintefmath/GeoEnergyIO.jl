@@ -14,6 +14,14 @@ The main feature of this module is at the time of writing a parser for .DATA res
 parse_data_file
 ```
 
+Let us for example parse the SPE1 dataset, turning into a nested `Dict` containing all the entries of the data file. We use the unexported `test_input_file_path` utility to get the path of a test file.
+
+```@example
+using GeoEnergyIO
+spe1_pth = GeoEnergyIO.test_input_file_path("SPE1", "SPE1.DATA")
+spe1 = parse_data_file(spe1_pth)
+```
+
 ## Parsing and processing of corner-point grids
 
 Corner-point meshes are the de-facto standard format for simulation of subsurface flow. These meshes are semi-structured, but can have quite complex structure in practice due to eroded and collapsed cells and the presence of faults. This module includes a processor to convert the input format into a mesh that can be used for simulation. Converting the corner-points into a mesh with a connected topology is non-trivial, but the included algorithm has been verified on a number of real-field assets.
@@ -31,7 +39,7 @@ The module ships with several corner point grids suitable for testing. These inc
 
 ```@example
 using GeoEnergyIO, Jutul, CairoMakie
-pth = GeoEnergyIO.test_input_file_path("grdecl", "1cell.txt", base = missing)
+pth = GeoEnergyIO.test_input_file_path("grdecl", "1cell.txt")
 grdecl = parse_grdecl_file(pth)
 g = mesh_from_grid_section(grdecl)
 fig, ax, plt = plot_mesh(g, shading = false, rasterize = true)
@@ -43,7 +51,7 @@ To understand a bit more of how this format behaves in practice, we can look at 
 
 ```@example
 using GeoEnergyIO, Jutul, CairoMakie
-pth = GeoEnergyIO.test_input_file_path("grdecl", "raised_col_sloped.txt", base = missing)
+pth = GeoEnergyIO.test_input_file_path("grdecl", "raised_col_sloped.txt")
 grdecl = parse_grdecl_file(pth)
 g = mesh_from_grid_section(grdecl)
 fig, ax, plt = plot_mesh(g, shading = NoShading, rasterize = true)
@@ -55,7 +63,7 @@ More complicated meshes include multiple faults. One synthetic test model is the
 
 ```@example
 using GeoEnergyIO, Jutul, CairoMakie
-pth = GeoEnergyIO.test_input_file_path("grdecl", "model3_5_5_5.txt", base = missing)
+pth = GeoEnergyIO.test_input_file_path("grdecl", "model3_5_5_5.txt")
 grdecl = parse_grdecl_file(pth)
 g = mesh_from_grid_section(grdecl)
 ix = collect(1:number_of_cells(g))
@@ -69,7 +77,7 @@ We can also parse a high-resolution version of the same case:
 
 ```@example
 using GeoEnergyIO, Jutul, CairoMakie
-pth = GeoEnergyIO.test_input_file_path("grdecl", "model3_20_20_50.txt", base = missing)
+pth = GeoEnergyIO.test_input_file_path("grdecl", "model3_20_20_50.txt")
 grdecl = parse_grdecl_file(pth)
 g = mesh_from_grid_section(grdecl)
 ix = collect(1:number_of_cells(g))
@@ -82,6 +90,20 @@ fig
 The parser has been tested on many complex models. Here is an example mesh parsed from the [OLYMPUS Optimization Benchmark Challenge](https://doi.org/10.1007/s10596-020-10003-4) where the parsed porosity is plotted together with the wells:
 
 ![image](assets/olympus_small.gif)
+
+We can parse this mesh in the same manner as before:
+
+```@example
+using GeoEnergyIO, Jutul, CairoMakie
+pth = GeoEnergyIO.test_input_file_path("OLYMPUS_1", "OLYMPUS_GRID.GRDECL")
+grdecl = parse_grdecl_file(pth)
+g = mesh_from_grid_section(grdecl)
+ix = collect(1:number_of_cells(g))
+fig = Figure()
+ax = Axis3(fig[1,1], zreversed = true, azimuth = 2.0)
+plot_cell_data!(ax, g, ix, shading = NoShading, rasterize = true, colormap = :seaborn_icefire_gradient)
+fig
+```
 
 ## Utilities
 

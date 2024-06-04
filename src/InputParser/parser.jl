@@ -189,7 +189,7 @@ function parse_data_file!(outer_data, filename, data = outer_data;
                     readline(f)
                 end
                 include_path = clean_include_path(basedir, next)
-                parser_message(cfg, outer_data, "$m", "Including file: $include_path. Basedir: $basedir with INCLUDE = $next")
+                parser_message(cfg, outer_data, "$m", "Including file: $include_path. Basedir: $basedir with INCLUDE = $next", color = :green)
                 outer_data, data = parse_data_file!(
                     outer_data, include_path, data,
                     verbose = verbose,

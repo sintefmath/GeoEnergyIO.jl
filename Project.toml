@@ -16,6 +16,7 @@ PrecompileTools = "aea7be01-6a6a-4083-8856-8a6e6704d82a"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 
 [compat]
+Artifacts = "1"
 DelimitedFiles = "1.6.7"
 Jutul = "0.2.21"
 LinearAlgebra = "1"

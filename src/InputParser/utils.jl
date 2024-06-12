@@ -430,6 +430,7 @@ function parse_keyword!(data, outer_data, units, cfg, f, v::Val{T}) where T
     skip_kw!(:CO2STORE, 0, PARSER_JUTULDARCY_MISSING_SUPPORT)
     skip_kw!(:CO2STOR, 0, PARSER_JUTULDARCY_MISSING_SUPPORT)
     skip_kw!(:DIFFUSE, 0, PARSER_JUTULDARCY_MISSING_SUPPORT)
+    skip_kw!(:OLDTRAN, 0, PARSER_JUTULDARCY_MISSING_SUPPORT)
     skip_kw!(:UNIFSAVE, 0)
     skip_kw!(:SATOPTS, 1, PARSER_MISSING_SUPPORT)
     skip_kw!(:EQLOPTS, 1, PARSER_MISSING_SUPPORT)

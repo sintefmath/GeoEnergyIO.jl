@@ -222,8 +222,6 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:WEFAC})
 end
 
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:WPIMULT})
-    parser_message(cfg, outer_data, "WPIMULT", PARSER_JUTULDARCY_MISSING_SUPPORT)
-
     defaults = ["Default", 1.0, -1, -1, -1, -1, -1, -1]
     wells = get_wells(outer_data)
     parsed = parse_defaulted_group_well(f, defaults, wells, 1)

@@ -121,15 +121,40 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:OPERATE})
         op_prm2 = parsed[11]
 
         IJK = get_box_indices(outer_data, il, iu, jl, ju, kl, ku)
-        operation_target = get_operation_section(outer_data, target)
-        operation_source = get_operation_section(outer_data, source)
-        if ismissing(operation_target)
-            data[target] = zeros(dims)
-            operation_target = data[target]
+        if target == source && op == "MULTX" && startswith(target, "TRAN")
+            handle_multxyz_as_operate!(outer_data, target, IJK, op_prm1)
+        else
+            operation_target = get_operation_section(outer_data, target)
+            operation_source = get_operation_section(outer_data, source)
+            if ismissing(operation_target)
+                data[target] = zeros(dims)
+                operation_target = data[target]
+            end
+            apply_operate!(operation_target, operation_source, IJK, op, op_prm1, op_prm2)
         end
-        apply_operate!(operation_target, operation_source, IJK, op, op_prm1, op_prm2)
         # On to the next one.
         rec = read_record(f)
+    end
+end
+
+function handle_multxyz_as_operate!(outer_data, target, IJK, val)
+    # A special fix to handle the fact that we don't really initialize
+    # TRANX/TRANY/TRANZ arrays and this special case operation can be
+    # reformulated as MULTX/MULTY/MULTZ.
+    # TODO: Make a bit more general.
+    grid = outer_data["GRID"]
+    dir = target[end]
+    alternative_key = "MULT$dir"
+    if !haskey(grid, alternative_key)
+        grid[alternative_key] = ones(Float64, grid["cartDims"]...)
+    end
+    I, J, K = IJK
+    for i in I
+        for j in J
+            for k in K
+                grid[alternative_key][i, j, k] *= val
+            end
+        end
     end
 end
 

@@ -213,15 +213,19 @@ end
 function parse_deck_vector(f, T = Float64)
     # TODO: Speed up.
     rec = read_record(f)
+    opts = Parsers.Options()
     record_lines = preprocess_delim_records(rec)
     n = length(record_lines)
     out = Vector{T}()
+    Val_T = Val(T)
     sizehint!(out, n)
+    return parse_records_with_repeats!(out, record_lines, Val_T, opts)
+end
+
+function parse_records_with_repeats!(out, record_lines, Val_T, opts)
     for split_rec in record_lines
         for el in split_rec
-            el, n_rep = handle_repeats(el)
-            parsed = Parsers.parse(T, el)
-            parsed::T
+            parsed, n_rep = parse_and_handle_repeats(Val_T, el, opts)
             for i in 1:n_rep
                 push!(out, parsed)
             end
@@ -230,15 +234,18 @@ function parse_deck_vector(f, T = Float64)
     return out
 end
 
-function handle_repeats(el::String)
-    if occursin('*', el)
-        n_rep, el = split(el, '*')
-        el = String(el)
-        n_rep = Parsers.parse(Int, n_rep)
+function parse_and_handle_repeats(::Val{T}, el::String, opts) where T
+    val = Parsers.tryparse(T, el)
+    if isnothing(val)
+        # String on the form "123*3.14" where the first number is repeat count
+        # and the second will be parsable as type T
+        wildcard = findfirst(isequal('*'), el)
+        n_rep = Parsers.parse(Int, el, opts, 1, wildcard-1)
+        val = Parsers.parse(T, el, opts, wildcard+1)
     else
         n_rep = 1
     end
-    (el, n_rep)::Tuple{String, Int}
+    (val, n_rep)::Tuple{T, Int}
 end
 
 function skip_record(f)

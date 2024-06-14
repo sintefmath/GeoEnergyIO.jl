@@ -149,10 +149,11 @@ function handle_multxyz_as_operate!(outer_data, target, IJK, val)
         grid[alternative_key] = ones(Float64, grid["cartDims"]...)
     end
     I, J, K = IJK
+    vals = grid[alternative_key]
     for i in I
         for j in J
             for k in K
-                grid[alternative_key][i, j, k] *= val
+                vals[i, j, k] *= val
             end
         end
     end

@@ -268,13 +268,13 @@ function identity_unit_vector(n::Int)
     return utypes
 end
 
-function swap_unit_system(val, systems::NamedTuple, ::Val{k}; reverse = false) where k
+function swap_unit_system(val, systems::NamedTuple, U::Val{k}; reverse = false) where k
     (; to, from) = systems
     if reverse
         to, from = from, to
     end
-    to_unit = deck_unit(to, k)
-    from_unit = deck_unit(from, k)
+    to_unit = deck_unit(to, U)
+    from_unit = deck_unit(from, U)
 
     val_si = convert_to_si(val, from_unit)
     val_final = convert_from_si(val_si, to_unit)

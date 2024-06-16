@@ -196,7 +196,7 @@ function parse_keyword!(data, outer_data, units, cfg, f, v::Union{Val{:POELCOEF}
     data["$k"] = vals
 end
 
-const REGION_TYPE = Union{Val{:FIPNUM}, Val{:PVTNUM}, Val{:SATNUM}, Val{:EQLNUM}, Val{:ROCKNUM}, Val{:IMBNUM}, Val{:MULTNUM}, Val{:FIPZON}, Val{:FLUXNUM}, Val{:OPERNUM}, Val{:MULTNUM}}
+const REGION_TYPE = Union{Val{:FIPNUM}, Val{:PVTNUM}, Val{:SATNUM}, Val{:EQLNUM}, Val{:ROCKNUM}, Val{:IMBNUM}, Val{:MULTNUM}, Val{:FIPZON}, Val{:FLUXNUM}, Val{:OPERNUM}, Val{:MULTNUM}, Val{:EOSNUM}}
 
 function parse_keyword!(data, outer_data, units, cfg, f, v::REGION_TYPE)
     k = unpack_val(v)

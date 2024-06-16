@@ -420,6 +420,9 @@ function parse_keyword!(data, outer_data, units, cfg, f, v::Val{T}) where T
     skip_kw!(:MULTSAVE, 1)
     skip_kw!(:MEMORY, 1)
     skip_kw!(:OPTIONS3, 1)
+    skip_kw!(:TSCRIT, 1, PARSER_JUTULDARCY_MISSING_SUPPORT)
+    skip_kw!(:CVCRIT, 1, PARSER_JUTULDARCY_MISSING_SUPPORT)
+    skip_kw!(:RPTPRINT, 1)
 
     skip_kw!(:MULTOUT, 0)
     skip_kw!(:NOSIM, 0)
@@ -700,7 +703,7 @@ function unit_type(x::Symbol)
 end
 
 function unit_type(::Val{k}) where k
-    if !(k in (:FIPNUM, :EQLNUM, :ACTNUM, :PVTNUM, :SATNUM, :EQLNUM, :KRW, :KRO, :KRG))
+    if !(k in (:FIPNUM, :EQLNUM, :ACTNUM, :PVTNUM, :EOSNUM, :SATNUM, :EQLNUM, :KRW, :KRO, :KRG))
         @warn "Unit type not defined for $k."
     end
     return :id

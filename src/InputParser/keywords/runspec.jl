@@ -126,6 +126,22 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:MULTSAVE})
     read_record(f)
 end
 
+function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:EXTRAPMS})
+    rec = read_record(f)
+    tdims = [0]
+    v = only(parse_defaulted_line(rec, tdims))
+    if v > 0
+        parser_message(cfg, outer_data, "EXTRAPMS", PARSER_JUTULDARCY_MISSING_SUPPORT)
+    end
+    data["EXTRAPMS"] = v
+end
+
+function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:ACTDIMS})
+    rec = read_record(f)
+    tdims = [2, 50, 80, 3]
+    data["ACTDIMS"] = parse_defaulted_line(rec, tdims)
+end
+
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:TABDIMS})
     rec = read_record(f)
     tdims = [1, 1, 20, 20, 1, 20, 20, 1,

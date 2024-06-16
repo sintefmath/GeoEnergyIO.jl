@@ -95,7 +95,7 @@ end
 
 function handle_zero_effective_porosity!(actnum, g)
     if haskey(g, "MINPV")
-        minpv = g["MINPV"]
+        minpv = g["MINPV"]::Float64
     else
         minpv = 1e-6
     end

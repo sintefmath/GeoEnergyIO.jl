@@ -418,7 +418,7 @@ function traverse_column_pair(col_a, col_b, l1, l2)
         return determine_cell_overlap_inside_line(a_start, a_stop, b_start, b_stop)
     end
     cell_pairs = Tuple{Int, Int}[]
-    cellhint = 2*max(length(ord_a), length(ord_b))
+    cellhint = 4*max(length(ord_a), length(ord_b))
     sizehint!(cell_pairs, cellhint)
     sizehint!(overlaps, cellhint)
 

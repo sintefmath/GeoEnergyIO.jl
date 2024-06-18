@@ -163,12 +163,6 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:UDQDIMS})
     data["UDQDIMS"] = parse_defaulted_line(rec, tdims)
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:EXTRAPMS})
-    rec = read_record(f)
-    tdims = [0]
-    data["EXTRAPMS"] = only(parse_defaulted_line(rec, tdims))
-end
-
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:FAULTDIM})
     rec = read_record(f)
     tdims = [0];

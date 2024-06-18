@@ -140,11 +140,6 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:VCRIT})
     data["VCRIT"] = V
 end
 
-function parse_dead_pvt_table(f, outer_data)
-    np = number_of_tables(outer_data, :pvtnum)
-    return parse_region_matrix_table(f, np)
-end
-
 function parse_keyword!(data, outer_data, units, cfg, f, v::Union{Val{:SOMGAS}, Val{:SOMWAT}})
     k = unpack_val(v)
     ns = number_of_tables(outer_data, :satnum)

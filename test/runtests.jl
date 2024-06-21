@@ -6,6 +6,7 @@ import Jutul: number_of_cells, number_of_boundary_faces, number_of_faces, conver
 
 @testset "GeoEnergyIO.jl" begin
     import GeoEnergyIO.InputParser: clean_include_path, parse_defaulted_line
+    import GeoEnergyIO.InputParser: parse_defaulted_group_well
     @testset "InputParser" begin
         @test clean_include_path("", " MYFILE") == "MYFILE"
         @test clean_include_path("/some/path", " MYFILE") == joinpath("/some/path", "MYFILE")
@@ -22,6 +23,23 @@ import Jutul: number_of_cells, number_of_boundary_faces, number_of_faces, conver
         @test parse_defaulted_line("5, 2", [1, 2]) == [5, 2]
         @test parse_defaulted_line("5   HEI", [1, "Hallo"]) == [5, "HEI"]
         @test parse_defaulted_line("2*", [1, "Hallo"]) == [1, "Hallo"]
+
+        @testset "well_parsing" begin
+            wells = Dict("WELLA" => 3, "WELLB" => 4)
+            d = ["WELLNAME", 1]
+            f = IOBuffer("WELLA 5 /\n");
+            @test only(parse_defaulted_group_well(f, d, wells)) == ["WELLA", 5]
+            f = IOBuffer("WELLB /\n");
+            @test only(parse_defaulted_group_well(f, d, wells)) == ["WELLB", 1]
+            f = IOBuffer("WELL* 10 /\n")
+            parsed = parse_defaulted_group_well(f, d, wells)
+            @test length(parsed) == 2
+            @test parsed[1] == ["WELLA", 10]
+            @test parsed[2] == ["WELLB", 10]
+            f = IOBuffer("'4WELL_A' 10 /\n")
+            parsed = parse_defaulted_group_well(f, d, wells)
+            @test only(parsed) == ["4WELL_A", 10]
+        end
     end
     @testset "SPE1" begin
         spe1_pth = test_input_file_path("SPE1", "SPE1.DATA")

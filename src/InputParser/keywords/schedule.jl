@@ -210,7 +210,26 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Union{Val{:WELLTARG},
     defaults = ["Default", "ORAT", NaN]
     wells = get_wells(outer_data)
     out = parse_defaulted_group_well(f, defaults, wells, 1)
-    parser_message(cfg, outer_data, "WELTARG", PARSER_JUTULDARCY_MISSING_SUPPORT)
+    for kline in out
+        wname, cname, val = kline
+        cname = uppercase(cname)
+        u = missing
+        if cname in ("LRAT", "ORAT", "WRAT", "RATE")
+            # TODO: Check these. Could be some combinations of injector keywords
+            # that would lead to wrong units here.
+            u = :liquid_rate_surface
+        elseif cname == "GRAT"
+            u = :gas_rate_surface
+        elseif cname == "BHP" || cname == "THP"
+            u = :pressure
+        end
+        if ismissing(u)
+            parser_message(cfg, outer_data, "WELTARG", "Unit for $cname not known.")
+        else
+            val = swap_unit_system(val, units, u)
+        end
+        kline[3] = val
+    end
     push_and_create!(data, "WELTARG", out)
 end
 

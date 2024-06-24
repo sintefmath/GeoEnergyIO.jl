@@ -7,12 +7,11 @@ lazy = true
     url = "https://github.com/sintefmath/GeoEnergyIO.jl/releases/download/v1.1.1/egg.tar.bz2"
 
 [NORNE_NOHYST]
-git-tree-sha1 = "9fdf4749b64a6839ef621b05055487e03cce46a9"
-lazy = true
+git-tree-sha1 = "3c00109c0605d68efb151f3d4d94c8305fd30a06"
 
     [[NORNE_NOHYST.download]]
-    sha256 = "175184d51cfe188a20d2d0c7659d405f174cd7aa189c16628a998c7c3b455668"
-    url = "https://github.com/sintefmath/GeoEnergyIO.jl/releases/download/v1.1.1/norne_nohyst.tar.bz2"
+    sha256 = "15643ff7976e1066efc86d575ad3d68b67601a5857ca0e2d6832f5bfd6fb5ca1"
+    url = "https://github.com/user-attachments/files/15952382/norne_nohyst.tar.gz"
 
 [OLYMPUS_1]
 git-tree-sha1 = "a1523a57602668014ba1ffd3c3b5e21cd2f54ca2"

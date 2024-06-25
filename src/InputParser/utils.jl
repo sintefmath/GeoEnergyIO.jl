@@ -400,79 +400,8 @@ end
 
 function parse_keyword!(data, outer_data, units, cfg, f, v::Val{T}) where T
     # Keywords where we read a single record and don't do anything proper
-
-    skip_kw_with_warn = Symbol[
-        :SATOPTS,
-        :EQLOPTS,
-        :TRACERS,
-        :PIMTDIMS,
-        :OPTIONS
-    ]
-
-    skip_list = []
-    function skip_kw!(kw, num, msg = nothing)
-        push!(skip_list, (kw, num, msg))
-    end
-    skip_kw!(:PETOPTS, 1)
-    skip_kw!(:PARALLEL, 1)
-    skip_kw!(:MULTSAVE, 1)
-    skip_kw!(:VECTABLE, 1)
-    skip_kw!(:MULTSAVE, 1)
-    skip_kw!(:MEMORY, 1)
-    skip_kw!(:OPTIONS3, 1)
-    skip_kw!(:TSCRIT, 1, PARSER_JUTULDARCY_MISSING_SUPPORT)
-    skip_kw!(:CVCRIT, 1, PARSER_JUTULDARCY_MISSING_SUPPORT)
-    skip_kw!(:RPTPRINT, 1)
-
-    skip_kw!(:MULTOUT, 0)
-    skip_kw!(:NOSIM, 0)
-    skip_kw!(:NOINSPEC, 0)
-    skip_kw!(:NORSSPEC, 0)
-    skip_kw!(:NOWARN, 0)
-    skip_kw!(:NOWARNEP, 0)
-    skip_kw!(:NOHYKR, 0)
-    skip_kw!(:NOMIX, 0)
-    skip_kw!(:FILLEPS, 0)
-    skip_kw!(:NPROCX, 0)
-    skip_kw!(:NPROCY, 0)
-    skip_kw!(:NONNC, 0)
-    skip_kw!(:NEWTRAN, 0)
-    skip_kw!(:CO2STORE, 0, PARSER_JUTULDARCY_MISSING_SUPPORT)
-    skip_kw!(:CO2STOR, 0, PARSER_JUTULDARCY_MISSING_SUPPORT)
-    skip_kw!(:DIFFUSE, 0, PARSER_JUTULDARCY_MISSING_SUPPORT)
-    skip_kw!(:OLDTRAN, 0, PARSER_JUTULDARCY_MISSING_SUPPORT)
-    skip_kw!(:UNIFSAVE, 0)
-    skip_kw!(:SATOPTS, 1, PARSER_MISSING_SUPPORT)
-    skip_kw!(:EQLOPTS, 1, PARSER_MISSING_SUPPORT)
-    skip_kw!(:TRACERS, 1, PARSER_MISSING_SUPPORT)
-    skip_kw!(:PIMTDIMS, 1, PARSER_MISSING_SUPPORT)
-    skip_kw!(:FLUXNUM, 1, PARSER_MISSING_SUPPORT)
-    skip_kw!(:OPTIONS, 1, PARSER_MISSING_SUPPORT)
-    skip_kw!(:EHYSTR, 1, PARSER_MISSING_SUPPORT)
-    skip_kw!(:ZIPPY2, 1, PARSER_MISSING_SUPPORT)
-    skip_kw!(:DRSDT, 1, PARSER_MISSING_SUPPORT)
-    skip_kw!(:WPAVE, 1, PARSER_MISSING_SUPPORT)
-    skip_kw!(:VAPPARS, 1, PARSER_MISSING_SUPPORT)
-    skip_kw!(:RESTART, 1, PARSER_MISSING_SUPPORT)
-    skip_kw!(:NETBALAN, 1, PARSER_MISSING_SUPPORT)
-    skip_kw!(:JFUNC, 1, PARSER_MISSING_SUPPORT)
-
-    skip_kw!(:PSPLITX, Inf, PARSER_MISSING_SUPPORT)
-    skip_kw!(:PSPLITY, Inf, PARSER_MISSING_SUPPORT)
-    skip_kw!(:PSPLITZ, Inf, PARSER_MISSING_SUPPORT)
-    skip_kw!(:COMPLUMP, Inf, PARSER_MISSING_SUPPORT)
-
-    skip_kw!(:TRACER, Inf, PARSER_MISSING_SUPPORT)
-    skip_kw!(:THPRES, Inf, PARSER_MISSING_SUPPORT)
-    skip_kw!(:PIMULTAB, Inf, PARSER_MISSING_SUPPORT)
-    skip_kw!(:VFPPROD, Inf, PARSER_MISSING_SUPPORT)
-    skip_kw!(:VFPINJ, Inf, PARSER_MISSING_SUPPORT)
-    skip_kw!(:WTRACER, Inf, PARSER_MISSING_SUPPORT)
-    skip_kw!(:GCONINJE, Inf, PARSER_MISSING_SUPPORT)
-    skip_kw!(:WTEST, Inf, PARSER_MISSING_SUPPORT)
-
     found = false
-    for (kw, num, msg) in skip_list
+    for (kw, num, msg) in KEYWORD_SKIP_LIST
         if kw != T
             continue
         end

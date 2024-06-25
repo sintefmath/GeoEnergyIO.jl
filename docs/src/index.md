@@ -22,6 +22,33 @@ spe1_pth = GeoEnergyIO.test_input_file_path("SPE1", "SPE1.DATA")
 spe1 = parse_data_file(spe1_pth)
 ```
 
+### Handling unsupported keywords
+
+Not all keywords are supported by the parser, but not all keywords are important. The input format is such that it is difficult to automatically skip keywords, but you an manually add keywords to the skip list:
+
+```@docs
+GeoEnergyIO.InputParser.skip_kw!
+```
+
+Adding keywords to the skip list is not persistent across Julia sessions and can be added to the top of your script. Contributions to the global skip list defined in the `__init__` function of the parser are welcome.
+
+```@example
+using GeoEnergyIO
+# Skip keyword without data
+GeoEnergyIO.InputParser.skip_kw!(:MY_KW, 0)
+# Keyword with a single record of data, e.g.
+# MY_DATA_KW
+# "some data" 1 2 3 /
+GeoEnergyIO.InputParser.skip_kw!(:MY_DATA_KW, 1)
+# Keyword with many records, terminated by empty record:
+# MY_LONG_DATA_KW
+# "some data" 1 2 3 /
+# "more data" 4 5 6 /
+# "even more data" 1 9 /
+# /
+GeoEnergyIO.InputParser.skip_kw!(:MY_LONG_DATA_KW, Inf)
+```
+
 ## Parsing and processing of corner-point grids
 
 Corner-point meshes are the de-facto standard format for simulation of subsurface flow. These meshes are semi-structured, but can have quite complex structure in practice due to eroded and collapsed cells and the presence of faults. This module includes a processor to convert the input format into a mesh that can be used for simulation. Converting the corner-points into a mesh with a connected topology is non-trivial, but the included algorithm has been verified on a number of real-field assets.

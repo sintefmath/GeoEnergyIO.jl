@@ -1,3 +1,26 @@
+"""
+    skip_kw!(kw, num, msg = nothing)
+
+Add a keyword to list of records that will be skipped on parsing.
+
+`kw` is the symbol (usually capitalized) of the keyword to skip, num is the
+number of expected records:
+  - 0 means that the keyword to skip has no data (for example "WATER" with no
+    data to follow)
+  - 1 means that the keyword has a single record terminated by `/`
+  - Any other number means a fixed number of lines, without termination by empty
+    record.
+  - Inf means that the keyword has any number of records, terminated by a record
+    without entries.
+"""
+function skip_kw!(kw::Symbol, num = 0, msg = nothing)
+    push!(KEYWORD_SKIP_LIST, (kw, num, msg))
+end
+
+function skip_kw!(kw::AbstractString, num, msg = nothing)
+    skip_kw!(Symbol(kw), num, msg)
+end
+
 Base.@kwdef struct ParserVerbosityConfig
     silent::Bool = false
     verbose::Bool = true
@@ -6,8 +29,6 @@ Base.@kwdef struct ParserVerbosityConfig
     warn_limit::Int = 1
     warn_count::Dict{String, Int} = Dict{String, Int}()
 end
-
-@enum PARSER_WARNING PARSER_MISSING_SUPPORT PARSER_JUTULDARCY_MISSING_SUPPORT PARSER_JUTULDARCY_PARTIAL_SUPPORT PARSER_PARTIAL_SUPPORT
 
 function keyword_header(current_data, keyword)
     if haskey(current_data, "CURRENT_SECTION")

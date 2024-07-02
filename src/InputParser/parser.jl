@@ -296,7 +296,7 @@ function parse_grdecl_file(filename;
             dir = first(splitdir(filename))
             fname = local_path
             local_path = joinpath(dir, fname)
-            isfile(local_path, "Tried parsing $fname, but was not the name of an existing file.")
+            isfile(local_path) || throw(ArgumentError("Tried parsing $fname, but was not the name of an existing file."))
         end
         parse_data_file!(outer_data, local_path, data; input_units = input_units, kwarg...)
     end

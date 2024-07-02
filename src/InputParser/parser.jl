@@ -272,11 +272,13 @@ highly recommended.
  - `units=:si`: Units to use for return values. Requires `input_units` to be set.
  - `input_units=nothing`: The units the file is given in.
  - `verbose=false`: Toggle verbosity.
+ - `extra_paths`: List of extra paths to parse as a part of grid section, ex: `["PORO.inc", "PERM.inc"]`.
 
 """
 function parse_grdecl_file(filename;
         actnum_path = missing,
         input_units = :metric,
+        extra_paths = String[],
         kwarg...
     )
     outer_data = Dict{String, Any}()
@@ -287,6 +289,16 @@ function parse_grdecl_file(filename;
     end
     if !haskey(data, "ACTNUM")
         data["ACTNUM"] = fill(true, data["cartDims"])
+    end
+    for local_path in extra_paths
+        if !ispath(k)
+            # Try looking in the same folder?
+            dir = first(splitdir(filename))
+            fname = local_path
+            local_path = joinpath(dir, fname)
+            isfile(local_path, "Tried parsing $fname, but was not the name of an existing file.")
+        end
+        parse_data_file!(outer_data, local_path, data; input_units = input_units, kwarg...)
     end
     delete!(data, "CURRENT_BOX")
     return data

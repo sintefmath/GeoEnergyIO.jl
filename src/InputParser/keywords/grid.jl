@@ -111,7 +111,7 @@ function unit_type(::Union{Val{:COORD}, Val{:ZCORN}})
     return :length
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, v::Union{Val{:PERMX}, Val{:PERMY}, Val{:PERMZ}, Val{:PORV}, Val{:DEPTH}})
+function parse_keyword!(data, outer_data, units, cfg, f, v::Union{Val{:PERMX}, Val{:PERMY}, Val{:PERMZ}, Val{:PORV}, Val{:DEPTH}, Val{:MINPVV}})
     k = unpack_val(v)
     parse_and_set_grid_data!(data, outer_data, units, cfg, f, k, unit = unit_type(k))
 end
@@ -220,6 +220,10 @@ function unit_type(::Union{Val{:PORO}, Val{:NTG}})
 end
 
 function unit_type(::Val{:PORV})
+    return :liquid_volume_reservoir
+end
+
+function unit_type(::Val{:MINPVV})
     return :liquid_volume_reservoir
 end
 

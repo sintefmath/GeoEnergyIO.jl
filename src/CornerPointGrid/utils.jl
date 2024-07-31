@@ -188,3 +188,54 @@ function zcorn_volume(g, zcorn, coord, dims, linear_ix)
     d_avg = 0.25*(d_11 + d_12 + d_21 + d_22)
     return d_avg*area
 end
+
+function repair_zcorn!(zcorn, cartdims)
+    nx, ny, nz = cartdims
+    count_fixed = 0
+    # Check that cells are not inside the cell below them. If so, set the lower
+    # cells upper coordinate to that of the upper cells' lower coordinate.
+    for i = 1:nx
+        for j = 1:ny
+            for k = 1:(nz-1)
+                for I1 in (0, 1)
+                    for I2 in (0, 1)
+                        self = ijk_to_linear(i, j, k, cartdims)
+                        next = ijk_to_linear(i, j, k+1, cartdims)
+                        ix_upper = corner_index(self, (I1, I2, 1), cartdims)
+                        ix_lower = corner_index(next, (I1, I2, 0), cartdims)
+                        z_upper = zcorn[ix_upper]
+                        z_lower = zcorn[ix_lower]
+                        if z_lower < z_upper
+                            zcorn[ix_lower] = z_upper
+                            count_fixed += 1
+                        end
+                    end
+                end
+            end
+        end
+    end
+    # Traverse from top to bottom If a cell has flipped points (lower corner at
+    # a lower depth than the upper corner) we set the upper corner to the depth
+    # of the lower corner.
+    for i = 1:nx
+        for j = 1:ny
+            for k = 1:nz
+                ix = ijk_to_linear(i, j, k, cartdims)
+                # Iterate over all four columns
+                for I1 in (0, 1)
+                    for I2 in (0, 1)
+                        ix_upper = corner_index(ix, (I1, I2, 0), cartdims)
+                        ix_lower = corner_index(ix, (I1, I2, 1), cartdims)
+                        z_upper = zcorn[ix_upper]
+                        z_lower = zcorn[ix_lower]
+                        if z_upper > z_lower
+                            z_upper[ix_lower] = z_lower
+                            count_fixed += 1
+                        end
+                    end
+                end
+            end
+        end
+    end
+    return zcorn
+end

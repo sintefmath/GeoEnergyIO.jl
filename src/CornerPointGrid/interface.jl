@@ -37,11 +37,14 @@ function mesh_from_grid_section(f, actnum = missing)
     return G
 end
 
-function mesh_from_zcorn_and_coord(grid; actnum = get_effective_actnum(grid))
+function mesh_from_zcorn_and_coord(grid; actnum = get_effective_actnum(grid), repair = true)
     cartdims = grid["cartDims"]
     nnc = get(grid, "NNC", missing)
     coord = grid["COORD"]
     zcorn = grid["ZCORN"]
+    if repair
+        repair_zcorn!(zcorn, cartdims)
+    end
     primitives = cpgrid_primitives(coord, zcorn, cartdims, actnum = actnum)
     G = grid_from_primitives(primitives, nnc = nnc)
     return G

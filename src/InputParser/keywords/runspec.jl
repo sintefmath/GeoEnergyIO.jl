@@ -61,6 +61,18 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:CART})
     data["CART"] = true
 end
 
+function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:EHYSTR})
+    rec = read_record(f)
+    defaults = [0.1, 0, 1.0, 0.1, "BOTH", "RETR", "DRAIN", "DEFAULT", "NO", "NO", "NO", 0.0, 0]
+    h = parse_defaulted_line(rec, defaults)
+    @assert h[2] in -1:9
+    @assert h[5] in ("BOTH", "PC", "KR")
+    @assert h[6] in ("RETR", "NEW")
+    @assert h[7] in ("BOTH", "DRAIN")
+    parser_message(cfg, outer_data, "EHYSTR", PARSER_JUTULDARCY_PARTIAL_SUPPORT)
+    data["EHYSTR"] = h
+end
+
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:RADIAL})
     parser_message(cfg, outer_data, "RADIAL", PARSER_JUTULDARCY_MISSING_SUPPORT)
     data["RADIAL"] = true

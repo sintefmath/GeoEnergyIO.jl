@@ -53,6 +53,19 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:DISGAS})
     data["DISGAS"] = true
 end
 
+function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:NOHYST})
+    data["NOHYST"] = true
+end
+
+function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:CART})
+    data["CART"] = true
+end
+
+function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:RADIAL})
+    parser_message(cfg, outer_data, "RADIAL", PARSER_JUTULDARCY_MISSING_SUPPORT)
+    data["RADIAL"] = true
+end
+
 function parse_keyword!(data, outer_data, units, cfg, f, v::Union{Val{:STONE1}, Val{:STONE2}, Val{:BAKER1}, Val{:BAKER2}})
     k = unpack_val(v)
     parser_message(cfg, outer_data, "$k", PARSER_JUTULDARCY_MISSING_SUPPORT)

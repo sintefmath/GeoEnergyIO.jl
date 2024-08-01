@@ -139,6 +139,12 @@ get_data_file_cell_region
 number_of_tables
 ```
 
+## Internals
+
+```@docs
+GeoEnergyIO.InputParser.keyword_default_value
+```
+
 ## Index of functions
 
 ```@index

@@ -65,12 +65,14 @@ function parse_keyword!(data, outer_data, units, cfg, f, kval::Union{Val{:COPY},
         if is_copy
             if !haskey(data, dst)
                 T = eltype(data[src])
-                data[dst] = zeros(T, dims)
+                stdval = keyword_default_value(dst, T)
+                data[dst] = fill(stdval, dims)
             end
             apply_copy!(data[dst], data[src], IJK, dims)
         else
             if !haskey(data, dst)
-                data[dst] = zeros(Float64, dims)
+                stdval = keyword_default_value(dst, typeof(op))
+                data[dst] = fill(stdval, dims)
             end
             if k == :ADD
                 # add is a const

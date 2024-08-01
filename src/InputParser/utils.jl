@@ -683,3 +683,19 @@ function defaults_for_unit(usys::DeckUnitSystem{S, T}, eachunit; kwarg...) where
     end
     return out
 end
+
+"""
+    keyword_default_value(x::AbstractString, T::Type)
+
+Get the default value of a keyword (as String or ::Val{Symbol}) when placed in a
+array with element type T. This is used to initialize defaulted entries when
+using COPY, ADD, MULTIPLY and so on.
+"""
+function keyword_default_value(x::AbstractString, T::Type)
+    return keyword_default_value(Val(Symbol(x)), T)
+end
+
+function keyword_default_value(x::Val{X}, T::Type) where X
+    X::Symbol
+    return zero(T)
+end

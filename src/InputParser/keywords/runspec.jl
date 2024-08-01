@@ -69,6 +69,8 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:EHYSTR})
     @assert h[5] in ("BOTH", "PC", "KR")
     @assert h[6] in ("RETR", "NEW")
     @assert h[7] in ("BOTH", "DRAIN")
+    @assert h[8] in ("DEFAULT", "OIL", "GAS")
+
     parser_message(cfg, outer_data, "EHYSTR", PARSER_JUTULDARCY_PARTIAL_SUPPORT)
     data["EHYSTR"] = h
 end

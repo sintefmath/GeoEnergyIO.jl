@@ -134,6 +134,11 @@ function unit_type(::ENDPOINT_TYPE)
     return :id
 end
 
+function keyword_default_value(x::ENDPOINT_TYPE, T::Type)
+    @assert T == Float64
+    return NaN
+end
+
 function parse_keyword!(data, outer_data, units, cfg, f, v::Val{:MULTREGT})
     defaults = [-1, -1, 1.0, "XYZ", "ALL", "M"]
     mreg = []

@@ -687,9 +687,9 @@ end
 """
     keyword_default_value(x::AbstractString, T::Type)
 
-Get the default value of a keyword (as String or ::Val{Symbol}) when placed in a
-array with element type T. This is used to initialize defaulted entries when
-using COPY, ADD, MULTIPLY and so on.
+Get the default value of a keyword (as `String` or `::Val{X}` where `X` is a
+`Symbol`) when placed in a array with element type `T`. This is used to
+initialize defaulted entries when using COPY, ADD, MULTIPLY and so on.
 """
 function keyword_default_value(x::AbstractString, T::Type)
     return keyword_default_value(Val(Symbol(x)), T)

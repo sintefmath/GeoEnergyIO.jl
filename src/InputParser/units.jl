@@ -331,3 +331,7 @@ function deck_unit(sys::DeckUnitSystem, ::Val{:thermal_expansion_c2})
     u = deck_unit(sys, :absolute_temperature_numeric)
     return 1.0/u^2
 end
+
+function deck_unit(sys::DeckUnitSystem, ::Val{:aquifer_transmissibility})
+    return deck_unit(sys, :transmissibility)/deck_unit(sys, :viscosity)
+end

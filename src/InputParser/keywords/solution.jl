@@ -217,3 +217,46 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:FIELDSEP})
     end
     data["FIELDSEP"] = out
 end
+
+
+function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:AQUCHWAT})
+    n = aquifer_dimensions(outer_data, :NANAQU)
+    def_and_u = [
+        (1, :id),
+        (NaN, :length),
+        ("PRESSURE", :id),
+        (0.0, :pressure),
+        (0.0, :aquifer_transmissibility),
+        (1, :id),
+        (0.0, :concentration),
+        (NaN, :pressure),
+        (NaN, :pressure),
+        ("NO", :id),
+        (-Inf, :liquid_rate_surface),
+        (Inf, :liquid_rate_surface),
+        ("NO", :id),
+        (0, :id),
+        (NaN, :relative_temperature),
+    ]
+    def = map(first, def_and_u)
+    eunits = map(last, def_and_u)
+    out = []
+    for i = 1:n
+        rec = read_record(f)
+        result = parse_defaulted_line(rec, def)
+        bc_type = result[3]
+        if bc_type == "PRESSURE"
+            u = :pressure
+        else
+            @assert bc_type == "HEAD"
+            u = :length
+            parser_message(cfg, outer_data, AQUCHWAT, "AQUCHWAT: HEAD option is not fully supported. This option is not supported in JutulDarcy solvers.")
+        end
+        for j in [4, 8, 9]
+            eunits[j] = u
+        end
+        swap_unit_system_axes!(result, units, eunits)
+        push!(out, result)
+    end
+    data["AQUCHWAT"] = out
+end

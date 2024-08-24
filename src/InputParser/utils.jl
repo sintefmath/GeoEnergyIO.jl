@@ -478,6 +478,25 @@ function number_of_tables(outer_data, t::Symbol)
     error(":$t is not known")
 end
 
+function aquifer_dimensions(outer_data, t::Symbol)
+    rs = outer_data["RUNSPEC"]
+    aqudims = get(rs, "AQUDIMS", [1, 1, 1, 36, 1, 1, 0, 0])
+    if t == :MXNAQN || t == :NANAQU
+        return max(aqudims[1], aqudims[5])
+    elseif t == :MXNAQC || t == :NCAMAX
+        return max(aqudims[2], aqudims[6])
+    elseif t == :NIFTBL
+        return aqudims[3]
+    elseif t == :NRIFTB
+        return aquadims[4]
+    elseif t == :MXNALI
+        return aquadims[7]
+    elseif t == :MXAAQL
+        return aquadims[8]
+    end
+    error(":$t is not known")
+end
+
 function compositional_number_of_components(outer_data)
     return outer_data["RUNSPEC"]["COMPS"]
 end

@@ -366,6 +366,7 @@ function grid_from_primitives(primitives; nnc = missing)
     i_bnd_face_tag = Vector{Int}()
     j_bnd_face_tag = Vector{Int}()
     k_bnd_face_tag = Vector{Int}()
+    boundary_type = Dict{Int, Symbol}()
 
     nx, ny, nz = cartdims
 
@@ -389,7 +390,7 @@ function grid_from_primitives(primitives; nnc = missing)
         push!(Vpos, length(nodes) + Vpos[end])
     end
 
-    function insert_boundary_face!(prev_cell, cell, nodes, is_vertical, is_idir)
+    function insert_boundary_face!(prev_cell, cell, nodes, is_vertical, is_idir, face_type)
         orient = cell_is_boundary(prev_cell) && !cell_is_boundary(cell)
         @assert orient || (cell_is_boundary(cell) && !cell_is_boundary(prev_cell)) "cell pair $((cell, prev_cell)) is not on boundary"
         if orient
@@ -406,17 +407,21 @@ function grid_from_primitives(primitives; nnc = missing)
         else
             push!(horizontal_bnd_face_tag, boundary_faceno)
         end
+        boundary_type[boundary_faceno] = face_type
         if is_idir
             push!(i_bnd_face_tag, boundary_faceno)
+            @assert face_type in (:left, :right)
         elseif is_vertical
+            @assert face_type in (:upper, :lower)
             push!(j_bnd_face_tag, boundary_faceno)
         else
+            @assert face_type in (:top, :bottom)
             push!(k_bnd_face_tag, boundary_faceno)
         end
         boundary_faceno += 1
     end
 
-    function insert_interior_face!(prev_cell, cell, nodes, is_vertical, is_idir)
+    function insert_interior_face!(prev_cell, cell, nodes, is_vertical, is_idir, face_type)
         @assert cell > 0
         @assert prev_cell > 0
         @assert prev_cell != cell
@@ -440,11 +445,11 @@ function grid_from_primitives(primitives; nnc = missing)
         faceno += 1
     end
 
-    function insert_face!(prev_cell, cell, nodes; is_boundary, is_vertical, is_idir)
+    function insert_face!(prev_cell, cell, nodes; is_boundary, is_vertical, is_idir, face_type)
         if is_boundary
-            insert_boundary_face!(prev_cell, cell, nodes, is_vertical, is_idir)
+            insert_boundary_face!(prev_cell, cell, nodes, is_vertical, is_idir, face_type)
         else
-            insert_interior_face!(prev_cell, cell, nodes, is_vertical, is_idir)
+            insert_interior_face!(prev_cell, cell, nodes, is_vertical, is_idir, face_type)
         end
     end
 
@@ -483,17 +488,19 @@ function grid_from_primitives(primitives; nnc = missing)
                     F = first
                     c1 = prev
                     c2 = cell
+                    ft = :top
                 else
                     is_bnd = bottom_is_boundary
                     F = last
                     c1 = cell
                     c2 = next
+                    ft = :bottom
                 end
                 # Index into pillars
                 node_in_pillar_indices = map(F, cell_bnds)
                 # Then find the global node indices
                 node_indices = map((line, i) -> line.nodes[i], current_column_lines, node_in_pillar_indices)
-                insert_face!(c1, c2, node_indices, is_vertical = false, is_boundary = is_bnd, is_idir = false)
+                insert_face!(c1, c2, node_indices, is_vertical = false, is_boundary = is_bnd, is_idir = false, face_type = ft)
             end
         end
     end
@@ -522,8 +529,8 @@ function grid_from_primitives(primitives; nnc = missing)
             cell_pairs, overlaps = traverse_column_pair(col_a, col_b, l1, l2)
             int_pairs, int_overlaps, bnd_pairs, bnd_overlaps = split_overlaps_into_interior_and_boundary(cell_pairs, overlaps)
 
-            F_interior = (l, r, node_indices) -> insert_face!(l, r, node_indices, is_boundary = false, is_vertical = true, is_idir = is_idir)
-            F_bnd = (l, r, node_indices) -> insert_face!(l, r, node_indices, is_boundary = true, is_vertical = true, is_idir = is_idir)
+            F_interior = (l, r, node_indices) -> insert_face!(l, r, node_indices, is_boundary = false, is_vertical = true, is_idir = is_idir, face_type = conn_type)
+            F_bnd = (l, r, node_indices) -> insert_face!(l, r, node_indices, is_boundary = true, is_vertical = true, is_idir = is_idir, face_type = conn_type)
 
             if is_bnd
                 # We are dealing with a boundary column, everything is boundary
@@ -622,6 +629,17 @@ function grid_from_primitives(primitives; nnc = missing)
     end
     if length(k_bnd_face_tag) > 0
         set_mesh_entity_tag!(g, BoundaryFaces(), :ijk_orientation, :k, k_bnd_face_tag)
+    end
+    for k in (:left, :right, :upper, :lower, :top, :bottom)
+        bnd_ix = Vector{Int}()
+        for (btype, v) in pairs(boundary_type)
+            if btype == k
+                push!(bnd_ix, v)
+            end
+        end
+        if length(bnd_ix) > 0
+            set_mesh_entity_tag!(g, BoundaryFaces(), :direction, k, bnd_ix)
+        end
     end
     return g
 end

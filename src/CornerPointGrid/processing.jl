@@ -632,14 +632,12 @@ function grid_from_primitives(primitives; nnc = missing)
     end
     for k in (:left, :right, :upper, :lower, :top, :bottom)
         bnd_ix = Vector{Int}()
-        for (btype, v) in pairs(boundary_type)
+        for (f, btype) in pairs(boundary_type)
             if btype == k
-                push!(bnd_ix, v)
+                push!(bnd_ix, f)
             end
         end
-        if length(bnd_ix) > 0
-            set_mesh_entity_tag!(g, BoundaryFaces(), :direction, k, bnd_ix)
-        end
+        set_mesh_entity_tag!(g, BoundaryFaces(), :direction, k, bnd_ix)
     end
     return g
 end

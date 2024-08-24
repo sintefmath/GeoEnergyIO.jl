@@ -360,11 +360,6 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:AQUFETP})
     skip_record(f)
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:AQUANCON})
-    parser_message(cfg, outer_data, "AQUANCON", PARSER_MISSING_SUPPORT)
-    skip_record(f)
-end
-
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:WTEMP})
     d = "Default"
     defaults = [d, NaN]

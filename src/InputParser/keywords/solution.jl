@@ -260,3 +260,32 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:AQUCHWAT})
     end
     data["AQUCHWAT"] = out
 end
+
+function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:AQUANCON})
+    def_and_u = [
+        (1, :id), # Aquifer no
+        (-1, :id), # I start
+        (-1, :id), # I stop
+        (-1, :id), # J start
+        (-1, :id), # J stop
+        (-1, :id), # K start
+        (-1, :id), # K stop
+        ("Defaulted", :id), # Where does it connect?
+        (NaN, :area), # surface area to aquifer
+        (1.0, :id), # Magic multiplier to flow rate
+        ("NO", :id) # Allow interior aquifer connections
+    ]
+    defaults = map(first, def_and_u)
+    utypes = map(last, def_and_u)
+    out = []
+    while true
+        rec = read_record(f)
+        if length(rec) == 0
+            break
+        end
+        l = parse_defaulted_line(rec, defaults)
+        swap_unit_system_axes!(l, units, utypes)
+        push!(out, l)
+    end
+    data["AQUANCON"] = out
+end

@@ -401,6 +401,7 @@ end
 function parse_keyword!(data, outer_data, units, cfg, f, v::Val{T}) where T
     # Keywords where we read a single record and don't do anything proper
     found = false
+    kw_str = "$T"
     for (kw, num, msg) in KEYWORD_SKIP_LIST
         if kw != T
             continue
@@ -410,9 +411,9 @@ function parse_keyword!(data, outer_data, units, cfg, f, v::Val{T}) where T
         end
         if num == 0
             # Single word keywords are trivial to parse, just set a true flag.
-            data["$T"] = true
+            data[kw_str] = true
         elseif num == 1
-            data["$T"] = read_record(f)
+            data[kw_str] = read_record(f)
         else
             skip_record(f)
         end
@@ -421,9 +422,11 @@ function parse_keyword!(data, outer_data, units, cfg, f, v::Val{T}) where T
     end
 
     if !found
-        if startswith("$T", "TVDP")
-            parser_message(cfg, outer_data, "$T", PARSER_MISSING_SUPPORT)
+        if startswith(kw_str, "TVDP")
+            parser_message(cfg, outer_data, kw_str, PARSER_MISSING_SUPPORT)
             read_record(f)
+        elseif startswith(kw_str, "FIP")
+            data[kw_str] = parse_and_set_grid_data!(data, outer_data, units, cfg, f, T, T = Int)
         else
             error("Unhandled keyword $T encountered.")
         end

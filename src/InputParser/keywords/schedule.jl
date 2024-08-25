@@ -88,7 +88,7 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:WELLSHUT})
     wellshut = parse_defaulted_group_well(f, defaults, wells, 1)
     welopen = []
     for w in wellshut
-        push!(welopen, [w, "SHUT"], -1, -1, -1, -1, -1)
+        push!(welopen, [only(w), "SHUT", -1, -1, -1, -1, -1])
     end
     push_and_create!(data, "WELOPEN", welopen)
 end

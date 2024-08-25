@@ -69,6 +69,5 @@ module InputParser
         skip_kw!(:GCONINJE, Inf, PARSER_MISSING_SUPPORT)
         skip_kw!(:WTEST, Inf, PARSER_MISSING_SUPPORT)
         skip_kw!(:WLIST, Inf, PARSER_MISSING_SUPPORT)
-        skip_kw!(:WELLSHUT, Inf, PARSER_MISSING_SUPPORT)
     end
 end

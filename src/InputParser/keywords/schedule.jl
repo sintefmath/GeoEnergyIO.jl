@@ -78,6 +78,21 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:WELOPEN})
     push_and_create!(data, "WELOPEN", welopen)
 end
 
+function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:WELLSHUT})
+    # WELLSHUT is recommended to be replaced with WELOPEN. For simplicity we
+    # convert WELLSHUT to the corresponding WELOPEN arguments.
+    parser_message(cfg, outer_data, "WELLSHUT", "Converting WELLSHUT to equivialent WELOPEN inputs.", color = :green)
+    d = "Default"
+    defaults = [d]
+    wells = get_wells(outer_data)
+    wellshut = parse_defaulted_group_well(f, defaults, wells, 1)
+    welopen = []
+    for w in wellshut
+        push!(welopen, [w, "SHUT"], -1, -1, -1, -1, -1)
+    end
+    push_and_create!(data, "WELOPEN", welopen)
+end
+
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:WCONPROD})
     d = "Default"
     defaults = [

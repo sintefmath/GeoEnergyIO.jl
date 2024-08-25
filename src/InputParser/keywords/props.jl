@@ -405,3 +405,20 @@ end
 function unit_type(::Val{:SWATINIT})
     return :id
 end
+
+const DIFFUSION_TYPE = Union{Val{:DIFCCOG}, Val{:DIFFCOIL}, Val{:DIFFCGAS}, Val{:DIFFCWAT}, Val{:DIFFCWG}}
+
+function parse_keyword!(data, outer_data, units, cfg, f, val::DIFFUSION_TYPE)
+    k = unpack_val(val)
+    # TODO: Units.
+    n = compositional_number_of_components(outer_data)
+    out = zeros(n)
+    val = parse_deck_vector(f)
+    nv = length(val)
+    @assert nv <= n "$k has more entries ($nv) than components ($n)"
+    out[1:nv] = val
+    if !all(isequal(0), out)
+        parser_message(cfg, outer_data, "$k", PARSER_JUTULDARCY_MISSING_SUPPORT)
+    end
+    data["$k"] = out
+end

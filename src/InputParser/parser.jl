@@ -228,7 +228,12 @@ function parse_data_file!(outer_data, filename, data = outer_data;
                 )
             elseif m in (:DATES, :TIME, :TSTEP)
                 parsed_keyword = true
-                parse_keyword!(data, outer_data, unit_systems, cfg, f, Val(m))
+                try
+                    parse_keyword!(data, outer_data, unit_systems, cfg, f, Val(m))
+                catch e
+                    failure_print_line_context(f, kw = m)
+                    rethrow(e)
+                end
                 # New control step starts after this
                 data = OrderedDict{String, Any}()
                 push!(outer_data["SCHEDULE"]["STEPS"], data)
@@ -239,7 +244,12 @@ function parse_data_file!(outer_data, filename, data = outer_data;
             elseif skip_mode
                 parser_message(cfg, outer_data, "$m", "Keyword skipped.")
             else
-                parse_keyword!(data, outer_data, unit_systems, cfg, f, Val(m))
+                try
+                    parse_keyword!(data, outer_data, unit_systems, cfg, f, Val(m))
+                catch e
+                    failure_print_line_context(f, kw = m)
+                    rethrow(e)
+                end
                 parsed_keyword = true
             end
             if parsed_keyword

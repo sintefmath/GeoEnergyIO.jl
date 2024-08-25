@@ -430,6 +430,31 @@ function parse_keyword!(data, outer_data, units, cfg, f, v::Val{T}) where T
     end
 end
 
+function failure_print_line_context(f; kw = nothing)
+    lno, line = failure_line_number(f)
+    jutul_message("Parser", "Parsing halted at line $lno.\nContext: $(f.name):", color = :red)
+    if !isnothing(kw)
+        println("Parsing failure happened during keyword $kw")
+    end
+    println("L$lno: $line")
+end
+
+function failure_line_number(f)
+    pos = mark(f)
+    seek(f, 0)
+    lno_prev = 0
+    line_prev = ""
+    for (lno, line) in enumerate(eachline(f))
+        if position(f) > pos
+            break
+        end
+        lno_prev = lno
+        line_prev = line
+    end
+    reset(f)
+    return (lno_prev, line_prev)
+end
+
 function next_keyword!(f)
     m = nothing
     while isnothing(m) && !eof(f)

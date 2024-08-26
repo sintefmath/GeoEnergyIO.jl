@@ -63,8 +63,28 @@ end
 
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:EHYSTR})
     rec = read_record(f)
-    defaults = [0.1, 0, 1.0, 0.1, "BOTH", "RETR", "DRAIN", "DEFAULT", "NO", "NO", "NO", 0.0, 0]
+    defaults = [0.1, -1000, 1.0, 0.1, "BOTH", "RETR", "DRAIN", "DEFAULT", "NO", "NO", "NO", 0.0, 0]
     h = parse_defaulted_line(rec, defaults)
+    if h[2] == -1000
+        if haskey(outer_data, "RUNSPEC")
+            rs = outer_data["RUNSPEC"]
+            if haskey(rs, "COMPS")
+                # Killough is default for E300 type models
+                h[2] = 2
+                msg = "Found COMPS, setting to 2 (= Killough)"
+            elseif haskey(rs, "CO2STORE")
+                h[2] = 2
+                msg = "Found CO2STORE, setting to 2 (= Killough)"
+            else
+                h[2] = 0
+                msg = "Did not find CO2STORE or COMPS, setting to 0 (= Carlson)"
+            end
+        else
+            h[2] = 0
+            msg = "RUNSPEC is not available, setting to 0 (= Carlson)"
+        end
+        parser_message(cfg, outer_data, "EHYSTR", "EHYSTR second entry is defaulted. $msg", important = true)
+    end
     @assert h[2] in -1:9
     @assert h[5] in ("BOTH", "PC", "KR")
     @assert h[6] in ("RETR", "NEW")

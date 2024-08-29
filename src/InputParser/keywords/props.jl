@@ -257,7 +257,6 @@ function parse_keyword!(data, outer_data, units, cfg, f, v::Val{:ROCKTAB})
             tab[i, 1] = swap_unit_system(tab[i, 1], units, :pressure)
         end
     end
-    parser_message(cfg, outer_data, "ROCKTAB", PARSER_JUTULDARCY_MISSING_SUPPORT)
     data["ROCKTAB"] = tables
 end
 

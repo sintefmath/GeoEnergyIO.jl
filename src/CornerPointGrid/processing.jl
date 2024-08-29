@@ -452,8 +452,11 @@ function grid_from_primitives(primitives; nnc = missing, pinch = missing)
             insert_interior_face!(prev_cell, cell, nodes, is_vertical, is_idir, face_type)
         end
     end
+    # Create pinch maps
+    pinch_top_to_bottom = generate_pinch_map(pinch, primitives, lines, column_lines, columns)
 
     # Horizontal faces (top/bottom and faces along column)
+    pinch_added = 0
     node_buffer = Int[]
     sizehint!(node_buffer, 10)
     for (cl, col) in zip(column_lines, columns)
@@ -477,8 +480,6 @@ function grid_from_primitives(primitives; nnc = missing, pinch = missing)
             bottom_is_boundary = cell_is_boundary(next)
             cell_bnds = map(l -> find_cell_bounds(cell, l), current_column_lines)
             for is_top in (true, false)
-                # TODO: c1/c2 definition will have to be modified to pick the
-                # right normal vector, check this later.
                 if is_top
                     if !top_is_boundary
                         # Avoid adding interior faces twice.
@@ -496,6 +497,13 @@ function grid_from_primitives(primitives; nnc = missing, pinch = missing)
                     c2 = next
                     ft = :bottom
                 end
+                # Pinch treatment
+                if haskey(pinch_top_to_bottom, c1)
+                    # If the there is a mapping (going down) from c1 to some
+                    # other cell due to pinch we should not add anything.
+                    @assert cell_is_boundary(c2)
+                    continue
+                end
                 # Index into pillars
                 node_in_pillar_indices = map(F, cell_bnds)
                 # Then find the global node indices
@@ -504,7 +512,30 @@ function grid_from_primitives(primitives; nnc = missing, pinch = missing)
             end
         end
     end
-    # primitives.column_boundary
+    # We skipped a bunch faces that belonged to pinched layers. Time to add them
+    # back in by systematically going through the pinch list.
+    num_pinched = length(keys(pinch_top_to_bottom))
+    if num_pinched > 0
+        pinch_count = 0
+        for (cl, col) in zip(column_lines, columns)
+            number_of_cells_in_column = length(col.cells)
+            current_column_lines = map(l -> lines[l], cl)
+            for top_cell in col.cells
+                cell_bnds = map(l -> find_cell_bounds(top_cell, l), current_column_lines)
+                bottom_cell = get(pinch_top_to_bottom, top_cell, nothing)
+                if isnothing(bottom_cell)
+                    continue
+                end
+                node_in_pillar_indices = map(last, cell_bnds)
+                # Then find the global node indices
+                node_indices = map((line, i) -> line.nodes[i], current_column_lines, node_in_pillar_indices)
+                insert_face!(top_cell, bottom_cell, node_indices, is_vertical = false, is_boundary = false, is_idir = false, face_type = :bottom)
+                pinch_count += 1
+            end
+        end
+        @assert num_pinched == pinch_count
+    end
+    # Vertical faces
     for is_bnd in [true, false]
         if is_bnd
             col_neighbors = primitives.column_boundary
@@ -538,48 +569,6 @@ function grid_from_primitives(primitives; nnc = missing, pinch = missing)
             else
                 add_vertical_cells_from_overlaps!(extra_node_lookup, F_interior, nodes, int_pairs, int_overlaps, l1, l2)
                 add_vertical_cells_from_overlaps!(extra_node_lookup, F_bnd, nodes, bnd_pairs, bnd_overlaps, l1, l2)
-            end
-        end
-    end
-
-    if !ismissing(pinch)
-        # Loop over columns, look for gaps
-        (; pinch, minpv_removed) = pinch
-        @assert length(pinch) == 5
-        thres = pinch[1]
-        num_added = 0
-        for (cl, col) in zip(column_lines, columns)
-            number_of_cells_in_column = length(col.cells)
-            current_column_lines = map(l -> lines[l], cl)
-
-            start = 1
-            while start < number_of_cells_in_column
-                before_inactive, last_inactive, done = find_next_gap(col.cells, start)
-                if done || before_inactive == last_inactive
-                    break
-                end
-                top_cell = col.cells[before_inactive]
-                bottom_cell = col.cells[last_inactive + 1]
-                @assert top_cell > 0
-                @assert bottom_cell > 0
-
-                # Indices of face on the bottom of upper cell
-                top_pos = map(l -> last(find_cell_bounds(top_cell, l)), current_column_lines)
-                node_indices_top = map((line, i) -> line.nodes[i], current_column_lines, top_pos)
-
-                bottom_pos = map(l -> first(find_cell_bounds(bottom_cell, l)), current_column_lines)
-                node_indices_bottom = map((line, i) -> line.nodes[i], current_column_lines, top_pos)
-                z(i) = primitives.nodes[i][3]
-                z_face(ix) = (z(ix[1]) + z(ix[2]) + z(ix[3]) + z(ix[4]))/4.0
-                depth_top = z_face(node_indices_top)
-                depth_bottom = z_face(node_indices_bottom)
-                if depth_bottom - depth_top > thres
-                    continue
-                end
-                # This is a bit hackish, but we just add a new actual face on top of the other boundary face that is already there.
-                insert_face!(top_cell, bottom_cell, node_indices_top, is_vertical = false, is_boundary = false, is_idir = false, face_type = :bottom)
-                start = last_inactive + 1
-                num_added += 1
             end
         end
     end
@@ -684,6 +673,49 @@ function grid_from_primitives(primitives; nnc = missing, pinch = missing)
     return g
 end
 
+function generate_pinch_map(pinch, primitives, lines, column_lines, columns)
+    pinch_top_to_bottom = Dict{Int, Int}()
+    if !ismissing(pinch)
+        # Loop over columns, look for gaps
+        (; pinch, minpv_removed) = pinch
+        @assert length(pinch) == 5
+        thres = pinch[1]
+        num_added = 0
+        for (cl, col) in zip(column_lines, columns)
+            number_of_cells_in_column = length(col.cells)
+            current_column_lines = map(l -> lines[l], cl)
+
+            start = 1
+            while start < number_of_cells_in_column
+                before_inactive, last_inactive, done = find_next_gap(col.cells, start)
+                if done || before_inactive == last_inactive
+                    break
+                end
+                top_cell = col.cells[before_inactive]
+                bottom_cell = col.cells[last_inactive + 1]
+                @assert top_cell > 0
+                @assert bottom_cell > 0
+
+                # Indices of face on the bottom of upper cell
+                top_pos = map(l -> last(find_cell_bounds(top_cell, l)), current_column_lines)
+                node_indices_top = map((line, i) -> line.nodes[i], current_column_lines, top_pos)
+
+                bottom_pos = map(l -> first(find_cell_bounds(bottom_cell, l)), current_column_lines)
+                node_indices_bottom = map((line, i) -> line.nodes[i], current_column_lines, top_pos)
+                z(i) = primitives.nodes[i][3]
+                z_face(ix) = (z(ix[1]) + z(ix[2]) + z(ix[3]) + z(ix[4]))/4.0
+                depth_top = z_face(node_indices_top)
+                depth_bottom = z_face(node_indices_bottom)
+                start = last_inactive + 1
+                if depth_bottom - depth_top < thres
+                    pinch_top_to_bottom[top_cell] = bottom_cell
+                    num_added += 1
+                end
+            end
+        end
+    end
+    return pinch_top_to_bottom
+end
 
 function find_next_gap(cells, start)
     # For cells, starting at "start", find the next interval of negative values.

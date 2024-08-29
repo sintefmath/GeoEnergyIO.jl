@@ -183,4 +183,23 @@ import Jutul: number_of_cells, number_of_boundary_faces, number_of_faces, conver
         @test defaults_for_unit(:field, (:length, :volume), si = [1.0, 2.0]) ≈ [ft, 2.0*ft^3]
         @test defaults_for_unit(:field, (:length, :volume), si = [1.0, 2.0], field = [200.0, 500.0]) ≈ [200.0, 500.0]
     end
+
+    @testset "find_next_gap" begin
+        for (interval, start, ref) in [
+                ([1, 2, 3, 0, 0, 1], 1, (3, 5, false)),
+                ([0, 0, 1, 2, 3, 0, 0, 1], 1, (5, 7, false)),
+                ([0, 0, 1, 2, 3, 0, 0, 1], 4, (5, 7, false)),
+                ([1, 0, 0], 1,  (3, 3, true)),
+            ]
+            v = GeoEnergyIO.CornerPointGrid.find_next_gap(interval, start)
+            @test v == ref
+            interval = interval[(ref[1]+1):ref[2]]
+            @test all(iszero, interval)
+        end
+        ##
+        @test GeoEnergyIO.CornerPointGrid.find_next_gap([1, 2, 3, 0, 0, 1], 1) == (3, 5, false)
+        @test GeoEnergyIO.CornerPointGrid.find_next_gap([0, 0, 1, 2, 3, 0, 0, 1], 1) == (5, 7, false)
+        @test GeoEnergyIO.CornerPointGrid.find_next_gap([0, 0, 1, 2, 3, 0, 0, 1], 4) == (5, 7, false)
+        @test GeoEnergyIO.CornerPointGrid.find_next_gap([1, 0, 0], 1) == (3, 3, true)
+    end
 end

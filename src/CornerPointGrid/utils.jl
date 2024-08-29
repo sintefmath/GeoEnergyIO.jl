@@ -89,8 +89,8 @@ function get_effective_actnum(g)
     else
         actnum = fill(true, g["cartDims"])
     end
-    handle_zero_effective_porosity!(actnum, g)
-    return actnum
+    actnum, modified = handle_zero_effective_porosity!(actnum, g)
+    return (actnum, modified)
 end
 
 function handle_zero_effective_porosity!(actnum, g)
@@ -102,6 +102,7 @@ function handle_zero_effective_porosity!(actnum, g)
     end
     added = 0
     active = 0
+    changed = fill(false, size(actnum))
 
     if haskey(g, "PORV")
         porv = G["PORV"]
@@ -112,6 +113,7 @@ function handle_zero_effective_porosity!(actnum, g)
                 if pv < minpv_for_cell(i)
                     added += 1
                     actnum[i] = false
+                    changed[i] = true
                 end
             end
         end
@@ -143,7 +145,7 @@ function handle_zero_effective_porosity!(actnum, g)
         end
     end
     @debug "$added disabled cells out of $(length(actnum)) due to low effective pore-volume."
-    return actnum
+    return (actnum, changed)
 end
 
 function zcorn_volume(g, zcorn, coord, dims, linear_ix)

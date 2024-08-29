@@ -312,7 +312,7 @@ function process_lines!(lines)
     return (nodes, active_lines)
 end
 
-function grid_from_primitives(primitives; nnc = missing)
+function grid_from_primitives(primitives; nnc = missing, pinch = missing)
     (;
         lines,
         lines_active,
@@ -542,6 +542,48 @@ function grid_from_primitives(primitives; nnc = missing)
         end
     end
 
+    if !ismissing(pinch)
+        # Loop over columns, look for gaps
+        (; pinch, minpv_removed) = pinch
+        @assert length(pinch) == 5
+        thres = pinch[1]
+        num_added = 0
+        for (cl, col) in zip(column_lines, columns)
+            number_of_cells_in_column = length(col.cells)
+            current_column_lines = map(l -> lines[l], cl)
+
+            start = 1
+            while start < number_of_cells_in_column
+                before_inactive, last_inactive, done = find_next_gap(col.cells, start)
+                if done || before_inactive == last_inactive
+                    break
+                end
+                top_cell = col.cells[before_inactive]
+                bottom_cell = col.cells[last_inactive + 1]
+                @assert top_cell > 0
+                @assert bottom_cell > 0
+
+                # Indices of face on the bottom of upper cell
+                top_pos = map(l -> last(find_cell_bounds(top_cell, l)), current_column_lines)
+                node_indices_top = map((line, i) -> line.nodes[i], current_column_lines, top_pos)
+
+                bottom_pos = map(l -> first(find_cell_bounds(bottom_cell, l)), current_column_lines)
+                node_indices_bottom = map((line, i) -> line.nodes[i], current_column_lines, top_pos)
+                z(i) = primitives.nodes[i][3]
+                z_face(ix) = (z(ix[1]) + z(ix[2]) + z(ix[3]) + z(ix[4]))/4.0
+                depth_top = z_face(node_indices_top)
+                depth_bottom = z_face(node_indices_bottom)
+                if depth_bottom - depth_top > thres
+                    continue
+                end
+                # This is a bit hackish, but we just add a new actual face on top of the other boundary face that is already there.
+                insert_face!(top_cell, bottom_cell, node_indices_top, is_vertical = false, is_boundary = false, is_idir = false, face_type = :bottom)
+                start = last_inactive + 1
+                num_added += 1
+            end
+        end
+    end
+
     if !ismissing(nnc)
         to_active_ix = zeros(Int, nx*ny*nz)
         to_active_ix[active] = eachindex(active)
@@ -640,4 +682,41 @@ function grid_from_primitives(primitives; nnc = missing)
         set_mesh_entity_tag!(g, BoundaryFaces(), :direction, k, bnd_ix)
     end
     return g
+end
+
+
+function find_next_gap(cells, start)
+    # For cells, starting at "start", find the next interval of negative values.
+    # Function returns the position before the first negative value in the interval,
+    # followed by the position of the next positive value, and a true/false
+    # indicating if there are no more intervals.
+    n = length(cells)
+    if cells[start] <= 0
+        rng = view(cells, (start+1):n)
+        offset = findfirst(x -> x > 0, cells)
+        if isnothing(offset)
+            return (n, n, true)
+        else
+            start = start + offset - 1
+        end
+    end
+    @assert cells[start] > 0
+    stop = start + 1
+    # Find next negative value
+    rng = view(cells, (start+1):n)
+    next_negative = findfirst(x -> x <= 0, rng)
+    if isnothing(next_negative)
+        return (n, n, true)
+    else
+        next_negative = next_negative + start - 1
+    end
+
+    rng = view(cells, (next_negative+1):n)
+    next_positive = findfirst(x -> x > 0, rng)
+    if isnothing(next_positive)
+        return (n, n, true)
+    else
+        next_positive = next_positive + next_negative - 1
+    end
+    return (next_negative, next_positive, next_positive == n)
 end

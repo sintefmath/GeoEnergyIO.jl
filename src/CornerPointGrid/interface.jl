@@ -31,10 +31,10 @@ function mesh_from_grid_section(f, actnum = missing, repair_zcorn = true)
         grid = f
     end
     if ismissing(actnum)
-        actnum = get_effective_actnum(grid)
+        actnum, minpv_removed = get_effective_actnum(grid)
     end
     if haskey(grid, "COORD")
-        G = mesh_from_zcorn_and_coord(grid, actnum = actnum, repair = repair_zcorn)
+        G = mesh_from_zcorn_and_coord(grid, actnum = actnum, minpv_removed = minpv_removed, repair = repair_zcorn)
     else
         G = mesh_from_dxdydz_and_tops(grid, actnum = actnum)
     end
@@ -44,7 +44,10 @@ function mesh_from_grid_section(f, actnum = missing, repair_zcorn = true)
     return G
 end
 
-function mesh_from_zcorn_and_coord(grid; actnum = get_effective_actnum(grid), repair = true)
+function mesh_from_zcorn_and_coord(grid; actnum = missing, minpv_removed = missing, repair = true)
+    if ismissing(actnum)
+        actnum, minpv_removed = get_effective_actnum(grid)
+    end
     cartdims = grid["cartDims"]
     nnc = get(grid, "NNC", missing)
     coord = grid["COORD"]
@@ -53,8 +56,17 @@ function mesh_from_zcorn_and_coord(grid; actnum = get_effective_actnum(grid), re
         repair_zcorn!(zcorn, cartdims)
     end
     primitives = cpgrid_primitives(coord, zcorn, cartdims, actnum = actnum)
-    G = grid_from_primitives(primitives, nnc = nnc)
+    pinch = pinch_primitives(grid, minpv_removed)
+    G = grid_from_primitives(primitives, nnc = nnc, pinch = pinch)
     return G
+end
+
+function pinch_primitives(grid, minpv_removed)
+    pinch = get(grid, "PINCH", [0.001, "GAP", Inf, "TOPBOT", "TOP"])
+    if ismissing(minpv_removed)
+        minpv_removed = fill(false, size(actnum))
+    end
+    return (pinch = pinch, minpv_removed = minpv_removed)
 end
 
 function mesh_from_dxdydz_and_tops(grid; actnum = get_effective_actnum(grid))

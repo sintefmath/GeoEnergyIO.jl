@@ -21,6 +21,14 @@ lazy = true
     sha256 = "e6b8b0c0d96e4937dda5d0e740d6017f8b5454543a2ee664fce3c911ac8536be"
     url = "https://github.com/sintefmath/GeoEnergyIO.jl/releases/download/v1.1.1/olympus_1.tar.bz2"
 
+[SIMPLE_COMP]
+git-tree-sha1 = "a18b3faa12684e0dfce5b03f455247d5620838ec"
+lazy = true
+
+    [[SIMPLE_COMP.download]]
+    sha256 = "7dc8deb7cfec5cab3b518e6e591271beeeec83d27d5c15b4561b2699d0084e65"
+    url = "https://github.com/sintefmath/GeoEnergyIO.jl/releases/download/v1.1.5/simple_comp.tar.gz"
+
 [SPE1]
 git-tree-sha1 = "54a767353e86e26e4706b77e855dfa5b9fec1380"
 

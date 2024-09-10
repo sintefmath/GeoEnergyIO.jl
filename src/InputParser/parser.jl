@@ -301,7 +301,7 @@ function parse_grdecl_file(filename;
         data["ACTNUM"] = fill(true, data["cartDims"])
     end
     for local_path in extra_paths
-        if !ispath(k)
+        if !ispath(local_path)
             # Try looking in the same folder?
             dir = first(splitdir(filename))
             fname = local_path

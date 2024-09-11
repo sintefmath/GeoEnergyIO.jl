@@ -120,6 +120,15 @@ function unit_type(::Union{Val{:PERMX}, Val{:PERMY}, Val{:PERMZ}})
     return :permeability
 end
 
+function parse_keyword!(data, outer_data, units, cfg, f, v::Union{Val{:DIPAZIMUTH}, Val{:DIPANGLE}})
+    k = unpack_val(v)
+    parse_and_set_grid_data!(data, outer_data, units, cfg, f, k, unit = unit_type(k))
+end
+
+function unit_type(::Union{Val{:DIPAZIMUTH}, Val{:DIPANGLE}})
+    return :id
+end
+
 const ENDPOINT_TYPE = Union{
     Val{:SWL}, Val{:SGL}, Val{:SWCR}, Val{:SWU}, Val{:SGCR}, Val{:SGU}, Val{:SOWCR}, Val{:SOGCR},
     Val{:ISWL}, Val{:ISGL}, Val{:ISWCR}, Val{:ISWU}, Val{:ISGCR}, Val{:ISGU}, Val{:ISOWCR}, Val{:ISOGCR}

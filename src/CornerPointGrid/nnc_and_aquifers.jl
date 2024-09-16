@@ -57,19 +57,13 @@ function mesh_add_numerical_aquifers!(mesh, AQUNUM, AQUCON)
         @warn "AQUNUM was defined by AQUCON was not found. Aquifer will not have any effect."
         return nothing
     end
+    # Remove repeats
     AQUNUM = filter_aqunum(AQUNUM)
 
     dims = mesh.structure.I
     actnum = fill(false, prod(dims))
     actnum[mesh.cell_map] .= true
-
-    new_cells = Int[]
-    # g.faces.cells_to_faces
-    # g.boundary_faces.cells_to_faces
-    # cell_map
-    @info "???" mesh.faces.cells_to_faces
-    new_cells_to_faces = Vector{Int}[]
-
+    # Create parameter list for aquifers
     prm_T = @NamedTuple{
         cell::Int64,
         area::Float64,
@@ -86,14 +80,15 @@ function mesh_add_numerical_aquifers!(mesh, AQUNUM, AQUCON)
     }
     aquifer_parameters = Dict{Int, prm_T}()
     num_cells_start = number_of_cells(mesh)
+    new_cells_cell_map = Int[]
     for aqunum in AQUNUM
         id, I, J, K, A, L, phi, perm, D, p0, pvt, sat = aqunum
         ix = ijk_to_linear(I, J, K, dims)
         # "AQUNUM cannot declare aquifer in active cell ($I, $J, $K), cell must be inactive."
         if actnum[ix] == false
             # Add the cell
-            push!(new_cells_to_faces, Int[])
-            cell = num_cells_start + length(new_cells_to_faces)
+            push!(new_cells_cell_map, ix)
+            cell = num_cells_start + length(new_cells_cell_map)
         else
             # Cell can be active and should then transition to being treated as
             # aquifer. We find the matching cell.
@@ -114,6 +109,7 @@ function mesh_add_numerical_aquifers!(mesh, AQUNUM, AQUCON)
             boundary_transmult = Float64[] # Trans mult of those fake faces
         )
     end
+    # Add all the faces
     @assert length(keys(aquifer_parameters)) == length(AQUNUM)
     IJK = map(i -> cell_ijk(mesh, i), 1:number_of_cells(mesh))
     nf0 = number_of_faces(mesh)
@@ -134,8 +130,17 @@ function mesh_add_numerical_aquifers!(mesh, AQUNUM, AQUCON)
             push!(new_faces_neighbors, (c, prm.cell))
         end
     end
-    # TODO: Add the new cells.
-
+    fpos = mesh.faces.cells_to_faces.pos
+    bpos = mesh.boundary_faces.cells_to_faces.pos
+    for (i, c) in enumerate(new_cells_cell_map)
+        # Add cells without any face connections since these will be added
+        # afterwards as NNCs.
+        push!(fpos, fpos[end])
+        push!(bpos, bpos[end])
+        # Add the indices in the global enumeration of cells that have been
+        # added as active.
+        push!(mesh.cell_map, c)
+    end
     insert_nnc_faces!(mesh, new_faces_neighbors)
     @assert length(mesh.faces.neighbors) == nf0 + added_face_no
     return aquifer_parameters

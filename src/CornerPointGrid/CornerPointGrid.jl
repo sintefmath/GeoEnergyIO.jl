@@ -4,6 +4,7 @@ module CornerPointGrid
     import Jutul: number_of_cells, number_of_faces, number_of_boundary_faces
     import Jutul: cell_ijk
     import Jutul: set_mesh_entity_tag!
+    import Jutul: mesh_entity_has_tag
     import Jutul: LinearInterpolant, BilinearInterpolant
     import Jutul: extract_submesh
     import Jutul: cell_index

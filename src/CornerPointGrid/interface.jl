@@ -41,11 +41,6 @@ function mesh_from_grid_section(f, actnum = missing, repair_zcorn = true)
     # Handle faults
     faults = get(grid, "FAULTS", missing)
     mesh_add_fault_tags!(G, faults)
-    # Handle numerical aquifers
-    aqunum = get(grid, "AQUNUM", missing)
-    aqucon = get(grid, "AQUCON", missing)
-    mesh_add_numerical_aquifers!(G, aqunum, aqucon, actnum)
-
     return G
 end
 

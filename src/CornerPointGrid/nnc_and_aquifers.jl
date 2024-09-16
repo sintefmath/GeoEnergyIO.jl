@@ -42,14 +42,26 @@ function mesh_insert_cell!(G::UnstructuredMesh, faces, bnd_faces)
 
 end
 
-function mesh_add_numerical_aquifers!(mesh, AQUNUM::Missing, AQUCON, actnum)
-    return mesh
+function setup_numerical_aquifers!(data::AbstractDict)
+    aqunum = get(grid, "AQUNUM", missing)
+    aqucon = get(grid, "AQUCON", missing)
+    return mesh_add_numerical_aquifers!(G, aqunum, aqucon)
 end
 
-function mesh_add_numerical_aquifers!(mesh, AQUNUM, AQUCON, actnum)
+function mesh_add_numerical_aquifers!(mesh, AQUNUM::Missing, AQUCON)
+    return nothing
+end
+
+function mesh_add_numerical_aquifers!(mesh, AQUNUM, AQUCON)
+    if ismissing(AQUCON)
+        @warn "AQUNUM was defined by AQUCON was not found. Aquifer will not have any effect."
+        return nothing
+    end
     AQUNUM = filter_aqunum(AQUNUM)
 
     dims = mesh.structure.I
+    actnum = fill(false, prod(dims))
+    actnum[mesh.cell_map] .= true
 
     new_cells = Int[]
     # g.faces.cells_to_faces
@@ -58,15 +70,24 @@ function mesh_add_numerical_aquifers!(mesh, AQUNUM, AQUCON, actnum)
     @info "???" mesh.faces.cells_to_faces
     new_cells_to_faces = Vector{Int}[]
 
-    aquifer_cells = Dict{Int, Int}()
-    # aquifer_cells = Int[]
-    # aquifer_id = Int[]
-
-
+    prm_T = @NamedTuple{
+        cell::Int64,
+        area::Float64,
+        length::Float64,
+        porosity::Float64,
+        permeability::Float64,
+        depth::Float64,
+        pressure::Float64,
+        pvtnum::Int64,
+        satnum::Int64,
+        boundary_faces::Vector{Int},
+        added_faces::Vector{Int},
+        boundary_transmult::Vector{Float64}
+    }
+    aquifer_parameters = Dict{Int, prm_T}()
     num_cells_start = number_of_cells(mesh)
-    @info "Starting" AQUNUM
     for aqunum in AQUNUM
-        id, I, J, K, = aqunum
+        id, I, J, K, A, L, phi, perm, D, p0, pvt, sat = aqunum
         ix = ijk_to_linear(I, J, K, dims)
         # "AQUNUM cannot declare aquifer in active cell ($I, $J, $K), cell must be inactive."
         if actnum[ix] == false
@@ -78,23 +99,46 @@ function mesh_add_numerical_aquifers!(mesh, AQUNUM, AQUCON, actnum)
             # aquifer. We find the matching cell.
             cell = cell_index(mesh, (I, J, K))
         end
-        aquifer_cells[id] = cell
+        aquifer_parameters[id] = (
+            cell = cell,
+            area = A,
+            length = L,
+            porosity = phi,
+            permeability = perm,
+            depth = D,
+            pressure = p0,
+            pvtnum = pvt,
+            satnum = sat,
+            boundary_faces = Int[], # Boundary faces that were connected
+            added_faces = Int[], # Corresponding fake faces that were aded
+            boundary_transmult = Float64[] # Trans mult of those fake faces
+        )
     end
-    @assert length(keys(aquifer_cells)) == length(AQUNUM)
-    if !ismissing(AQUCON)
-        @info "Starting faces" AQUCON
+    @assert length(keys(aquifer_parameters)) == length(AQUNUM)
+    IJK = map(i -> cell_ijk(mesh, i), 1:number_of_cells(mesh))
+    nf0 = number_of_faces(mesh)
+    added_face_no = 0
+    new_faces_neighbors = Tuple{Int, Int}[]
+    for (i, aqucon) in enumerate(AQUCON)
+        id, I_start, I_stop, J_start, J_stop, K_start, K_stop, dir, tranmult, opt, = aqucon
+        bfaces = find_faces_for_aquifer(mesh, I_start:I_stop, J_start:J_stop, K_start:K_stop, dir, IJK)
+        prm = aquifer_parameters[id]
 
-        tran_mult_and_opt = Tuple{Float64, Int}[]
-        for (i, aqucon) in enumerate(AQUCON)
-            id, I_start, I_stop, J_start, J_stop, K_start, K_stop, dir, tranmult, opt, = aqucon
-            push!(tran_mult_and_opt, (tranmult, opt))
-
-            find_faces_for_aquifer(mesh, I_start:I_stop, J_start:J_stop, K_start:K_stop, dir)
+        for bface in bfaces
+            added_face_no += 1
+            push!(prm.boundary_faces, bface)
+            push!(prm.boundary_transmult, tranmult)
+            push!(prm.added_faces, added_face_no)
+            # Add the new faces
+            c = mesh.boundary_faces.neighbors[bface]
+            push!(new_faces_neighbors, (c, prm.cell))
         end
-        # insert_nnc_faces! kan gjenbrukes her.
     end
-    # Finally loop over add add everything
-    error()
+    # TODO: Add the new cells.
+
+    insert_nnc_faces!(mesh, new_faces_neighbors)
+    @assert length(mesh.faces.neighbors) == nf0 + added_face_no
+    return aquifer_parameters
 end
 
 function filter_aqunum(AQUNUM; warn = true)
@@ -119,27 +163,66 @@ function filter_aqunum(AQUNUM; warn = true)
     return AQUNUM[keep]
 end
 
-function find_faces_for_aquifer(mesh, I, J, K, dir)
-    d = dir[1]
-    if d == 'X' || d == 'I'
-        ix_self = 1
-        ix_1 = 2
-        ix_2 = 3
-    elseif d == 'Y' || d == 'J'
-        ix_self = 2
-        ix_1 = 1
-        ix_2 = 3
-    elseif d == 'Z' || d == 'K'
-        ix_self = 3
-        ix_1 = 1
-        ix_2 = 2
-    else
-        error("Bad direction for fault $fault entry: $dir")
-    end
+function find_faces_for_aquifer(mesh, I_range, J_range, K_range, dir, IJK)
+    bnd_faces = Int[]
     if length(dir) == 1 || dir[2] == '+'
-        inc = 1
+        pos = true
     else
         @assert dir[2] == '-'
-        inc = -1
+        pos = false
     end
+
+    d = dir[1]
+    if d == 'X' || d == 'I'
+        ijk_orientation = :i
+        ijk_ix = 1
+        if pos
+            dir_orientation = :right
+        else
+            dir_orientation = :left
+        end
+    elseif d == 'Y' || d == 'J'
+        ijk_orientation = :j
+        ijk_ix = 2
+        if pos
+            dir_orientation = :top
+        else
+            dir_orientation = :bottom
+        end
+    elseif d == 'Z' || d == 'K'
+        ijk_orientation = :k
+        ijk_ix = 3
+        if pos
+            # Positive direction down
+            dir_orientation = :lower
+        else
+            dir_orientation = :upper
+        end
+    else
+        error("Bad direction for aquifer entry: $dir")
+    end
+    function boundary_face_check(faceno, e)
+        if !mesh_entity_has_tag(mesh, e, :ijk_orientation, ijk_orientation, faceno)
+            return false
+        end
+        if !mesh_entity_has_tag(mesh, e, :direction, dir_orientation, faceno)
+            return false
+        end
+        return true
+    end
+
+    for cell in 1:number_of_cells(mesh)
+        I, J, K = IJK[cell]
+        if I in I_range && J in J_range && K in K_range
+            # TODO: We assume that aquifers are attached to the boundary here.
+            # Could maybe be generalized to handle interior faces too, if some
+            # tags were to be added.
+            for bfaceno in mesh.boundary_faces.cells_to_faces[cell]
+                if boundary_face_check(bfaceno, BoundaryFaces())
+                    push!(bnd_faces, bfaceno)
+                end
+            end
+        end
+    end
+    return bnd_faces
 end

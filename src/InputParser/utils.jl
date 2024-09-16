@@ -422,15 +422,19 @@ function parse_keyword!(data, outer_data, units, cfg, f, v::Val{T}) where T
     end
 
     if !found
+        section = outer_data["CURRENT_SECTION"]
         if startswith(kw_str, "TVDP")
             parser_message(cfg, outer_data, kw_str, PARSER_MISSING_SUPPORT)
             read_record(f)
-        elseif startswith(kw_str, "FIP")
+        elseif section == :REGIONS
             data[kw_str] = parse_and_set_grid_data!(data, outer_data, units, cfg, f, T, T = Int)
+        elseif section == :GRID
+            data[kw_str] = parse_and_set_grid_data!(data, outer_data, units, cfg, f, T, T = Float64)
         else
-            error("Unhandled keyword $T encountered.")
+            error("Unhandled keyword $T in $section encountered.")
         end
     end
+    return data
 end
 
 function failure_print_line_context(f; kw = nothing)

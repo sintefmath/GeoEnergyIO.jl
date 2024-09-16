@@ -44,6 +44,11 @@ function mesh_add_fault_tags!(G::UnstructuredMesh, faults)
         @debug "Fault $fault: Added $(length(fault_faces)) faces"
         set_mesh_entity_tag!(G, Faces(), :faults, Symbol(fault), fault_faces)
     end
+    return G
+end
+
+function mesh_add_fault_tags!(G::UnstructuredMesh, faults::Missing)
+    return G
 end
 
 function get_sorted_face_pairs(N, IJK, ijk_ix)

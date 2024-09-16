@@ -403,6 +403,16 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:AQUCON})
             break
         end
         l = parse_defaulted_line(rec, defaults)
+        dir = l[8]
+        if length(dir) != 2
+            ok = false
+        else
+            d1, d2 = dir
+            ok = d1 in ('I', 'J', 'K') && d2 in ('+', '-')
+        end
+        if !ok
+            throw(ArgumentError("Direction for AQUCON was $dir, must be on the format I/J/K and +-, i.e. I+"))
+        end
         swap_unit_system_axes!(l, units, utypes)
         push!(out, l)
     end

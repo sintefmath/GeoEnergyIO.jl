@@ -38,9 +38,14 @@ function mesh_from_grid_section(f, actnum = missing, repair_zcorn = true)
     else
         G = mesh_from_dxdydz_and_tops(grid, actnum = actnum)
     end
-    if haskey(grid, "FAULTS")
-        mesh_add_fault_tags!(G, grid["FAULTS"])
-    end
+    # Handle faults
+    faults = get(grid, "FAULTS", missing)
+    mesh_add_fault_tags!(G, faults)
+    # Handle numerical aquifers
+    aqunum = get(grid, "AQUNUM", missing)
+    aqucon = get(grid, "AQUCON", missing)
+    mesh_add_numerical_aquifers!(G, aqunum, aqucon, actnum)
+
     return G
 end
 
@@ -166,43 +171,4 @@ function cell_centers_from_deltas(dx, x0 = 0.0)
         x[i] = x[i-1] + dx[i]
     end
     return (x, nx)
-end
-
-function insert_nnc_faces!(G::UnstructuredMesh, new_faces_neighbors, new_faces_nodes = fill(Int[], length(new_faces_neighbors)))
-    expand_indirection = x -> map(i -> copy(x[i]), 1:length(x))
-    c2f = expand_indirection(G.faces.cells_to_faces)
-    f2n = expand_indirection(G.faces.faces_to_nodes)
-
-    faceno = number_of_faces(G)
-    for neighbors in new_faces_neighbors
-        faceno += 1
-        l, r = neighbors
-        push!(G.faces.neighbors, neighbors)
-        push!(c2f[l], faceno)
-        push!(c2f[r], faceno)
-    end
-
-    for nodes in new_faces_nodes
-        push!(f2n, nodes)
-    end
-    replace_indirection!(G.faces.cells_to_faces, c2f)
-    replace_indirection!(G.faces.faces_to_nodes, f2n)
-
-    @assert number_of_faces(G) == faceno
-    return G
-end
-
-function replace_indirection!(x, expanded)
-    empty!(x.vals)
-    empty!(x.pos)
-
-    push!(x.pos, 1)
-    for vals in expanded
-        n = length(vals)
-        for v in vals
-            push!(x.vals, v)
-        end
-        push!(x.pos, x.pos[end] + n)
-    end
-    return x
 end

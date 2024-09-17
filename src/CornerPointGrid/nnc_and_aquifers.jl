@@ -76,7 +76,8 @@ function mesh_add_numerical_aquifers!(mesh, AQUNUM, AQUCON)
         satnum::Int64,
         boundary_faces::Vector{Int},
         added_faces::Vector{Int},
-        boundary_transmult::Vector{Float64}
+        boundary_transmult::Vector{Float64},
+        trans_option::Vector{Int}
     }
     aquifer_parameters = Dict{Int, prm_T}()
     num_cells_start = number_of_cells(mesh)
@@ -106,7 +107,8 @@ function mesh_add_numerical_aquifers!(mesh, AQUNUM, AQUCON)
             satnum = sat,
             boundary_faces = Int[], # Boundary faces that were connected
             added_faces = Int[], # Corresponding fake faces that were aded
-            boundary_transmult = Float64[] # Trans mult of those fake faces
+            boundary_transmult = Float64[], # Trans mult of those fake faces
+            trans_option = Int[] # Option for how to compute that trans trans
         )
     end
     # Add all the faces
@@ -124,7 +126,8 @@ function mesh_add_numerical_aquifers!(mesh, AQUNUM, AQUCON)
             added_face_no += 1
             push!(prm.boundary_faces, bface)
             push!(prm.boundary_transmult, tranmult)
-            push!(prm.added_faces, added_face_no)
+            push!(prm.added_faces, added_face_no + nf0)
+            push!(prm.trans_option, opt)
             # Add the new faces
             c = mesh.boundary_faces.neighbors[bface]
             push!(new_faces_neighbors, (c, prm.cell))

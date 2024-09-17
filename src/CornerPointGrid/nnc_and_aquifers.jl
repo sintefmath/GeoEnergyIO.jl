@@ -115,6 +115,26 @@ function mesh_add_numerical_aquifers!(mesh, AQUNUM, AQUCON)
     new_faces_neighbors = Tuple{Int, Int}[]
     for (i, aqucon) in enumerate(AQUCON)
         id, I_start, I_stop, J_start, J_stop, K_start, K_stop, dir, tranmult, opt, = aqucon
+        # Defaulted means start at 1
+        if I_start < 1
+            I_start = 1
+        end
+        if J_start < 1
+            J_start = 1
+        end
+        if K_start < 1
+            K_start = 1
+        end
+        # Defaulted means no upper bound
+        if I_stop < 1
+            I_stop = dims[1]
+        end
+        if J_stop < 1
+            J_stop = dims[2]
+        end
+        if K_stop < 1
+            K_stop = dims[3]
+        end
         bfaces = find_faces_for_aquifer(mesh, I_start:I_stop, J_start:J_stop, K_start:K_stop, dir, IJK)
         prm = aquifer_parameters[id]
 
@@ -189,18 +209,18 @@ function find_faces_for_aquifer(mesh, I_range, J_range, K_range, dir, IJK)
         ijk_orientation = :j
         ijk_ix = 2
         if pos
-            dir_orientation = :top
+            dir_orientation = :upper
         else
-            dir_orientation = :bottom
+            dir_orientation = :lower
         end
     elseif d == 'Z' || d == 'K'
         ijk_orientation = :k
         ijk_ix = 3
         if pos
-            # Positive direction down
-            dir_orientation = :lower
+            # Positive direction is down in input
+            dir_orientation = :bottom
         else
-            dir_orientation = :upper
+            dir_orientation = :top
         end
     else
         error("Bad direction for aquifer entry: $dir")

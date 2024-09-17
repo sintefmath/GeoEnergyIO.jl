@@ -38,10 +38,6 @@ function replace_indirection!(x, expanded)
     return x
 end
 
-function mesh_insert_cell!(G::UnstructuredMesh, faces, bnd_faces)
-
-end
-
 function setup_numerical_aquifers!(data::AbstractDict)
     aqunum = get(grid, "AQUNUM", missing)
     aqucon = get(grid, "AQUCON", missing)

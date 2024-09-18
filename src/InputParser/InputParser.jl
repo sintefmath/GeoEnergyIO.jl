@@ -59,7 +59,6 @@ module InputParser
         skip_kw!(:PSPLITY, Inf, PARSER_MISSING_SUPPORT)
         skip_kw!(:PSPLITZ, Inf, PARSER_MISSING_SUPPORT)
         skip_kw!(:COMPLUMP, Inf, PARSER_MISSING_SUPPORT)
-        skip_kw!(:AQUNUM, Inf, PARSER_MISSING_SUPPORT)
         skip_kw!(:TRACER, Inf, PARSER_MISSING_SUPPORT)
         skip_kw!(:THPRES, Inf, PARSER_MISSING_SUPPORT)
         skip_kw!(:PIMULTAB, Inf, PARSER_MISSING_SUPPORT)

@@ -335,7 +335,6 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:FAULTS})
     end
 end
 
-
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:MULTFLT})
     d = "*"
     tdims = [d, 1.0, 1.0]
@@ -347,4 +346,75 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:MULTFLT})
     for (name, mul_t, mul_d) in out
         data["MULTFLT"][name] = (mul_t, mul_d)
     end
+end
+
+function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:AQUNUM})
+    def_and_u = [
+        (1, :id), # Aquifer no
+        (-1, :id), # I
+        (-1, :id), # J
+        (-1, :id), # K
+        (NaN, :area), # surface area to aquifer
+        (NaN, :length), # length of aquifer
+        (NaN, :id), # poro of aquifer
+        (NaN, :permeability), # perm of aquifer
+        (NaN, :length), # depth of aquifer
+        (NaN, :pressure), # initial pressure aquifer
+        (1, :id), # PVTNUM for aquifer
+        (1, :id), # SATNUM for aquifer
+    ]
+    defaults = map(first, def_and_u)
+    utypes = map(last, def_and_u)
+    out = []
+    while true
+        rec = read_record(f)
+        if length(rec) == 0
+            break
+        end
+        l = parse_defaulted_line(rec, defaults)
+        swap_unit_system_axes!(l, units, utypes)
+        push!(out, l)
+    end
+    data["AQUNUM"] = out
+end
+
+function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:AQUCON})
+    def_and_u = [
+        (1, :id), # Aquifer no
+        (-1, :id), # I start
+        (-1, :id), # I stop
+        (-1, :id), # J start
+        (-1, :id), # J stop
+        (-1, :id), # K start
+        (-1, :id), # K stop
+        ("Defaulted", :id), # Face orientation, I+, I-, ...
+        (1.0, :id), # Trans multiplier
+        (0, :id), # Type of trans calculator to use
+        ("NO", :id), # Allow internal aquifer connections
+        (1.0, :id), # Unsupported?
+        (1.0, :id) # Unsupported?
+    ]
+    defaults = map(first, def_and_u)
+    utypes = map(last, def_and_u)
+    out = []
+    while true
+        rec = read_record(f)
+        if length(rec) == 0
+            break
+        end
+        l = parse_defaulted_line(rec, defaults)
+        dir = l[8]
+        if length(dir) != 2
+            ok = false
+        else
+            d1, d2 = dir
+            ok = d1 in ('I', 'J', 'K') && d2 in ('+', '-')
+        end
+        if !ok
+            throw(ArgumentError("Direction for AQUCON was $dir, must be on the format I/J/K and +-, i.e. I+"))
+        end
+        swap_unit_system_axes!(l, units, utypes)
+        push!(out, l)
+    end
+    data["AQUCON"] = out
 end

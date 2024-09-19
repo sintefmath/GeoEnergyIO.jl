@@ -381,12 +381,12 @@ end
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:AQUCON})
     def_and_u = [
         (1, :id), # Aquifer no
-        (-1, :id), # I start
-        (-1, :id), # I stop
-        (-1, :id), # J start
-        (-1, :id), # J stop
-        (-1, :id), # K start
-        (-1, :id), # K stop
+        (1, :id), # I start
+        (1, :id), # I stop
+        (1, :id), # J start
+        (1, :id), # J stop
+        (1, :id), # K start
+        (1, :id), # K stop
         ("Defaulted", :id), # Face orientation, I+, I-, ...
         (1.0, :id), # Trans multiplier
         (0, :id), # Type of trans calculator to use

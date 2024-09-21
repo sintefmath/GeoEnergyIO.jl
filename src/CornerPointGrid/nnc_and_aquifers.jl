@@ -53,29 +53,19 @@ function mesh_add_numerical_aquifers!(mesh, AQUNUM, AQUCON)
         @warn "AQUNUM was defined by AQUCON was not found. Aquifer will not have any effect."
         return nothing
     end
-    # Remove repeats
-    AQUNUM = filter_aqunum(AQUNUM)
-
     dims = mesh.structure.I
     actnum = fill(false, prod(dims))
     actnum[mesh.cell_map] .= true
-    # Create parameter list for aquifers
-    prm_T = @NamedTuple{
-        cell::Int64,
-        area::Float64,
-        length::Float64,
-        porosity::Float64,
-        permeability::Float64,
-        depth::Float64,
-        pressure::Float64,
-        pvtnum::Int64,
-        satnum::Int64,
-        boundary_faces::Vector{Int},
-        added_faces::Vector{Int},
-        boundary_transmult::Vector{Float64},
-        trans_option::Vector{Int}
-    }
-    aquifer_parameters = Dict{Int, prm_T}()
+    prm_t =  @NamedTuple{
+        aquifer_cells::Vector{
+            @NamedTuple{cell::Int64, area::Float64, length::Float64, porosity::Float64, permeability::Float64, depth::Float64, pressure::Float64, pvtnum::Int64, satnum::Int64}},
+            aquifer_faces::Vector{Int64},
+            boundary_faces::Vector{Int64},
+            added_faces::Vector{Int64},
+            boundary_transmult::Vector{Float64},
+            trans_option::Vector{Int64}
+        }
+    aquifer_parameters = Dict{Int, prm_t}()
     num_cells_start = number_of_cells(mesh)
     new_cells_cell_map = Int[]
     for aqunum in AQUNUM
@@ -91,7 +81,7 @@ function mesh_add_numerical_aquifers!(mesh, AQUNUM, AQUCON)
             # aquifer. We find the matching cell.
             cell = cell_index(mesh, (I, J, K))
         end
-        aquifer_parameters[id] = (
+        new_aquifer = (
             cell = cell,
             area = A,
             length = L,
@@ -100,15 +90,23 @@ function mesh_add_numerical_aquifers!(mesh, AQUNUM, AQUCON)
             depth = D,
             pressure = p0,
             pvtnum = pvt,
-            satnum = sat,
-            boundary_faces = Int[], # Boundary faces that were connected
-            added_faces = Int[], # Corresponding fake faces that were aded
-            boundary_transmult = Float64[], # Trans mult of those fake faces
-            trans_option = Int[] # Option for how to compute that trans trans
+            satnum = sat
         )
+
+        if haskey(aquifer_parameters, id)
+            push!(aquifer_parameters[id].aquifer_cells, new_aquifer)
+        else
+            aquifer_parameters[id] = (
+                aquifer_cells = [new_aquifer],
+                aquifer_faces = Int[], # Fake faces added that are interior to aquifer
+                boundary_faces = Int[], # Boundary faces that were connected
+                added_faces = Int[], # Corresponding fake faces that were aded
+                boundary_transmult = Float64[], # Trans mult of those fake faces
+                trans_option = Int[] # Option for how to compute that trans trans
+            )
+        end
     end
     # Add all the faces
-    @assert length(keys(aquifer_parameters)) == length(AQUNUM)
     IJK = map(i -> cell_ijk(mesh, i), 1:number_of_cells(mesh))
     nf0 = number_of_faces(mesh)
     added_face_no = 0
@@ -133,7 +131,18 @@ function mesh_add_numerical_aquifers!(mesh, AQUNUM, AQUCON)
             push!(prm.trans_option, opt)
             # Add the new faces
             c = mesh.boundary_faces.neighbors[bface]
-            push!(new_faces_neighbors, (c, prm.cell))
+            push!(new_faces_neighbors, (c, prm.aquifer_cells[1].cell))
+        end
+    end
+    # Add aquifer internal connections
+    for (id, aquifer) in pairs(aquifer_parameters)
+        N = length(aquifer.aquifer_cells)
+        for i in 2:N
+            added_face_no += 1
+            l = aquifer.aquifer_cells[i-1].cell
+            r = aquifer.aquifer_cells[i].cell
+            push!(new_faces_neighbors, (l, r))
+            push!(aquifer.aquifer_faces, added_face_no + nf0)
         end
     end
     fpos = mesh.faces.cells_to_faces.pos
@@ -150,28 +159,6 @@ function mesh_add_numerical_aquifers!(mesh, AQUNUM, AQUCON)
     insert_nnc_faces!(mesh, new_faces_neighbors)
     @assert length(mesh.faces.neighbors) == nf0 + added_face_no
     return aquifer_parameters
-end
-
-function filter_aqunum(AQUNUM; warn = true)
-    indices = Dict{Int, Int}()
-    for (i, aqunum) in enumerate(AQUNUM)
-        id = first(aqunum)
-        if haskey(indices, id) && warn
-            # Can overwrite connections (assumed?)
-            jutul_message("AQUNUM", "Line $i: Replacing aquifer with id $id from line $(indices[id]) as new entry was provided.", color = :yellow)
-        end
-        indices[id] = i
-    end
-    # Do another loop to make sure this operation is stable and doesn't reorder
-    # the connections. Could use OrderedDict if we add OrderedCollections.
-    keep = Int[]
-    for (i, aqunum) in enumerate(AQUNUM)
-        id = first(aqunum)
-        if indices[id] == i
-            push!(keep, i)
-        end
-    end
-    return AQUNUM[keep]
 end
 
 function find_faces_for_aquifer(mesh, I_range, J_range, K_range, dir, IJK)

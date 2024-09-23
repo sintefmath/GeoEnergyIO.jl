@@ -1,5 +1,5 @@
 """
-    mesh_from_grid_section(f, actnum = missing, repair_zcorn = true)
+    mesh_from_grid_section(f, actnum = missing, repair_zcorn = true, process_pinch = false)
 
 Generate a Jutul unstructured mesh from a grid section. The input arugment `f`
 can be one of the following:
@@ -20,7 +20,7 @@ prior to mesh construction. Note that if non-monotone ZCORN are fixed, if the
 first input argument to this function is an already parsed data structure, the
 ZCORN array will be mutated during fixing to avoid a copy.
 """
-function mesh_from_grid_section(f, actnum = missing, repair_zcorn = true)
+function mesh_from_grid_section(f, actnum = missing, repair_zcorn = true, process_pinch = false)
     if f isa String
         f = InputParser.parse_grdecl_file(f)
     end
@@ -34,7 +34,12 @@ function mesh_from_grid_section(f, actnum = missing, repair_zcorn = true)
         actnum, minpv_removed = get_effective_actnum(grid)
     end
     if haskey(grid, "COORD")
-        G = mesh_from_zcorn_and_coord(grid, actnum = actnum, minpv_removed = minpv_removed, repair = repair_zcorn)
+        G = mesh_from_zcorn_and_coord(grid,
+            actnum = actnum,
+            minpv_removed = minpv_removed,
+            repair = repair_zcorn,
+            process_pinch = process_pinch
+        )
     else
         G = mesh_from_dxdydz_and_tops(grid, actnum = actnum)
     end
@@ -44,7 +49,7 @@ function mesh_from_grid_section(f, actnum = missing, repair_zcorn = true)
     return G
 end
 
-function mesh_from_zcorn_and_coord(grid; actnum = missing, minpv_removed = missing, repair = true)
+function mesh_from_zcorn_and_coord(grid; actnum = missing, minpv_removed = missing, repair = true, process_pinch = false)
     if ismissing(actnum)
         actnum, minpv_removed = get_effective_actnum(grid)
     end
@@ -56,7 +61,12 @@ function mesh_from_zcorn_and_coord(grid; actnum = missing, minpv_removed = missi
         repair_zcorn!(zcorn, cartdims)
     end
     primitives = cpgrid_primitives(coord, zcorn, cartdims, actnum = actnum)
-    pinch = pinch_primitives(grid, minpv_removed)
+    process_pinch = true
+    if process_pinch
+        pinch = pinch_primitives(grid, minpv_removed)
+    else
+        pinch = missing
+    end
     G = grid_from_primitives(primitives, nnc = nnc, pinch = pinch)
     return G
 end

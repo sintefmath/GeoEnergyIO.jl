@@ -695,6 +695,7 @@ function generate_pinch_map(pinch, primitives, lines, column_lines, columns)
                 bottom_cell = col.cells[last_inactive + 1]
                 @assert top_cell > 0
                 @assert bottom_cell > 0
+                @assert col.cells[last_inactive] <= 0
 
                 # Indices of face on the bottom of upper cell
                 top_pos = map(l -> last(find_cell_bounds(top_cell, l)), current_column_lines)

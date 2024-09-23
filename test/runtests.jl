@@ -2,7 +2,41 @@ using GeoEnergyIO
 using Test
 
 import GeoEnergyIO: test_input_file_path
-import Jutul: number_of_cells, number_of_boundary_faces, number_of_faces, convert_from_si
+import Jutul: number_of_cells, number_of_boundary_faces, number_of_faces, convert_from_si, tpfv_geometry
+
+function check_cpgrid(g)
+    geo = tpfv_geometry(g)
+    @testset "centroids" begin
+        @test all(x -> x >= 0, geo.volumes)
+    end
+    @testset "areas" begin
+        @test all(x -> x >= 0, geo.areas)
+    end
+    @testset "internal normals" begin
+        for face in 1:number_of_faces(g)
+            cell = g.faces.neighbors[face][1]
+            cell_center = geo.cell_centroids[:, cell]
+            face_center = geo.face_centroids[:, face]
+            normal = geo.normals[:, face]
+            cc = face_center - cell_center
+            cc = cc./norm(cc)
+            dotp = dot(cc, normal)
+            @test dotp > 0
+        end
+    end
+    @testset "boundary normals" begin
+        for bface in 1:number_of_boundary_faces(g)
+            cell = g.boundary_faces.neighbors[bface]
+            cell_center = geo.cell_centroids[:, cell]
+            face_center = geo.boundary_centroids[:, bface]
+            normal = geo.boundary_normals[:, bface]
+            cc = face_center - cell_center
+            cc = cc./norm(cc)
+            dotp = dot(cc, normal)
+            @test dotp > 0
+        end
+    end
+end
 
 @testset "GeoEnergyIO.jl" begin
     import GeoEnergyIO.InputParser: clean_include_path, parse_defaulted_line
@@ -124,6 +158,9 @@ import Jutul: number_of_cells, number_of_boundary_faces, number_of_faces, conver
             @test nc == nc_ref
             @test nbf == nbf_ref
             @test nf == nf_ref
+            if name != "model3_20_20_50.txt" && name != "4_1_node_pinch.txt"
+                check_cpgrid(g)
+            end
         end
     end
     import GeoEnergyIO.CornerPointGrid: determine_cell_overlap_inside_line

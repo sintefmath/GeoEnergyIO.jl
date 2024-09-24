@@ -107,7 +107,7 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:ZCORN})
     data["ZCORN"] = zcorn
 end
 
-function unit_type(::Union{Val{:COORD}, Val{:ZCORN}})
+function unit_type(::Union{Val{:COORD}, Val{:ZCORN}, Val{:DEPTH}})
     return :length
 end
 

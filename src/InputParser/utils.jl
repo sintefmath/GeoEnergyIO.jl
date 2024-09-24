@@ -428,7 +428,7 @@ function parse_keyword!(data, outer_data, units, cfg, f, v::Val{T}) where T
             read_record(f)
         elseif section == :REGIONS
             data[kw_str] = parse_and_set_grid_data!(data, outer_data, units, cfg, f, T, T = Int)
-        elseif section == :GRID
+        elseif section in (:GRID, :EDIT, :SOLUTION)
             data[kw_str] = parse_and_set_grid_data!(data, outer_data, units, cfg, f, T, T = Float64)
         else
             error("Unhandled keyword $T in $section encountered.")

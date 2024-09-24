@@ -12,9 +12,9 @@ function check_cpgrid(g)
             face_center = face_centroids[:, face]
             normal = normals[:, face]
             pos = last(findmax(abs.(normal)))
-            if pos == dir && sign(normal[pos]) == sgn
-                cc = face_center - cell_center
-                cc = cc./norm(cc)
+            cc = face_center - cell_center
+            cc = cc./norm(cc)
+            if pos == dir && sign(cc[pos]) == sgn
                 dotp = dot(cc, normal)
                 @test dotp > 0
             end

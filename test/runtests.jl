@@ -5,6 +5,43 @@ import GeoEnergyIO: test_input_file_path
 import Jutul: number_of_cells, number_of_boundary_faces, number_of_faces, convert_from_si, tpfv_geometry
 
 function check_cpgrid(g)
+    function check_normals(first_cells, cell_centroids, face_centroids, normals, nf, sgn::Float64, dir::Int)
+        for face in 1:nf
+            cell = first_cells[face]
+            cell_center = cell_centroids[:, cell]
+            face_center = face_centroids[:, face]
+            normal = normals[:, face]
+            pos = last(findmax(abs.(normal)))
+            if pos == dir && sign(normal[pos]) == sgn
+                cc = face_center - cell_center
+                cc = cc./norm(cc)
+                dotp = dot(cc, normal)
+                @test dotp > 0
+            end
+        end
+    end
+
+    function test_all_normals(cells, cell_centroids, face_centroids, normals, nf)
+        @testset "x+" begin
+            check_normals(cells, cell_centroids, face_centroids, normals, nf, 1.0, 1)
+        end
+        @testset "x-" begin
+            check_normals(cells, cell_centroids, face_centroids, normals, nf, -1.0, 1)
+        end
+        @testset "y+" begin
+            check_normals(cells, cell_centroids, face_centroids, normals, nf, 1.0, 2)
+        end
+        @testset "y-" begin
+            check_normals(cells, cell_centroids, face_centroids, normals, nf, -1.0, 2)
+        end
+        @testset "z+" begin
+            check_normals(cells, cell_centroids, face_centroids, normals, nf, 1.0, 3)
+        end
+        @testset "z-" begin
+            check_normals(cells, cell_centroids, face_centroids, normals, nf, -1.0, 3)
+        end
+    end
+
     geo = tpfv_geometry(g)
     @testset "centroids" begin
         @test all(x -> x >= 0, geo.volumes)
@@ -13,28 +50,14 @@ function check_cpgrid(g)
         @test all(x -> x >= 0, geo.areas)
     end
     @testset "internal normals" begin
-        for face in 1:number_of_faces(g)
-            cell = g.faces.neighbors[face][1]
-            cell_center = geo.cell_centroids[:, cell]
-            face_center = geo.face_centroids[:, face]
-            normal = geo.normals[:, face]
-            cc = face_center - cell_center
-            cc = cc./norm(cc)
-            dotp = dot(cc, normal)
-            @test dotp > 0
-        end
+        cells = map(first, g.faces.neighbors)
+        nf = number_of_faces(g)
+        test_all_normals(cells, geo.cell_centroids, geo.face_centroids, geo.normals, nf)
     end
     @testset "boundary normals" begin
-        for bface in 1:number_of_boundary_faces(g)
-            cell = g.boundary_faces.neighbors[bface]
-            cell_center = geo.cell_centroids[:, cell]
-            face_center = geo.boundary_centroids[:, bface]
-            normal = geo.boundary_normals[:, bface]
-            cc = face_center - cell_center
-            cc = cc./norm(cc)
-            dotp = dot(cc, normal)
-            @test dotp > 0
-        end
+        cells = g.boundary_faces.neighbors
+        nf = number_of_boundary_faces(g)
+        test_all_normals(cells, geo.cell_centroids, geo.boundary_centroids, geo.boundary_normals, nf)
     end
 end
 
@@ -239,4 +262,4 @@ end
         @test GeoEnergyIO.CornerPointGrid.find_next_gap([0, 0, 1, 2, 3, 0, 0, 1], 4) == (5, 7, false)
         @test GeoEnergyIO.CornerPointGrid.find_next_gap([1, 0, 0], 1) == (3, 3, true)
     end
-end
+end;

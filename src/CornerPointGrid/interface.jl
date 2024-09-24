@@ -61,7 +61,6 @@ function mesh_from_zcorn_and_coord(grid; actnum = missing, minpv_removed = missi
         repair_zcorn!(zcorn, cartdims)
     end
     primitives = cpgrid_primitives(coord, zcorn, cartdims, actnum = actnum)
-    process_pinch = true
     if process_pinch
         pinch = pinch_primitives(grid, minpv_removed)
     else

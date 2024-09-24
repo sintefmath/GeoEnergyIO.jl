@@ -391,13 +391,14 @@ function grid_from_primitives(primitives; nnc = missing, pinch = missing)
     end
 
     function insert_boundary_face!(prev_cell, cell, nodes, is_vertical, is_idir, face_type)
-        orient = cell_is_boundary(prev_cell) && !cell_is_boundary(cell)
-        @assert orient || (cell_is_boundary(cell) && !cell_is_boundary(prev_cell)) "cell pair $((cell, prev_cell)) is not on boundary"
-        if orient
+        prev_bnd = cell_is_boundary(prev_cell)
+        cell_bnd = cell_is_boundary(cell)
+        @assert prev_bnd || cell_bnd "cell pair $((cell, prev_cell)) is not on boundary"
+        if prev_bnd
             self = cell
+            nodes = reverse(nodes)
         else
             self = prev_cell
-            nodes = reverse(nodes)
         end
         add_face_from_nodes!(boundary_faces, boundary_face_pos, nodes)
         push!(cell_boundary_faces[self], boundary_faceno)

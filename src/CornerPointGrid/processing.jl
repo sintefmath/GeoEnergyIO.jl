@@ -1,4 +1,4 @@
-function cpgrid_primitives(coord, zcorn, cartdims; actnum = missing, pinch = missing)
+function cpgrid_primitives(coord, zcorn, cartdims; actnum = missing)
     # Add all lines that have at least one active neighbor
     coord = reshape(coord, 6, :)'
     nx, ny, nz = cartdims
@@ -10,8 +10,6 @@ function cpgrid_primitives(coord, zcorn, cartdims; actnum = missing, pinch = mis
     z_mean = max(sum(zcorn)/length(zcorn), 1.0)
     z_max = maximum(zcorn) + z_mean
     z_min = minimum(zcorn) - z_mean
-    # actnum, pinch_map = handle_pinch!(actnum, zcorn, cartdims, pinch)
-    # remapped_indices = findall(vec(actnum))
     nactive = sum(vec(actnum))
     remapped_indices = Vector{Int}(undef, nx*ny*nz)
     tmp = vec(actnum)
@@ -55,8 +53,6 @@ function cpgrid_primitives(coord, zcorn, cartdims; actnum = missing, pinch = mis
         ix = ijk_to_linear(i, j, k, cartdims)
         if actnum[i, j, k]
             cell = remapped_indices[ix]
-        # elseif haskey(pinch_map, ix)
-        #     cell = remapped_indices[pinch_map[ix]]
         else
             cell = -ix
             @assert cell <= 0
@@ -701,6 +697,7 @@ function generate_pinch_map(pinch, primitives, lines, column_lines, columns)
                 end
                 top_cell = col.cells[before_inactive]
                 bottom_cell = col.cells[last_inactive + 1]
+                @assert top_cell != bottom_cell
                 @assert top_cell > 0
                 @assert bottom_cell > 0
                 @assert col.cells[last_inactive] <= 0
@@ -710,13 +707,13 @@ function generate_pinch_map(pinch, primitives, lines, column_lines, columns)
                 node_indices_top = map((line, i) -> line.nodes[i], current_column_lines, top_pos)
 
                 bottom_pos = map(l -> first(find_cell_bounds(bottom_cell, l)), current_column_lines)
-                node_indices_bottom = map((line, i) -> line.nodes[i], current_column_lines, top_pos)
+                node_indices_bottom = map((line, i) -> line.nodes[i], current_column_lines, bottom_pos)
                 z(i) = primitives.nodes[i][3]
                 z_face(ix) = (z(ix[1]) + z(ix[2]) + z(ix[3]) + z(ix[4]))/4.0
                 depth_top = z_face(node_indices_top)
                 depth_bottom = z_face(node_indices_bottom)
                 start = last_inactive + 1
-                inactive_cells = view(col.cells, (before_inactive+1):last_inactive)
+                inactive_cells = abs.(col.cells[(before_inactive+1):last_inactive])
                 if depth_bottom - depth_top < thres || (gap && all(minpv_removed[inactive_cells]))
                     pinch_top_to_bottom[top_cell] = bottom_cell
                     num_added += 1

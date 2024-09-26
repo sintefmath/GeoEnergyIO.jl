@@ -49,7 +49,7 @@ function mesh_from_grid_section(f; actnum = missing, repair_zcorn = true, proces
     return G
 end
 
-function mesh_from_grid_section(f, actnum = missing, repair_zcorn = true, process_pinch = true)
+function mesh_from_grid_section(f, actnum, repair_zcorn = true, process_pinch = true)
     # Backwards compatibility to old interface
     return mesh_from_grid_section(f, actnum = actnum, repair_zcorn = repair_zcorn, process_pinch = process_pinch)
 end

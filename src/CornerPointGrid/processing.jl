@@ -456,7 +456,6 @@ function grid_from_primitives(primitives; nnc = missing, pinch = missing)
     pinch_top_to_bottom = generate_pinch_map(pinch, primitives, lines, column_lines, columns)
 
     # Horizontal faces (top/bottom and faces along column)
-    pinch_added = 0
     node_buffer = Int[]
     sizehint!(node_buffer, 10)
     for (cl, col) in zip(column_lines, columns)
@@ -515,6 +514,7 @@ function grid_from_primitives(primitives; nnc = missing, pinch = missing)
     # We skipped a bunch faces that belonged to pinched layers. Time to add them
     # back in by systematically going through the pinch list.
     num_pinched = length(keys(pinch_top_to_bottom))
+    pinched_faces = Int[]
     if num_pinched > 0
         pinch_count = 0
         for (cl, col) in zip(column_lines, columns)
@@ -529,6 +529,8 @@ function grid_from_primitives(primitives; nnc = missing, pinch = missing)
                 node_in_pillar_indices = map(last, cell_bnds)
                 # Then find the global node indices
                 node_indices = map((line, i) -> line.nodes[i], current_column_lines, node_in_pillar_indices)
+                # faceno index maps to the next face inserted
+                push!(pinched_faces, faceno)
                 insert_face!(top_cell, bottom_cell, node_indices, is_vertical = false, is_boundary = false, is_idir = false, face_type = :bottom)
                 pinch_count += 1
             end
@@ -629,6 +631,11 @@ function grid_from_primitives(primitives; nnc = missing, pinch = missing)
         cell_map = primitives.active,
         z_is_depth = true
     )
+    # Pinch
+    if length(pinched_faces) > 0
+        set_mesh_entity_tag!(g, Faces(), :cpgrid_connection_type, :pinched, pinched_faces)
+    end
+    # Orientation
     if length(horizontal_face_tag) > 0
         set_mesh_entity_tag!(g, Faces(), :orientation, :horizontal, horizontal_face_tag)
     end
@@ -678,6 +685,7 @@ function generate_pinch_map(pinch, primitives, lines, column_lines, columns)
     if !ismissing(pinch)
         # Loop over columns, look for gaps
         (; pinch, minpv_removed) = pinch
+        gap = uppercase(pinch[2]::AbstractString) == "GAP"
         @assert length(pinch) == 5
         thres = pinch[1]
         num_added = 0
@@ -708,7 +716,8 @@ function generate_pinch_map(pinch, primitives, lines, column_lines, columns)
                 depth_top = z_face(node_indices_top)
                 depth_bottom = z_face(node_indices_bottom)
                 start = last_inactive + 1
-                if depth_bottom - depth_top < thres
+                inactive_cells = view(col.cells, (before_inactive+1):last_inactive)
+                if depth_bottom - depth_top < thres || (gap && all(minpv_removed[inactive_cells]))
                     pinch_top_to_bottom[top_cell] = bottom_cell
                     num_added += 1
                 end

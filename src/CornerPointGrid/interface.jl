@@ -20,7 +20,7 @@ prior to mesh construction. Note that if non-monotone ZCORN are fixed, if the
 first input argument to this function is an already parsed data structure, the
 ZCORN array will be mutated during fixing to avoid a copy.
 """
-function mesh_from_grid_section(f, actnum = missing, repair_zcorn = true, process_pinch = false)
+function mesh_from_grid_section(f; actnum = missing, repair_zcorn = true, process_pinch = true)
     if f isa String
         f = InputParser.parse_grdecl_file(f)
     end
@@ -49,7 +49,12 @@ function mesh_from_grid_section(f, actnum = missing, repair_zcorn = true, proces
     return G
 end
 
-function mesh_from_zcorn_and_coord(grid; actnum = missing, minpv_removed = missing, repair = true, process_pinch = false)
+function mesh_from_grid_section(f, actnum = missing, repair_zcorn = true, process_pinch = true)
+    # Backwards compatibility to old interface
+    return mesh_from_grid_section(f, actnum = actnum, repair_zcorn = repair_zcorn, process_pinch = process_pinch)
+end
+
+function mesh_from_zcorn_and_coord(grid; actnum = missing, minpv_removed = missing, repair = true, process_pinch = true)
     if ismissing(actnum)
         actnum, minpv_removed = get_effective_actnum(grid)
     end

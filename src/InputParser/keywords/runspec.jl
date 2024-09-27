@@ -231,6 +231,16 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:TABDIMS})
     data["TABDIMS"] = parse_defaulted_line(rec, tdims)
 end
 
+function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:SMRYDIMS})
+    rec = read_record(f)
+    tdims = [-1]
+    val = only(parse_defaulted_line(rec, tdims))
+    if val == -1
+        val = 10000
+    end
+    data["SMRYDIMS"] = val
+end
+
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:UDADIMS})
     rec = read_record(f)
     tdims = [0, 0, 100]

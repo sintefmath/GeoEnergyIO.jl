@@ -1,7 +1,7 @@
 name = "GeoEnergyIO"
 uuid = "3b1dd628-313a-45bb-9d8d-8f3c48dcb5d4"
 authors = ["Olav Møyner <olav.moyner@gmail.com> and contributors"]
-version = "1.1.11"
+version = "1.1.12"
 
 [deps]
 Artifacts = "56f22d72-fd6d-98f1-02f0-08ddc0907c33"

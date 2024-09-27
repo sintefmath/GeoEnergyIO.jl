@@ -209,6 +209,7 @@ function parse_data_file!(outer_data, filename, data = outer_data;
                 else
                     readline(f)
                 end
+                next = substitute_paths(next, outer_data)
                 include_path = clean_include_path(basedir, next)
                 parser_message(cfg, outer_data, "$m", "Including file: $include_path. Basedir: $basedir with INCLUDE = $next", color = :green)
                 outer_data, data = parse_data_file!(
@@ -320,4 +321,14 @@ function finish_current_section!(data, units, cfg, outer_data)
         v::Symbol
         finish_current_section!(data, units, cfg, outer_data, Val(v))
     end
+end
+
+function substitute_paths(pth, outer_data)
+    rs = outer_data["RUNSPEC"]
+    if haskey(rs, "PATHS")
+        for (k, v) in pairs(rs["PATHS"])
+            pth = replace(pth, "\$$k" => v)
+        end
+    end
+    return pth
 end

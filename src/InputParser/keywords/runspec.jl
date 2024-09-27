@@ -61,6 +61,39 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:CART})
     data["CART"] = true
 end
 
+function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:CART})
+    data["CART"] = true
+end
+
+function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:SAVE})
+    data["SAVE"] = read_record(f)
+end
+
+function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:PATHS})
+    defaults = ["Default", "Default"]
+    if !haskey(data, "PATHS")
+        data["PATHS"] = Dict{String, String}()
+    end
+    pths = data["PATHS"]
+    while true
+        rec = readline(f)
+        # Some custom parsing here because of slashes inside entries here
+        rec = rstrip(rec, ' ')
+        rec = rstrip(rec, '/')
+        rec = rstrip(rec, ' ')
+        rec = split(rec, " ", keepempty = false)
+        if length(rec) == 0
+            break
+        end
+        @assert length(rec) == 2 "PATHS must have exactly two entries per line."
+        alias, subst = rec
+        alias = strip(alias, '\'')
+        subst = strip(subst, '\'')
+        pths[alias] = subst
+    end
+    return pths
+end
+
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:EHYSTR})
     rec = read_record(f)
     defaults = [0.1, -1000, 1.0, 0.1, "BOTH", "RETR", "DRAIN", "DEFAULT", "NO", "NO", "NO", 0.0, 0]

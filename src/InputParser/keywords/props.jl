@@ -146,7 +146,7 @@ function parse_keyword!(data, outer_data, units, cfg, f, v::Union{Val{:SOMGAS}, 
     data["$k"] = parse_region_matrix_table(f, ns)
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, v::Union{Val{:SWOF}, Val{:SGOF}})
+function parse_keyword!(data, outer_data, units, cfg, f, v::Union{Val{:SWOF}, Val{:SGOF}, Val{:SLGOF}})
     k = unpack_val(v)
     sat_tab = parse_saturation_table(f, outer_data)
     for tab in sat_tab

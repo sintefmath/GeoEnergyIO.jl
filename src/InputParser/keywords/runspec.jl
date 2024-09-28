@@ -61,10 +61,6 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:CART})
     data["CART"] = true
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:CART})
-    data["CART"] = true
-end
-
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:SAVE})
     data["SAVE"] = read_record(f)
 end

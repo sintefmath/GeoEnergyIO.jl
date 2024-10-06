@@ -449,7 +449,7 @@ function grid_from_primitives(primitives; nnc = missing, pinch = missing)
         end
     end
     # Create pinch maps
-    pinch_top_to_bottom = generate_pinch_map(pinch, primitives, lines, column_lines, columns)
+    pinch_top_to_bottom, pinch_bottom_to_top = generate_pinch_map(pinch, primitives, lines, column_lines, columns)
 
     # Horizontal faces (top/bottom and faces along column)
     node_buffer = Int[]
@@ -497,6 +497,12 @@ function grid_from_primitives(primitives; nnc = missing, pinch = missing)
                     # If the there is a mapping (going down) from c1 to some
                     # other cell due to pinch we should not add anything.
                     @assert cell_is_boundary(c2)
+                    continue
+                end
+                if haskey(pinch_bottom_to_top, c2)
+                    # If the there is a mapping (going up) from c2 to some
+                    # other cell due to pinch we should not add anything.
+                    @assert cell_is_boundary(c1)
                     continue
                 end
                 # Index into pillars
@@ -678,6 +684,8 @@ end
 
 function generate_pinch_map(pinch, primitives, lines, column_lines, columns)
     pinch_top_to_bottom = Dict{Int, Int}()
+    pinch_bottom_to_top = Dict{Int, Int}()
+
     if !ismissing(pinch)
         # Loop over columns, look for gaps
         (; pinch, minpv_removed) = pinch
@@ -716,12 +724,13 @@ function generate_pinch_map(pinch, primitives, lines, column_lines, columns)
                 inactive_cells = abs.(col.cells[(before_inactive+1):last_inactive])
                 if depth_bottom - depth_top < thres || (gap && all(minpv_removed[inactive_cells]))
                     pinch_top_to_bottom[top_cell] = bottom_cell
+                    pinch_bottom_to_top[bottom_cell] = top_cell
                     num_added += 1
                 end
             end
         end
     end
-    return pinch_top_to_bottom
+    return (pinch_top_to_bottom, pinch_bottom_to_top)
 end
 
 function find_next_gap(cells, start)

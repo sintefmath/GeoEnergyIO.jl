@@ -64,6 +64,10 @@ function parse_keyword!(data, outer_data, units, cfg, f, kval::Union{Val{:COPY},
         IJK = get_box_indices(outer_data, il, iu, jl, ju, kl, ku)
         if is_copy
             if !haskey(data, dst)
+                if !haskey(data, src)
+                    parser_message(cfg, outer_data, "$k", "Cannot apply when source $src has not been defined. Skipping.")
+                    return data
+                end
                 T = eltype(data[src])
                 stdval = keyword_default_value(dst, T)
                 data[dst] = fill(stdval, dims)
@@ -84,6 +88,39 @@ function parse_keyword!(data, outer_data, units, cfg, f, kval::Union{Val{:COPY},
                 apply_multiply!(data[dst], op, IJK, dims)
             end
         end
+        rec = read_record(f)
+    end
+end
+
+function parse_keyword!(data, outer_data, units, cfg, f, kval::Val{:MULTIREG})
+    k = unpack_val(kval)
+    rec = read_record(f)
+    gdata = get_section(outer_data, :GRID, set_current = false)
+    dims = get_cartdims(outer_data)
+
+    while length(rec) > 0
+        dst, val, fluxreg, regtype = parse_defaulted_line(rec, ["Name", 0.0, -1, "M"])
+        @assert dst != "Name" "Name cannot be defaulted for MULTIREG"
+        if dst == "PORV"
+            # We hack this in by setting PVMULT instead.
+            dst = "PVMULT"
+        end
+        if !haskey(data, dst)
+            stdval = keyword_default_value(dst, Float64)
+            data[dst] = fill(stdval, dims)
+        end
+        destination_vals = data[dst]
+        if regtype == "M"
+            reg_key = "MULTNUM"
+        elseif regtype == "F"
+            reg_key = "FLUXNUM"
+        else
+            @assert regtype == "O"
+            reg_key = "OPERNUM"
+        end
+        reg = gdata[reg_key]
+        ix = findall(isequal(fluxreg), reg)
+        @. destination_vals[ix] *= val
         rec = read_record(f)
     end
 end
@@ -225,6 +262,13 @@ function get_operation_section(outer_data, kw)
             return data[kw]
         end
     end
+    if kw in ("TRANX", "TRANY", "TRANZ")
+        # These can safely be initialized as NaN arrays.
+        data = outer_data["GRID"]
+        dims = data["cartDims"]
+        data[kw] = fill(NaN, dims)
+        return data[kw]
+    end
     return missing
 end
 
@@ -268,7 +312,8 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:MULTIPLY})
                 push_and_create!(data, "MULTRAN$dir", [(i = Ibox, j = Jbox, k = Kbox, factor = factor)])
                 do_apply = false
             else
-                throw(ArgumentError("Unable to apply MULTIPLY to non-declared field $dst"))
+                do_apply = false
+                parser_message(cfg, outer_data, "MULTIPLY", "Unable to apply MULTIPLY to non-declared field $dst. Skipping.")
             end
         end
         if do_apply

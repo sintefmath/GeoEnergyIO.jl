@@ -331,6 +331,28 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:COMPS})
     data["COMPS"] = ncomp
 end
 
+function parse_keyword!(data, outer_data, units, cfg, f, v::Union{
+            Val{:KRW},
+            Val{:KRWX},
+            Val{Symbol(":KRWX-")},
+            Val{:KRWY},
+            Val{Symbol(":KRWY-")},
+            Val{:KRWZ},
+            Val{Symbol(":KRWZ-")},
+            Val{:KRWR},
+            Val{:KRWRX},
+            Val{Symbol(":KRWRX-")},
+            Val{:KRWRY},
+            Val{Symbol(":KRWRY-")},
+            Val{:KRWRZ},
+            Val{Symbol(":KRWRZ-")},
+            }
+        )
+    k = unpack_val(v)
+    parser_message(cfg, outer_data, "$k", PARSER_JUTULDARCY_MISSING_SUPPORT)
+    parse_and_set_grid_data!(data, outer_data, units, cfg, f, k, unit = :id)
+end
+
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:SCALECRS})
     rec = read_record(f)
     scale = only(parse_defaulted_line(rec, ["NO"]))

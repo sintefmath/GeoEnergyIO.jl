@@ -231,7 +231,7 @@ function repair_zcorn!(zcorn, cartdims)
                         z_upper = zcorn[ix_upper]
                         z_lower = zcorn[ix_lower]
                         if z_upper > z_lower
-                            z_upper[ix_lower] = z_lower
+                            zcorn[ix_lower] = z_lower
                             count_fixed += 1
                         end
                     end

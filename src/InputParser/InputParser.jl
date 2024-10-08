@@ -16,6 +16,7 @@ module InputParser
         skip_kw!(:MULTSAVE, 1)
         skip_kw!(:VECTABLE, 1)
         skip_kw!(:MULTSAVE, 1)
+        skip_kw!(:WHISTCTL, 1, PARSER_JUTULDARCY_MISSING_SUPPORT)
         skip_kw!(:MEMORY, 1)
         skip_kw!(:OPTIONS3, 1)
         skip_kw!(:TSCRIT, 1, PARSER_JUTULDARCY_MISSING_SUPPORT)

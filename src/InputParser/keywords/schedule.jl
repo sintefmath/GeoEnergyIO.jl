@@ -44,7 +44,8 @@ end
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:COMPORD})
     d = "Default"
     defaults = [d, "TRACK"]
-    compord = parse_defaulted_group(f, defaults)
+    wells = get_wells(outer_data)
+    compord = parse_defaulted_group_well(f, defaults, wells, 1)
     out = outer_data["SCHEDULE"]["COMPORD"]
     for co in compord
         well, val = co

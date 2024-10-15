@@ -53,6 +53,14 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:DISGAS})
     data["DISGAS"] = true
 end
 
+function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:CO2STOR})
+    data["CO2STOR"] = true
+end
+
+function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:CO2STORE})
+    data["CO2STORE"] = true
+end
+
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:NOHYST})
     data["NOHYST"] = true
 end

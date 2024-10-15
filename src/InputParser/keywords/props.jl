@@ -32,6 +32,11 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:NCOMPS})
     data["NCOMPS"] = parse(Int, only(rec))
 end
 
+function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:SALINITY})
+    rec = read_record(f)
+    data["SALINITY"] = only(parse_defaulted_line(rec, [0.0]))
+end
+
 function parse_keyword!(data, outer_data, units, cfg, f, val::Union{Val{:OMEGAA}, Val{:OMEGAB}})
     k = unpack_val(val)
     out = []

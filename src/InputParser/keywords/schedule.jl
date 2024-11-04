@@ -337,6 +337,14 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:TUNING})
     skip_records(f, 3)
 end
 
+function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:TUNINGDP})
+    skip_records(f, 1)
+end
+
+function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:GCONTOL})
+    skip_records(f, 1)
+end
+
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:RPTSCHED})
     read_record(f)
 end

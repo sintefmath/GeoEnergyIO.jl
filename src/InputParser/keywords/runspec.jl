@@ -41,6 +41,12 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:WATER})
     data["WATER"] = true
 end
 
+function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:TEMP})
+    # TODO: We treat this as an alias, not sure if this is correct.
+    data["THERMAL"] = true
+    data["TEMP"] = true
+end
+
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:OIL})
     data["OIL"] = true
 end

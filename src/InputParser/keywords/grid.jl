@@ -248,6 +248,13 @@ function parse_keyword!(data, outer_data, units, cfg, f, v::Union{Val{:DX}, Val{
     data["$k"] = Δ
 end
 
+function parse_keyword!(data, outer_data, units, cfg, f, v::Union{Val{:DXV}, Val{:DYV}, Val{:DZV}})
+    k = unpack_val(v)
+    Δ = parse_deck_vector(f, Float64)
+    swap_unit_system_fast!(Δ, units, Val(:length))
+    data["$k"] = Δ
+end
+
 function unit_type(::Union{Val{:DX}, Val{:DY}, Val{:DZ}})
     return :length
 end

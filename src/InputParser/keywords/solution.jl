@@ -90,7 +90,7 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:PRESSURE})
     data["PRESSURE"] = p
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:RTEMP})
+function parse_keyword!(data, outer_data, units, cfg, f, ::Union{Val{:RTEMP}, Val{:RTEMPA}})
     nreg = number_of_tables(outer_data, :eosnum)
     out = Float64[]
     for i in 1:nreg

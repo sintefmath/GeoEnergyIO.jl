@@ -387,7 +387,6 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:SCALECRS})
     end
 end
 
-
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:DENSITY})
     tdims = [NaN, NaN, NaN]
     nreg = number_of_tables(outer_data, :pvtnum)
@@ -397,6 +396,33 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:DENSITY})
         t = parse_defaulted_line(rec, tdims)
         swap_unit_system!(t, units, :density)
         push!(out, t)
+    end
+    data["DENSITY"] = out
+end
+
+function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:GRAVITY})
+    tdims = [45.5, 1.0, 0.7773]
+    file_units = current_unit_system(outer_data)
+    if file_units == :field
+        rho_wat = 62.4
+        rho_air = 0.076363
+    elseif file_units == :lab
+        rho_wat = 1.0
+        rho_air = 0.0012232
+    elseif file_units in (:si, :metric)
+        rho_wat = 1000.0
+        rho_air = 1.22
+    else
+        error("Unknown unit system: $units")
+    end
+    nreg = number_of_tables(outer_data, :pvtnum)
+    out = []
+    for i = 1:nreg
+        rec = read_record(f)
+        t = parse_defaulted_line(rec, tdims)
+        grav_oil = 141.15/(t[1]+131.5)
+        vals = [grav_oil*rho_wat, t[2]*rho_wat, t[3]*rho_air]
+        push!(out, vals)
     end
     data["DENSITY"] = out
 end

@@ -79,17 +79,23 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:WELOPEN})
     push_and_create!(data, "WELOPEN", welopen)
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:WELLSHUT})
+function parse_keyword!(data, outer_data, units, cfg, f, kw::Union{Val{:WELLSHUT}, Val{:WELLOPEN}})
+    k = unpack_val(kw)
     # WELLSHUT is recommended to be replaced with WELOPEN. For simplicity we
     # convert WELLSHUT to the corresponding WELOPEN arguments.
-    parser_message(cfg, outer_data, "WELLSHUT", "Converting WELLSHUT to equivialent WELOPEN inputs.", color = :green)
+    parser_message(cfg, outer_data, "$k", "Converting $k to equivialent WELOPEN inputs.", color = :green)
     d = "Default"
     defaults = [d]
     wells = get_wells(outer_data)
     wellshut = parse_defaulted_group_well(f, defaults, wells, 1)
     welopen = []
     for w in wellshut
-        push!(welopen, [only(w), "SHUT", -1, -1, -1, -1, -1])
+        if k == :WELLSHUT
+            v = "SHUT"
+        else
+            v = "OPEN"
+        end
+        push!(welopen, [only(w), v, -1, -1, -1, -1, -1])
     end
     push_and_create!(data, "WELOPEN", welopen)
 end
@@ -261,6 +267,11 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:WPIMULT})
     wells = get_wells(outer_data)
     parsed = parse_defaulted_group_well(f, defaults, wells, 1)
     push_and_create!(data, "WPIMULT", parsed)
+end
+
+function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:FBHPDEF})
+    parser_message(cfg, outer_data, "FBHPDEF", PARSER_JUTULDARCY_MISSING_SUPPORT)
+    read_record(f)
 end
 
 function convert_date_kw(t)

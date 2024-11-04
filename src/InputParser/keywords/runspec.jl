@@ -53,6 +53,11 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:DISGAS})
     data["DISGAS"] = true
 end
 
+function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:GASWAT})
+    parser_message(cfg, outer_data, "GASWAT", PARSER_JUTULDARCY_MISSING_SUPPORT)
+    data["GASWAT"] = true
+end
+
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:CO2STOR})
     data["CO2STOR"] = true
 end

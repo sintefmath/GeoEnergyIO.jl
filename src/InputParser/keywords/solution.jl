@@ -155,6 +155,23 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:ZMFVD})
     data["ZMFVD"] = out
 end
 
+function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:COMPVD})
+    parser_message(cfg, outer_data, "COMPVD", PARSER_JUTULDARCY_MISSING_SUPPORT)
+    n = number_of_tables(outer_data, :eqlnum)
+    out = []
+    ncomp = compositional_number_of_components(outer_data)
+    for i = 1:n
+        compvd = parse_deck_vector(f)
+        compvd = collect(reshape(compvd, ncomp+3, :)')
+        for j in 1:size(compvd, 1)
+            compvd[j, 1] = swap_unit_system(compvd[j, 1], units, :length)
+            compvd[j, end] = swap_unit_system(compvd[j, end], units, :pressure)
+        end
+        push!(out, compvd)
+    end
+    data["COMPVD"] = out
+end
+
 function parse_keyword!(data, outer_data, units, cfg, f, ::Union{Val{:TEMPVD}, Val{:RTEMPVD}})
     n = number_of_tables(outer_data, :eqlnum)
     out = []

@@ -177,7 +177,7 @@ function unit_type(::MULTXYZ_TYPE)
     return :id
 end
 
-const THERMAL_CONDUCTIVITY_TYPE = Union{Val{:THCROCK}, Val{:THCWATER}, Val{:THCGAS}, Val{:THCSOLID}, Val{:THCAVE}}
+const THERMAL_CONDUCTIVITY_TYPE = Union{Val{:THCONR}, Val{:THCROCK}, Val{:THCWATER}, Val{:THCGAS}, Val{:THCSOLID}, Val{:THCAVE}}
 
 function parse_keyword!(data, outer_data, units, cfg, f, v::THERMAL_CONDUCTIVITY_TYPE)
     k = unpack_val(v)

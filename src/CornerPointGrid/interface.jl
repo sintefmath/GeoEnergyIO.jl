@@ -99,32 +99,47 @@ function mesh_from_dxdydz_and_tops(grid; actnum = get_effective_actnum(grid))
         end
         return out
     end
-    DX = meshgrid_section("DX")
-    dx = vec(DX[:, 1, 1])
-    for i in axes(DX, 1)
-        for j in axes(DX, 2)
-            for k in axes(DX, 3)
-                @assert DX[i, j, k] ≈ DX[i, 1, 1]
+    if haskey(grid, "DX")
+        DX = meshgrid_section("DX")
+        dx = vec(DX[:, 1, 1])
+        for i in axes(DX, 1)
+            for j in axes(DX, 2)
+                for k in axes(DX, 3)
+                    @assert DX[i, j, k] ≈ DX[i, 1, 1]
+                end
             end
         end
+    else
+        @assert haskey(grid, "DXV") "Either DX or DXV must be provided in GRID."
+        dx = vec(grid["DXV"])
     end
-    DY = meshgrid_section("DY")
-    dy = vec(DY[1, :, 1])
-    for i in axes(DY, 1)
-        for j in axes(DY, 2)
-            for k in axes(DY, 3)
-                @assert DY[i, j, k] ≈ DY[1, j, 1]
+    if haskey(grid, "DY")
+        DY = meshgrid_section("DY")
+        dy = vec(DY[1, :, 1])
+        for i in axes(DY, 1)
+            for j in axes(DY, 2)
+                for k in axes(DY, 3)
+                    @assert DY[i, j, k] ≈ DY[1, j, 1]
+                end
             end
         end
+    else
+        @assert haskey(grid, "DYV") "Either DY or DYV must be provided in GRID."
+        dy = vec(grid["DYV"])
     end
-    DZ = meshgrid_section("DZ")
-    dz = vec(DZ[1, 1, :])
-    for i in axes(DZ, 1)
-        for j in axes(DZ, 2)
-            for k in axes(DZ, 3)
-                @assert DZ[i, j, k] ≈ DZ[1, 1, k]
+    if haskey(grid, "DZ")
+        DZ = meshgrid_section("DZ")
+        dz = vec(DZ[1, 1, :])
+        for i in axes(DZ, 1)
+            for j in axes(DZ, 2)
+                for k in axes(DZ, 3)
+                    @assert DZ[i, j, k] ≈ DZ[1, 1, k]
+                end
             end
         end
+    else
+        @assert haskey(grid, "DZV") "Either DZ or DZV must be provided in GRID."
+        dz = vec(grid["DZV"])
     end
     TOPS = meshgrid_section("TOPS")
     tops = TOPS[:, :, 1]

@@ -96,7 +96,6 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:ACF})
 end
 
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:ZCRIT})
-    parser_message(cfg, outer_data, "ZCRIT", PARSER_JUTULDARCY_MISSING_SUPPORT)
     data["ZCRIT"] = parse_compositional_helper!(f, outer_data, data, "ZCRIT")
 end
 

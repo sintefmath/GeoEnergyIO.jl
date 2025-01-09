@@ -241,3 +241,46 @@ function repair_zcorn!(zcorn, cartdims)
     end
     return zcorn
 end
+
+function apply_mapaxes!(g, mapaxes)
+    apply_mapaxes!(g.node_points, mapaxes)
+    return g
+end
+
+function apply_mapaxes!(pts::Vector{SVector{N, T}}, mapaxes::AbstractVector) where {T, N}
+    length(mapaxes) == 6 || throw(ArgumentError("Expected 6 values in mapaxes, got $(length(mapaxes))"))
+    N == 2 || N == 3 || throw(ArgumentError("Expected 2 or 3 dimensions, got $N"))
+
+    function to_norm_3dvec(a, b)
+        v = a - b
+        return SVector{3, T}(v[1], v[2], 0)./norm(v, 2)
+    end
+    p1 = mapaxes[1:2]
+    p2 = mapaxes[3:4]
+    p3 = mapaxes[5:6]
+
+    u1 = to_norm_3dvec(p3, p2)
+    u2 = to_norm_3dvec(p1, p2)
+
+    trans_sgn = dot(
+        [0.0 0.0 1], cross(u1, u2)
+    )
+    if trans_sgn < 0.0
+        @warn "Negative sign in MAPAXES. Coordinate system may have changed signature. Geometry calculations may produce negative values (e.g. areas/volumes)"
+    end
+    if N == 3
+        p3_3d = SVector{3, T}(p3[1], p3[2], 0)
+        for i in eachindex(pts)
+            x, y, z = pts[i]
+            new_pt = x.*u1 + y.*u2 + p3_3d + SVector{3, T}(0.0, 0.0, z)
+            pts[i] = new_pt
+        end
+    else
+        for i in eachindex(pts)
+            x, y = pts[i]
+            new_pt = x.*u1[1:2] + y.*u2[1:2] + p3[1:2]
+        end
+        pts[i] = new_pt
+    end
+    return pts
+end

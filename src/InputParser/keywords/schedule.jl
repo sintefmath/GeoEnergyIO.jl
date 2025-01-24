@@ -349,6 +349,13 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:RPTSCHED})
     read_record(f)
 end
 
+function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:WSEGITER})
+    parser_message(cfg, outer_data, "WSEGITER", PARSER_JUTULDARCY_MISSING_SUPPORT)
+    rec = read_record(f)
+    d = parse_defaulted_line(rec, [20, 5, 0.3, 2.0, ])
+    data["WSEGITER"] = d
+end
+
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:NUPCOL})
     rec = read_record(f)
     tdims = [3];

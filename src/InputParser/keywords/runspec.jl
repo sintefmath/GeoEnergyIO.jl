@@ -2,12 +2,22 @@ function finish_current_section!(data, units, cfg, outer_data, ::Val{:RUNSPEC})
 
 end
 
+function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:SKIPREST})
+    parser_message(cfg, outer_data, "SKIPREST", PARSER_MISSING_SUPPORT)
+end
+
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:NOECHO})
     # Do nothing
 end
 
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:ECHO})
     # Do nothing
+end
+
+function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:WPOTCALC})
+    rec = read_record(f)
+    d = parse_defaulted_line(rec, ["YES", "DEFAULTED"])
+    data["WPOTCALC"] = d
 end
 
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:MESSAGES})

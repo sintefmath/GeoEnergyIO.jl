@@ -22,6 +22,7 @@ module InputParser
         skip_kw!(:TSCRIT, 1, PARSER_JUTULDARCY_MISSING_SUPPORT)
         skip_kw!(:CVCRIT, 1, PARSER_JUTULDARCY_MISSING_SUPPORT)
         skip_kw!(:RPTPRINT, 1)
+        skip_kw!(:GUIDERAT, 1, PARSER_MISSING_SUPPORT)
         # Keywords without data (i.e. just the name)
         skip_kw!(:MULTOUT, 0)
         skip_kw!(:NOSIM, 0)
@@ -54,18 +55,33 @@ module InputParser
         skip_kw!(:NETBALAN, 1, PARSER_MISSING_SUPPORT)
         skip_kw!(:JFUNC, 1, PARSER_MISSING_SUPPORT)
         # Keywords with any number of records, terminated by empty records
-        skip_kw!(:PSPLITX, Inf, PARSER_MISSING_SUPPORT)
-        skip_kw!(:PSPLITY, Inf, PARSER_MISSING_SUPPORT)
-        skip_kw!(:PSPLITZ, Inf, PARSER_MISSING_SUPPORT)
-        skip_kw!(:COMPLUMP, Inf, PARSER_MISSING_SUPPORT)
-        skip_kw!(:TRACER, Inf, PARSER_MISSING_SUPPORT)
-        skip_kw!(:THPRES, Inf, PARSER_MISSING_SUPPORT)
-        skip_kw!(:PIMULTAB, Inf, PARSER_MISSING_SUPPORT)
-        skip_kw!(:VFPPROD, Inf, PARSER_MISSING_SUPPORT)
-        skip_kw!(:VFPINJ, Inf, PARSER_MISSING_SUPPORT)
-        skip_kw!(:WTRACER, Inf, PARSER_MISSING_SUPPORT)
-        skip_kw!(:GCONINJE, Inf, PARSER_MISSING_SUPPORT)
-        skip_kw!(:WTEST, Inf, PARSER_MISSING_SUPPORT)
-        skip_kw!(:WLIST, Inf, PARSER_MISSING_SUPPORT)
+        for kw in [
+                :WSEGSICD,
+                :WSEGVALS,
+                :WSEGAICD,
+                :WPAVEDEP,
+                :WTEST,
+                :WECON,
+                :WGRUPCON,
+                :WSEGVALVS,
+                :GCONPROD,
+                :GEFAC,
+                :GCONSUMP,
+                :PSPLITX,
+                :PSPLITY,
+                :PSPLITZ,
+                :COMPLUMP,
+                :TRACER,
+                :THPRES,
+                :PIMULTAB,
+                :VFPPROD,
+                :VFPINJ,
+                :WTRACER,
+                :GCONINJE,
+                :WTEST,
+                :WLIST,
+            ]
+            skip_kw!(kw, Inf, PARSER_MISSING_SUPPORT)
+        end
     end
 end

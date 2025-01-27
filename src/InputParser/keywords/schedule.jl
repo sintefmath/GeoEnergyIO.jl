@@ -255,6 +255,21 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Union{Val{:WELLTARG},
     push_and_create!(data, "WELTARG", out)
 end
 
+function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:WPOLYMER})
+    d = "Default"
+    defaults = [d, 0.0, 0.0, d, d]
+    wells = get_wells(outer_data)
+    wp = parse_defaulted_group_well(f, defaults, wells, 1)
+    # Unit conversion
+    utypes = identity_unit_vector(defaults)
+    utypes[2] = :concentration
+    utypes[3] = :concentration
+    for w in wp
+        swap_unit_system_axes!(w, units, utypes)
+    end
+    push_and_create!(data, "WPOLYMER", wp)
+end
+
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:WEFAC})
     defaults = ["Default", 1.0, "YES"]
     wells = get_wells(outer_data)

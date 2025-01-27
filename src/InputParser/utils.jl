@@ -506,6 +506,12 @@ function number_of_tables(outer_data, t::Symbol)
         else
             return 1
         end
+    elseif t == :nplmix
+        if haskey(rs, "REGDIMS")
+            return rs["REGDIMS"][10]
+        else
+            return 1
+        end
     end
     error(":$t is not known")
 end

@@ -150,6 +150,53 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:VCRIT})
     data["VCRIT"] = V
 end
 
+function parse_keyword!(data, outer_data, units, cfg, f, v::Val{:PLYVISC})
+    k = unpack_val(v)
+    npvt = number_of_tables(outer_data, :pvtnum)
+    ply_tab = parse_region_matrix_table(f, npvt)
+    for tab in ply_tab
+        swap_unit_system_axes!(tab, units, (:concentration, :identity))
+    end
+    data["$k"] = ply_tab
+end
+
+function parse_keyword!(data, outer_data, units, cfg, f, v::Val{:PLYROCK})
+    k = unpack_val(v)
+    nsat = number_of_tables(outer_data, :satnum)
+    ply_tab = parse_region_matrix_table(f, nsat)
+    for tab in ply_tab
+        swap_unit_system_axes!(tab, units, (:identity, :identity, :density, :identity, :identity))
+    end
+    data["$k"] = map(vec, ply_tab)
+end
+
+function parse_keyword!(data, outer_data, units, cfg, f, v::Val{:PLYADS})
+    k = unpack_val(v)
+    nsat = number_of_tables(outer_data, :satnum)
+    ply_tab = parse_region_matrix_table(f, nsat)
+    for tab in ply_tab
+        swap_unit_system_axes!(tab, units, (:concentration, :identity))
+    end
+    data["$k"] = ply_tab
+end
+
+function parse_keyword!(data, outer_data, units, cfg, f, v::Val{:PLMIXPAR})
+    k = unpack_val(v)
+    nreg = number_of_tables(outer_data, :nplmix)
+    ply_tab = parse_region_matrix_table(f, nreg)
+    data["$k"] = map(only, ply_tab)
+end
+
+function parse_keyword!(data, outer_data, units, cfg, f, v::Val{:PLYMAX})
+    k = unpack_val(v)
+    nreg = number_of_tables(outer_data, :nplmix)
+    ply_tab = parse_region_matrix_table(f, nreg)
+    for tab in ply_tab
+        swap_unit_system_axes!(tab, units, (:concentration, :concentration))
+    end
+    data["$k"] = map(vec, ply_tab)
+end
+
 function parse_keyword!(data, outer_data, units, cfg, f, v::Union{Val{:SOMGAS}, Val{:SOMWAT}})
     k = unpack_val(v)
     ns = number_of_tables(outer_data, :satnum)

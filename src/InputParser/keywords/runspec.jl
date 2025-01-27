@@ -51,6 +51,10 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:WATER})
     data["WATER"] = true
 end
 
+function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:POLYMER})
+    data["POLYMER"] = true
+end
+
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:TEMP})
     # TODO: We treat this as an alias, not sure if this is correct.
     data["THERMAL"] = true
@@ -320,7 +324,7 @@ end
 
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:REGDIMS})
     rec = read_record(f)
-    tdims = [1, 1, 0, 0, 0, 1, 0, 0, 0];
+    tdims = [1, 1, 0, 0, 0, 1, 0, 0, 0, 1];
     data["REGDIMS"] = parse_defaulted_line(rec, tdims)
 end
 

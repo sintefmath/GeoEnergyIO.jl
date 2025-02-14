@@ -1,3 +1,19 @@
+[ATES_TEST]
+git-tree-sha1 = "077b3fe20600605ad0d219698fb27e12702f9bf4"
+lazy = true
+
+    [[ATES_TEST.download]]
+    sha256 = "013d5dcdf886d939bb00680405778e936e3cb343fc719f2c33b5dfadcb09db44"
+    url = "https://github.com/sintefmath/GeoEnergyIO.jl/releases/download/v1.1.17/ATES_TEST.tar.gz"
+
+[BOPOLYMER_NOSHEAR]
+git-tree-sha1 = "4023b3440aa2be4efa8b916f3312fa7ac9788e67"
+lazy = true
+
+    [[BOPOLYMER_NOSHEAR.download]]
+    sha256 = "23113058ff796e01b3b776ded59d122fd8b777726e66068e9354ae5ee56a3127"
+    url = "https://github.com/sintefmath/GeoEnergyIO.jl/releases/download/v1.1.17/bopolymer_noshear.tar.bz2"
+
 [EGG]
 git-tree-sha1 = "7e032d3fbc395aa52874443d2168acc1c2d58b93"
 lazy = true
@@ -53,11 +69,3 @@ lazy = true
     [[grdecl.download]]
     sha256 = "ff6b1d2f955a427a63af0eb63343f183f3e2126da807613af09a99d77b3e4a8d"
     url = "https://github.com/sintefmath/GeoEnergyIO.jl/releases/download/v1.1.1/grdecl_tests.tar.bz2"
-
-[BOPOLYMER_NOSHEAR]
-git-tree-sha1 = "4023b3440aa2be4efa8b916f3312fa7ac9788e67"
-lazy = true
-
-    [[BOPOLYMER_NOSHEAR.download]]
-    sha256 = "23113058ff796e01b3b776ded59d122fd8b777726e66068e9354ae5ee56a3127"
-    url = "https://github.com/sintefmath/GeoEnergyIO.jl/releases/download/v1.1.17/bopolymer_noshear.tar.bz2"

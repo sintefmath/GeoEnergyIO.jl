@@ -13,6 +13,9 @@ module GeoEnergyIO
     include("CornerPointGrid/CornerPointGrid.jl")
     import .CornerPointGrid: mesh_from_grid_section
 
+    export read_restart, read_init, read_egrid, read_summary
+    include("ext.jl")
+
     function test_input_file_path(dataset::AbstractString, filename = missing)
         pth = @artifact_str(dataset)
         if !ismissing(filename)

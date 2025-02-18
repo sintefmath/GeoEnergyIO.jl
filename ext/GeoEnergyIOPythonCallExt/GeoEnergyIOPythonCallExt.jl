@@ -64,13 +64,12 @@ module GeoEnergyIOPythonCallExt
         return ret
     end
 
-    function GeoEnergyIO.read_restart_impl(pth; extra_out = false, actnum = missing, egrid = missing)
+    function GeoEnergyIO.read_restart_impl(pth; extra_out = false, actnum = missing, egrid = missing, verbose = false)
         resfile_mod = pyimport("resdata.resfile")
         grid_mod = pyimport("resdata.grid")
         np = pyimport("numpy")
 
         basepth, ext = splitext(pth)
-        @info basepth
         if ismissing(egrid)
             egrid = grid_mod.Grid("$basepth.EGRID")
         end
@@ -80,14 +79,31 @@ module GeoEnergyIOPythonCallExt
         rstrt = resfile_mod.ResdataRestartFile(egrid, filename = pth)
         hkeys = to_julia_keys(rstrt)
         out = Dict{String, Any}[]
-        for h in rstrt.headers()
+        warned = Dict{String, Bool}()
+        for (stepno, h) in enumerate(rstrt.headers())
             step = Dict{String, Any}()
             step["days"] = pyconvert(Float64, h.get_sim_days())
-            step["date"] = pyconvert(String, h.get_sim_date().strftime("%Y-%m-%dT%H:%M:%S"))
+            try
+                step["date"] = pyconvert(String, h.get_sim_date().strftime("%Y-%m-%dT%H:%M:%S"))
+            catch
+                println("Reading date failed for step $stepno")
+                step["date"] = missing
+            end
             step["report_step"] = pyconvert(Int64, h.get_report_step())
             rst_block = rstrt.restart_view(report_step = h.get_report_step())
             for k in hkeys
-                v = rst_block[k][0]
+                v = missing
+                try
+                    v = rst_block[k][0]
+                catch excpt
+                    if !haskey(warned, k)
+                        println("Skipping $k due to exception in reading $excpt")
+                        warned[k] = true
+                    end
+                end
+                if ismissing(v)
+                    continue
+                end
                 dtype = v.dtype
                 if pyconvert(Bool, dtype == np.int32)
                     T = Int64

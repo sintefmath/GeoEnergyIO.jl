@@ -39,7 +39,12 @@ module GeoEnergyIOPythonCallExt
 
     function GeoEnergyIO.read_egrid_impl(pth; extra_out = false, verbose = false)
         grid_mod = pyimport("resdata.grid")
-        epth = "$pth.EGRID"
+        basename, ext = splitext(pth)
+        if ext == ""
+            epth = "$pth.EGRID"
+        else
+            epth = pth
+        end
         isfile(epth) || error("File not found: $epth")
         egrid = grid_mod.Grid(epth)
 
@@ -71,51 +76,116 @@ module GeoEnergyIOPythonCallExt
 
         basepth, ext = splitext(pth)
         if ismissing(egrid)
-            egrid = grid_mod.Grid("$basepth.EGRID")
+            if isfile("$basepth.EGRID")
+                egrid = grid_mod.Grid("$basepth.EGRID")
+            end
         end
         if ext == ""
             pth = "$pth.UNRST"
+            is_unified = isfile(pth)
+        else
+            is_unified = ext == ".UNRST"
         end
-        rstrt = resfile_mod.ResdataRestartFile(egrid, filename = pth)
-        hkeys = to_julia_keys(rstrt)
         out = Dict{String, Any}[]
         warned = Dict{String, Bool}()
-        for (stepno, h) in enumerate(rstrt.headers())
-            step = Dict{String, Any}()
-            step["days"] = pyconvert(Float64, h.get_sim_days())
-            try
-                step["date"] = pyconvert(String, h.get_sim_date().strftime("%Y-%m-%dT%H:%M:%S"))
-            catch
-                println("Reading date failed for step $stepno")
-                step["date"] = missing
-            end
-            step["report_step"] = pyconvert(Int64, h.get_report_step())
-            rst_block = rstrt.restart_view(report_step = h.get_report_step())
-            for k in hkeys
-                v = missing
+
+        if is_unified
+            !ismissing(egrid) || error("EGRID required for unified restart file")
+            rstrt = resfile_mod.ResdataRestartFile(egrid, filename = pth)
+            hkeys = to_julia_keys(rstrt)
+            for (stepno, h) in enumerate(rstrt.headers())
+                if verbose
+                    println("Parsing step $stepno")
+                end
+                step = Dict{String, Any}()
+                step["days"] = pyconvert(Float64, h.get_sim_days())
                 try
-                    v = rst_block[k][0]
-                catch excpt
-                    if !haskey(warned, k)
-                        println("Skipping $k due to exception in reading $excpt")
-                        warned[k] = true
+                    step["date"] = pyconvert(String, h.get_sim_date().strftime("%Y-%m-%dT%H:%M:%S"))
+                catch
+                    println("Reading date failed for step $stepno")
+                    step["date"] = missing
+                end
+                step["report_step"] = pyconvert(Int64, h.get_report_step())
+                rst_block = rstrt.restart_view(report_step = h.get_report_step())
+                for k in hkeys
+                    v = missing
+                    try
+                        v = rst_block[k][0]
+                    catch excpt
+                        if !haskey(warned, k)
+                            println("Skipping $k due to exception in reading $excpt")
+                            warned[k] = true
+                        end
                     end
+                    if ismissing(v)
+                        continue
+                    end
+                    dtype = v.dtype
+                    if pyconvert(Bool, dtype == np.int32)
+                        T = Int64
+                    elseif pyconvert(Bool, dtype == np.float64) || pyconvert(Bool, dtype == np.float32)
+                        T = Float64
+                    else
+                        continue
+                    end
+                    v_array = to_julia_array(v)
+                    step[k] = map_to_active(v_array, actnum)
                 end
-                if ismissing(v)
-                    continue
-                end
-                dtype = v.dtype
-                if pyconvert(Bool, dtype == np.int32)
-                    T = Int64
-                elseif pyconvert(Bool, dtype == np.float64) || pyconvert(Bool, dtype == np.float32)
-                    T = Float64
-                else
-                    continue
-                end
-                v_array = to_julia_array(v)
-                step[k] = map_to_active(v_array, actnum)
+                push!(out, step)
             end
-            push!(out, step)
+        else
+            if ismissing(actnum) && !ismissing(egrid)
+                actnum = to_julia_array(egrid.export_actnum(), Int64)
+                actnum = map(x -> x > 0, actnum)
+            end
+            if ext == "" || ext == ".RSSPEC"
+                files = String[]
+                ix = 1
+                while true
+                    pth = "$basepth.X$(string(ix, pad = 4))"
+                    if isfile(pth)
+                        push!(files, pth)
+                    else
+                        break
+                    end
+                    ix += 1
+                end
+            else
+                startswith(ext, ".X") || error("Unknown restart file extension: $ext")
+                files = [pth]
+            end
+            for (stepno, file) in enumerate(files)
+                if verbose
+                    println("Parsing step $stepno")
+                end
+                result = resfile_mod.ResdataFile(file)
+                step = Dict{String, Any}()
+                for k in to_julia_keys(result)
+                    v = missing
+                    try
+                        v = result[k][0]
+                    catch excpt
+                        if !haskey(warned, k)
+                            println("Skipping $k due to exception in reading $excpt")
+                            warned[k] = true
+                        end
+                    end
+                    if ismissing(v)
+                        continue
+                    end
+                    dtype = v.dtype
+                    if pyconvert(Bool, dtype == np.int32)
+                        T = Int64
+                    elseif pyconvert(Bool, dtype == np.float64) || pyconvert(Bool, dtype == np.float32)
+                        T = Float64
+                    else
+                        continue
+                    end
+                    ju_vec = to_julia_array(v, T)
+                    step[k] = map_to_active(ju_vec, actnum)
+                end
+                push!(out, step)
+            end
         end
         if extra_out
             ret = (out, rstrt)

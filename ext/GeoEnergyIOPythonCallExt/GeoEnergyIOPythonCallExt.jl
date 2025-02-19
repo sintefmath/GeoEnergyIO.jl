@@ -69,7 +69,13 @@ module GeoEnergyIOPythonCallExt
         return ret
     end
 
-    function GeoEnergyIO.read_restart_impl(pth; extra_out = false, actnum = missing, egrid = missing, verbose = false)
+    function GeoEnergyIO.read_restart_impl(pth;
+            extra_out = false,
+            actnum = missing,
+            egrid = missing,
+            verbose = false,
+            steps = missing
+        )
         resfile_mod = pyimport("resdata.resfile")
         grid_mod = pyimport("resdata.grid")
         np = pyimport("numpy")
@@ -143,8 +149,15 @@ module GeoEnergyIOPythonCallExt
                 ix = 1
                 while true
                     pth = "$basepth.X$(string(ix, pad = 4))"
+                    if ismissing(steps)
+                        in_list = true
+                    else
+                        in_list = ix in steps
+                    end
                     if isfile(pth)
-                        push!(files, pth)
+                        if in_list
+                            push!(files, pth)
+                        end
                     else
                         break
                     end

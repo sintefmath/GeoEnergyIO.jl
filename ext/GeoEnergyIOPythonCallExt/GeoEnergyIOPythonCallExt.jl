@@ -81,9 +81,15 @@ module GeoEnergyIOPythonCallExt
         np = pyimport("numpy")
 
         basepth, ext = splitext(pth)
+        basedir, basename = splitdir(basepth)
         if ismissing(egrid)
-            if isfile("$basepth.EGRID")
-                egrid = grid_mod.Grid("$basepth.EGRID")
+            egrid_1 = "$basepth.EGRID"
+            # Sometimes the EGRID file has _GRID appended.
+            egrid_2 = "$(basepth)_GRID.EGRID"
+            if isfile(egrid_1)
+                egrid = grid_mod.Grid(egrid_1)
+            elseif isfile(egrid_2)
+                egrid = grid_mod.Grid(egrid_2)
             end
         end
         if ext == ""
@@ -96,12 +102,26 @@ module GeoEnergyIOPythonCallExt
         warned = Dict{String, Bool}()
 
         if is_unified
-            !ismissing(egrid) || error("EGRID required for unified restart file")
+            if ismissing(egrid)
+                error("EGRID required for unified restart file, not found in keyword argument or as either $basepth.EGRID or $(basename)_GRID.EGRID")
+            end
             rstrt = resfile_mod.ResdataRestartFile(egrid, filename = pth)
             hkeys = to_julia_keys(rstrt)
             for (stepno, h) in enumerate(rstrt.headers())
+                if ismissing(steps)
+                    in_list = true
+                else
+                    in_list = stepno in steps
+                end
                 if verbose
-                    println("Parsing step $stepno")
+                    if in_list
+                        println("Parsing step $stepno")
+                    else
+                        println("Skipping step $stepno")
+                    end
+                end
+                if !in_list
+                    continue
                 end
                 step = Dict{String, Any}()
                 step["days"] = pyconvert(Float64, h.get_sim_days())

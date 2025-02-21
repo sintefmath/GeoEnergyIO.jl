@@ -45,7 +45,13 @@ module GeoEnergyIOPythonCallExt
         else
             epth = pth
         end
-        isfile(epth) || error("File not found: $epth")
+        if !isfile(epth)
+            epth = "$(epth)_GRID.EGRID"
+            isfile("$epth") || error("File not found: $epth")
+            if verbose
+                println("EGRID file not at $basename, but found _GRID.EGRID instead.")
+            end
+        end
         egrid = grid_mod.Grid(epth)
 
         nx, ny, nz, nact = pyconvert(Tuple, egrid.getDims())

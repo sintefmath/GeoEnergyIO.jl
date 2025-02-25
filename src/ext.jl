@@ -118,3 +118,17 @@ end
 function read_summary_impl
 
 end
+
+"""
+    write_jutuldarcy_summary(filename, smry_jutul; unified = true)
+
+Experimental function to write a summary file from JutulDarcy results.
+"""
+function write_jutuldarcy_summary(filename, smry_jutul; unified = true)
+    check_pythoncall()
+    return write_jutuldarcy_summary_impl(filename, smry_jutul, unified = unified)
+end
+
+function write_jutuldarcy_summary_impl
+
+end

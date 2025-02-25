@@ -1,6 +1,8 @@
 module GeoEnergyIOPythonCallExt
     import GeoEnergyIO
     using PythonCall
+    import Dates
+    import Jutul: si_units
 
     function GeoEnergyIO.read_summary_impl(pth; extra_out = false, verbose = false)
         summary_mod = pyimport("resdata.summary")
@@ -260,6 +262,75 @@ module GeoEnergyIOPythonCallExt
             ret = out
         end
         return ret
+    end
+
+    function GeoEnergyIO.write_jutuldarcy_summary_impl(output_path, smry_jutul; unified = true)
+        dirpath, filename = splitdir(output_path)
+        dirpath = abspath(dirpath)
+        output_path = joinpath(dirpath, filename)
+        summary_mod = pyimport("resdata.summary")
+        haskey(smry_jutul, "DIMENS") || error("No dimensions found")
+        haskey(smry_jutul, "TIME") || error("No time found")
+        haskey(smry_jutul, "VALUES") || error("No values found")
+
+        function map_variables(source::AbstractDict; arg...)
+            dest = Dict()
+            for (k, v) in pairs(source)
+                # TODO: Unit
+                varkey = rs_sum.add_variable(k; num = 0, unit = "None", arg...)
+                dest[k] = varkey.get_key1()
+            end
+            return dest
+        end
+        function write_variable(t_step, varmap, vals, step_ix)
+            for (k, v) in pairs(vals)
+                t_step[varmap[k]] = v[step_ix]
+            end
+        end
+        # Set up destination
+        if ismissing(smry_jutul["TIME"].start_date)
+            yr = 1970
+            mnth = 1
+            day = 1
+        else
+            start = smry_jutul["TIME"].start_date
+            yr = Dates.year(start)
+            mnth = Dates.month(start)
+            day = Dates.day(start)
+        end
+        date0 = pyimport("datetime").date(yr, mnth, day)
+        dims = smry_jutul["DIMENS"]
+        t_jutul = smry_jutul["TIME"].seconds
+        rs_sum = summary_mod.Summary.writer(
+            output_path, date0, dims[1], dims[2], dims[3],
+            unified = unified
+        );
+        # Mapping of variables
+        vals_jutul = smry_jutul["VALUES"]
+        varmap = Dict()
+        varmap["FIELD"] = map_variables(vals_jutul["FIELD"])
+        for (wlabel, wvals) in pairs(vals_jutul["WELLS"])
+            varmap[wlabel] = map_variables(wvals, wgname = wlabel)
+        end
+        k_years = rs_sum.add_variable("YEARS", num = 0, unit = "None").get_key1()
+        uday, uyear = si_units(:day, :year)
+        for (report_step, elapsed_in_seconds) in enumerate(t_jutul)
+            current_t_in_years = elapsed_in_seconds/uyear
+            current_t_in_days = elapsed_in_seconds/uday
+            t_step = rs_sum.add_t_step(report_step, sim_days = current_t_in_days)
+            t_step[k_years] = current_t_in_years
+            write_variable(t_step, varmap["FIELD"], vals_jutul["FIELD"], report_step)
+            for (wlabel, wvals) in pairs(vals_jutul["WELLS"])
+                write_variable(t_step, varmap[wlabel], wvals, report_step)
+            end
+        end
+        rs_sum.fwrite()
+        if unified
+            ext = ".UNSMRY"
+        else
+            ext = ".X0001"
+        end
+        return (dirpath, filename, ext)
     end
 
     function to_julia_array(pyarr, T = Float64)

@@ -13,6 +13,7 @@ module GeoEnergyIO
     include("CornerPointGrid/CornerPointGrid.jl")
     import .CornerPointGrid: mesh_from_grid_section
 
+    import Jutul: JutulCase, UnstructuredMesh, DataDomain, physical_representation
     export read_restart, read_init, read_egrid, read_summary
     include("ext.jl")
 

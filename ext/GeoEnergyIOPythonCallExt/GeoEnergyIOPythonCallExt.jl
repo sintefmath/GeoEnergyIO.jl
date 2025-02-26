@@ -333,6 +333,35 @@ module GeoEnergyIOPythonCallExt
         return (dirpath, filename, ext)
     end
 
+    function GeoEnergyIO.write_egrid_impl(data::AbstractDict, pth)
+        if haskey(data, "GRID")
+            data = data["GRID"]
+        end
+        fname, ext = splitext(pth)
+        if ext == ""
+            ext = ".EGRID"
+        end
+        pth = "$fname$ext"
+        gridmod = pyimport("resdata.grid")
+        resdatamod = pyimport("resdata")
+        resfilemod = pyimport("resdata.resfile")
+
+        specgrid = data["SPECGRID"]
+        coord = data["COORD"]
+        zcorn = data["ZCORN"]
+        actnum = data["ACTNUM"]
+
+        zcorn_py = gridmod.rd_grid_generator.construct_floatKW("ZCORN", zcorn)
+        coord_py = gridmod.rd_grid_generator.construct_floatKW("COORD", coord)
+        actnum_py = resfilemod.ResdataKW("ACTNUM", length(actnum), resdatamod.ResDataType.RD_INT)
+        for (i, v) in enumerate(actnum)
+            actnum_py[i-1] = v
+        end
+        egrid = gridmod.Grid.create(PyArray(specgrid), zcorn_py, coord_py, actnum_py)
+        egrid.save_EGRID(pth)
+        return abspath(pth)
+    end
+
     function to_julia_array(pyarr, T = Float64)
         return pyconvert(Vector{T}, pyarr.numpy_copy())
     end

@@ -2,7 +2,12 @@ function check_pythoncall(; throw = true)
     present = !isnothing(Base.get_extension(GeoEnergyIO, :GeoEnergyIOPythonCallExt))
     if throw
         if !present
-            error("PythonCall is not loaded. This is needed for reading of output files via resdata.\nTo fix:\nusing Pkg; Pkg.add(\"PythonCall\"); using PythonCall")
+            println("PythonCall is not loaded. This is needed for reading of output files via resdata.")
+            println("To fix, install and load PythonCall by running the following commands:")
+            println("\tusing Pkg; Pkg.add(\"PythonCall\"); using PythonCall")
+            println("It is also recommended to set the following if your only use of PythonCall is GeoEnergyIO:")
+            println("\tENV[\"JULIA_CONDAPKG_ENV\"] = \"@resdata\"")
+            error("PythonCall was not available.")
         end
     end
     return present

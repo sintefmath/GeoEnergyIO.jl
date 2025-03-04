@@ -67,7 +67,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DISPLAY: :0
       - name: Run doctests
-        shell: julia --project=docs --color=yes {0}
         run: |
           DISPLAY=:0 xvfb-run -s '-screen 0 1024x768x24' julia --project=docs -e '
           using Documenter: DocMeta, doctest

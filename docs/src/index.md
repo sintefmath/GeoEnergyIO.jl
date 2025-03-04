@@ -65,7 +65,7 @@ mesh_from_grid_section
 The module ships with several corner point grids suitable for testing. These include partially collapsed cells, faults and other degenerate cases that the parser should be able to handle. We can make a few plots of such test grids. The first example is a single hexahedral cell:
 
 ```@example
-using GeoEnergyIO, Jutul, CairoMakie
+using GeoEnergyIO, Jutul, GLMakie
 pth = GeoEnergyIO.test_input_file_path("grdecl", "1cell.txt")
 grdecl = parse_grdecl_file(pth)
 g = mesh_from_grid_section(grdecl)
@@ -77,7 +77,7 @@ fig
 To understand a bit more of how this format behaves in practice, we can look at a faulted mesh:
 
 ```@example
-using GeoEnergyIO, Jutul, CairoMakie
+using GeoEnergyIO, Jutul, GLMakie
 pth = GeoEnergyIO.test_input_file_path("grdecl", "raised_col_sloped.txt")
 grdecl = parse_grdecl_file(pth)
 g = mesh_from_grid_section(grdecl)
@@ -89,7 +89,7 @@ fig
 More complicated meshes include multiple faults. One synthetic test model is the `model3` case from [MRST](https://www.mrst.no):
 
 ```@example
-using GeoEnergyIO, Jutul, CairoMakie
+using GeoEnergyIO, Jutul, GLMakie
 pth = GeoEnergyIO.test_input_file_path("grdecl", "model3_5_5_5.txt")
 grdecl = parse_grdecl_file(pth)
 g = mesh_from_grid_section(grdecl)
@@ -103,7 +103,7 @@ fig
 We can also parse a high-resolution version of the same case:
 
 ```@example
-using GeoEnergyIO, Jutul, CairoMakie
+using GeoEnergyIO, Jutul, GLMakie
 pth = GeoEnergyIO.test_input_file_path("grdecl", "model3_20_20_50.txt")
 grdecl = parse_grdecl_file(pth)
 g = mesh_from_grid_section(grdecl)
@@ -121,7 +121,7 @@ The parser has been tested on many complex models. Here is an example mesh parse
 We can parse this mesh in the same manner as before:
 
 ```@example
-using GeoEnergyIO, Jutul, CairoMakie
+using GeoEnergyIO, Jutul, GLMakie
 pth = GeoEnergyIO.test_input_file_path("OLYMPUS_1", "OLYMPUS_GRID.GRDECL")
 grdecl = parse_grdecl_file(pth)
 g = mesh_from_grid_section(grdecl)

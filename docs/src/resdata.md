@@ -35,6 +35,6 @@ read_summary
     Writing files is currently highly experimental. Not all fields are properly set in summary files (e.g. units).
 
 ```@docs
-write_egrid
-write_jutuldarcy_summary
+GeoEnergyIO.write_egrid
+GeoEnergyIO.write_jutuldarcy_summary
 ```

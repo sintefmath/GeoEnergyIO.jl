@@ -132,6 +132,14 @@ plot_cell_data!(ax, g, ix, shading = NoShading, rasterize = true, colormap = :se
 fig
 ```
 
+### Generation of corner-point meshes
+
+The package also contains functionality for generating corner-point meshes.
+
+```@docs
+cpgrid_from_horizons
+```
+
 ## Utilities
 
 ```@docs

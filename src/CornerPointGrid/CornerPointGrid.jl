@@ -5,7 +5,8 @@ module CornerPointGrid
     import Jutul: cell_ijk
     import Jutul: set_mesh_entity_tag!
     import Jutul: mesh_entity_has_tag
-    import Jutul: LinearInterpolant, BilinearInterpolant
+    import Jutul: LinearInterpolant, get_1d_interpolator
+    import Jutul: BilinearInterpolant, get_2d_interpolator
     import Jutul: extract_submesh
     import Jutul: cell_index
     import Jutul: jutul_message
@@ -19,4 +20,5 @@ module CornerPointGrid
     include("nnc_and_aquifers.jl")
     include("utils.jl")
     include("pinch.jl")
+    include("generation.jl")
 end

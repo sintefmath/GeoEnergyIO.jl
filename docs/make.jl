@@ -14,6 +14,9 @@ makedocs(;
     ),
     pages=[
         "Home" => "index.md",
+        "parser.md",
+        "cpgrid.md",
+        "resdata.md",
     ],
 )
 

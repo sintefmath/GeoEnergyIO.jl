@@ -202,4 +202,39 @@ import Jutul: number_of_cells, number_of_boundary_faces, number_of_faces, conver
         @test GeoEnergyIO.CornerPointGrid.find_next_gap([0, 0, 1, 2, 3, 0, 0, 1], 4) == (5, 7, false)
         @test GeoEnergyIO.CornerPointGrid.find_next_gap([1, 0, 0], 1) == (3, 3, true)
     end
+
+    @testset "cpgrid_generation" begin
+        nx = 10
+        ny = 5
+        l1 = 3
+        l2 = 2
+        xrng = range(0.0, 1.0, nx)
+        yrng = range(0.0, 1.0, ny)
+        depths = [
+            zeros(nx, ny),
+            zeros(nx, ny) .+ 5.0,
+            zeros(nx, ny) .+ 10.0
+        ]
+        # Check base case
+        gs = cpgrid_from_horizons(xrng, yrng, depths, layer_width = [l1, l2])
+        m = mesh_from_grid_section(gs)
+        @test number_of_cells(m) == (nx-1)*(ny-1)*(l1 + l2)
+        # Check interpolation to finer mesh
+        Nx = 30
+        Ny = 40
+        gs = cpgrid_from_horizons(xrng, yrng, depths, (Nx, Ny), layer_width = [l1, l2])
+        m = mesh_from_grid_section(gs)
+        @test number_of_cells(m) == (Nx-1)*(Ny-1)*(l1 + l2)
+        # Check NaN in single layer
+        depths[1][1, 1] = NaN
+        gs = cpgrid_from_horizons(xrng, yrng, depths, layer_width = [l1, l2])
+        m = mesh_from_grid_section(gs)
+        @test number_of_cells(m) == (nx-1)*(ny-1)*(l1 + l2) - l1
+        # Check NaN in multiple layers
+        depths[2][1, 1] = NaN
+        depths[3][1, 1] = NaN
+        gs = cpgrid_from_horizons(xrng, yrng, depths, layer_width = [l1, l2])
+        m = mesh_from_grid_section(gs)
+        @test number_of_cells(m) == (nx-1)*(ny-1)*(l1 + l2) - l1 - l2
+    end
 end

@@ -2,7 +2,12 @@ function check_pythoncall(; throw = true)
     present = !isnothing(Base.get_extension(GeoEnergyIO, :GeoEnergyIOPythonCallExt))
     if throw
         if !present
-            error("PythonCall is not loaded. This is needed for reading of output files via resdata.\nTo fix:\nusing Pkg; Pkg.add(\"PythonCall\"); using PythonCall")
+            println("PythonCall is not loaded. This is needed for reading of output files via resdata.")
+            println("To fix, install and load PythonCall by running the following commands:")
+            println("\tusing Pkg; Pkg.add(\"PythonCall\"); using PythonCall")
+            println("It is also recommended to set the following if your only use of PythonCall is GeoEnergyIO:")
+            println("\tENV[\"JULIA_CONDAPKG_ENV\"] = \"@resdata\"")
+            error("PythonCall was not available.")
         end
     end
     return present
@@ -116,5 +121,80 @@ function read_summary(arg...; kwarg...)
 end
 
 function read_summary_impl
+
+end
+
+"""
+    write_jutuldarcy_summary(filename, smry_jutul; unified = true)
+
+Experimental function to write a summary file from JutulDarcy results.
+"""
+function write_jutuldarcy_summary(filename, smry_jutul; unified = true)
+    check_pythoncall()
+    return write_jutuldarcy_summary_impl(filename, smry_jutul, unified = unified)
+end
+
+function write_jutuldarcy_summary_impl
+
+end
+
+"""
+    write_egrid(case::JutulCase, pth)
+
+Write an EGRID file from a JutulCase from JutulDarcy.jl. This is a convenience
+function that will extract the reservoir domain and input data from the case. It
+is assumed that the case has been set up from a data file so that the mesh
+matches the GRID section.
+"""
+function write_egrid(case::JutulCase, pth)
+    reservoir = reservoir_domain(case)
+    data = case.input_data
+    return write_egrid(reservoir, data, pth)
+end
+
+"""
+    write_egrid(reservoir::DataDomain, data::Dict, pth)
+
+Write EGRID from a reservoir/DataDomain from JutulDarcy.jl that has been
+constructed from a data file.
+"""
+function write_egrid(reservoir::DataDomain, data::AbstractDict, pth)
+    G = physical_representation(reservoir)
+    return write_egrid(G, data, pth)
+end
+
+"""
+    write_egrid(G::UnstructuredMesh, data::Dict, pth)
+
+Write EGRID from UnstructuredMesh that was constructed from the GRID section of
+the data file.
+"""
+function write_egrid(G::UnstructuredMesh, data::AbstractDict, pth)
+    if haskey(data, "GRID")
+        data = data["GRID"]
+    end
+    data = copy(data)
+    nx, ny, nz = G.structure.I
+    # ACTNUM could be different from what's in DATA due to pinch and so on. We
+    # reconstruct it from the actually active cells.
+    actnum = zeros(Bool, nx*ny*nz)
+    actnum[G.cell_map] .= true
+    data["ACTNUM"] = actnum
+    return write_egrid(data, pth)
+end
+
+"""
+    write_egrid(data::AbstractDict, pth)
+
+Write EGRID from a Dict that has been parsed from a data file. Can be either the
+GRID section or the full data file.
+"""
+function write_egrid(data::AbstractDict, pth)
+    # This is the gateway to the Python side of things.
+    check_pythoncall()
+    return write_egrid_impl(data, pth)
+end
+
+function write_egrid_impl
 
 end

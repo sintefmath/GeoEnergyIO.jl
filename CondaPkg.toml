@@ -1,5 +1,7 @@
+channels = ["conda-forge"]
+
 [deps]
-python = ""
+python = ">=3.10"
 
 [pip.deps]
 resdata = ""

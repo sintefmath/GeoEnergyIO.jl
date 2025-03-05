@@ -45,7 +45,7 @@ g = mesh_from_grid_section(grdecl)
 ix = collect(1:number_of_cells(g))
 fig = Figure()
 ax = Axis3(fig[1,1], zreversed = true, azimuth = 2.0)
-plot_cell_data!(ax, g, ix, shading = NoShading, rasterize = true, colormap = :seaborn_icefire_gradient)
+plot_cell_data!(ax, g, ix, colormap = :seaborn_icefire_gradient)
 fig
 ```
 
@@ -59,7 +59,7 @@ g = mesh_from_grid_section(grdecl)
 ix = collect(1:number_of_cells(g))
 fig = Figure()
 ax = Axis3(fig[1,1], zreversed = true, azimuth = 2.0)
-plot_cell_data!(ax, g, ix, shading = NoShading, rasterize = true, colormap = :seaborn_icefire_gradient)
+plot_cell_data!(ax, g, ix, colormap = :seaborn_icefire_gradient)
 fig
 ```
 
@@ -77,7 +77,7 @@ g = mesh_from_grid_section(grdecl)
 ix = collect(1:number_of_cells(g))
 fig = Figure()
 ax = Axis3(fig[1,1], zreversed = true, azimuth = 2.0)
-plot_cell_data!(ax, g, ix, shading = NoShading, rasterize = true, colormap = :seaborn_icefire_gradient)
+plot_cell_data!(ax, g, ix, colormap = :seaborn_icefire_gradient)
 fig
 ```
 

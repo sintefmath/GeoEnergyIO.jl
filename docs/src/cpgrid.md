@@ -157,7 +157,8 @@ grd = cpgrid_from_horizons(xrng, yrng, depths,
 )
 mesh3 = mesh_from_grid_section(grd)
 fig, ax, plt = plot_cell_data(mesh3, grd["LAYERNUM"][mesh3.cell_map], colormap = :winter)
-ax.azimuth[] = 5.44
+ax.azimuth[] = 13.327
+ax.elevation[] = 0.187
 Jutul.plot_mesh_edges!(ax, mesh3)
 fig
 ```

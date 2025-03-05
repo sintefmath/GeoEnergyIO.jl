@@ -18,7 +18,7 @@ using GeoEnergyIO, Jutul, GLMakie
 pth = GeoEnergyIO.test_input_file_path("grdecl", "1cell.txt")
 grdecl = parse_grdecl_file(pth)
 g = mesh_from_grid_section(grdecl)
-fig, ax, plt = plot_mesh(g, shading = false, rasterize = true)
+fig, ax, plt = plot_mesh(g)
 Jutul.plot_mesh_edges!(ax, g)
 fig
 ```
@@ -30,7 +30,7 @@ using GeoEnergyIO, Jutul, GLMakie
 pth = GeoEnergyIO.test_input_file_path("grdecl", "raised_col_sloped.txt")
 grdecl = parse_grdecl_file(pth)
 g = mesh_from_grid_section(grdecl)
-fig, ax, plt = plot_mesh(g, shading = NoShading, rasterize = true)
+fig, ax, plt = plot_mesh(g)
 Jutul.plot_mesh_edges!(ax, g)
 fig
 ```

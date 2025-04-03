@@ -294,7 +294,7 @@ function parse_grdecl_file(filename;
     )
     outer_data = Dict{String, Any}()
     data = new_section(outer_data, :GRID)
-    parse_data_file!(outer_data, filename, data; kwarg...)
+    parse_data_file!(outer_data, filename, data; input_units = input_units, kwarg...)
     if !ismissing(actnum_path)
         parse_data_file!(outer_data, actnum_path, data; input_units = input_units, kwarg...)
     end

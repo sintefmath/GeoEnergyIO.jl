@@ -38,6 +38,7 @@ module InputParser
         skip_kw!(:NONNC, 0)
         skip_kw!(:NEWTRAN, 0)
         skip_kw!(:RPTGRID, 1)
+        skip_kw!(:RPTINIT, 1)
         skip_kw!(:DIFFUSE, 0, PARSER_JUTULDARCY_MISSING_SUPPORT)
         skip_kw!(:OLDTRAN, 0, PARSER_JUTULDARCY_MISSING_SUPPORT)
         skip_kw!(:UNIFSAVE, 0)

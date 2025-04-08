@@ -1,12 +1,5 @@
 function mesh_add_fault_tags!(G::UnstructuredMesh, faults)
-    ijk = map(x -> cell_ijk(G, x), 1:number_of_cells(G))
-    N = G.faces.neighbors
-
-    sorted_face_pair_I = get_sorted_face_pairs(N, ijk, 1)
-    sorted_face_pair_J = get_sorted_face_pairs(N, ijk, 2)
-    sorted_face_pair_K = get_sorted_face_pairs(N, ijk, 3)
-
-    sorted_faces = (sorted_face_pair_I, sorted_face_pair_J, sorted_face_pair_K)
+    sorted_faces = get_sorted_face_pairs(G)
     for (fault, specs) in faults
         fault_faces = fault_to_faces(G::UnstructuredMesh, specs, sorted_faces, fault)
         @debug "Fault $fault: Added $(length(fault_faces)) faces"
@@ -15,12 +8,19 @@ function mesh_add_fault_tags!(G::UnstructuredMesh, faults)
     return G
 end
 
+function get_sorted_face_pairs(G::UnstructuredMesh)
+    ijk = map(x -> cell_ijk(G, x), 1:number_of_cells(G))
+    N = G.faces.neighbors
+    sorted_face_pair_I = get_sorted_face_pairs(N, ijk, 1)
+    sorted_face_pair_J = get_sorted_face_pairs(N, ijk, 2)
+    sorted_face_pair_K = get_sorted_face_pairs(N, ijk, 3)
+    sorted_faces = (sorted_face_pair_I, sorted_face_pair_J, sorted_face_pair_K)
+    return sorted_faces
+end
+
 function fault_to_faces(G::UnstructuredMesh, specs, sorted_faces = missing, faultname = :FAULT)
     if ismissing(sorted_faces)
-        N = G.faces.neighbors
-        sorted_face_pair_I = get_sorted_face_pairs(N, ijk, 1)
-        sorted_face_pair_J = get_sorted_face_pairs(N, ijk, 2)
-        sorted_face_pair_K = get_sorted_face_pairs(N, ijk, 3)
+        sorted_faces = get_sorted_face_pairs(G)
     end
     fault_faces = Int[]
     for (I, J, K, dir) in specs

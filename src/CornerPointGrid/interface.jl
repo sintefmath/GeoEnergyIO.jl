@@ -188,8 +188,9 @@ function mesh_from_dxdydz_and_tops(grid; actnum = get_effective_actnum(grid))
 end
 
 function cell_centers_from_deltas(dx, x0 = 0.0)
+    T = promote_type(eltype(dx), typeof(x0))
     nx = length(dx)
-    x = zeros(nx)
+    x = zeros(T, nx)
     x[1] = dx[1]/2.0 + x0
     for i in 2:nx
         x[i] = x[i-1] + dx[i]

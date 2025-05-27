@@ -94,12 +94,16 @@ function get_effective_actnum(g)
 end
 
 function handle_zero_effective_porosity!(actnum, g)
-    minpv = get(g, "MINPV", 1e-6)::Float64
+    minpv = get(g, "MINPV", 1e-6)
     if haskey(g, "MINPVV")
         minpv_for_cell = i -> max(g["MINPVV"][i], minpv)
     else
         minpv_for_cell = i -> minpv
     end
+    return handle_zero_effective_porosity!(actnum, g, minpv, minpv_for_cell)
+end
+
+function handle_zero_effective_porosity!(actnum, g, minpv, minpv_for_cell)
     added = 0
     active = 0
     changed = fill(false, size(actnum))

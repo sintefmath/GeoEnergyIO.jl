@@ -51,8 +51,18 @@ Base.@kwdef struct DeckUnitSystem{S, T}
     absolute_temperature_numeric::T = 1.0
 end
 
+"""
+    sys = DeckUnitSystem(sys::Symbol)
+    sys_field = DeckUnitSystem(:field)
+    sys_metric = DeckUnitSystem(:metric)
+    sys_si = DeckUnitSystem(:si)
+    sys_lab = DeckUnitSystem(:lab)
+
+Get the unit system for a given named `sys` system. The return type contains
+unit conversion factors for the given system and can be used together with
+[`deck_unit`](@ref) to get conversion factors for specific quantities.
+"""
 function DeckUnitSystem(sys::Symbol, T = Float64)
-    #meter, day, kilogram, bar = si_units(:meter, :day, :kilogram, :bar)
     u = Jutul.all_units()
     m = u[:meter]
     K = u[:kelvin]
@@ -281,6 +291,61 @@ function swap_unit_system(val, systems::NamedTuple, U::Val{k}; reverse = false) 
     return val_final
 end
 
+
+"""
+    ufactor = deck_unit(sys::DeckUnitSystem, quantity::Symbol)
+
+Get the unit conversion factor for a given type of `quantity` in the `sys` unit
+system.
+
+# Notes
+
+The following quantities are supported:
+
+- `length`: Lengths and distances
+- `area`: Areas and surfaces
+- `time`: Time, also used for rates and permeabilities
+- `density`
+- `pressure`
+- `mol`
+- `mass`
+- `u_rs`
+- `u_rv`
+- `concentration`
+- `compressibility`
+- `viscosity`
+- `surface_tension`
+- `jsurface_tension`
+- `permeability`
+- `liquid_volume_surface`
+- `liquid_volume_reservoir`
+- `liquid_formation_volume_factor`
+- `gas_volume_surface`
+- `gas_volume_reservoir`
+- `gas_formation_volume_factor`
+- `volume`
+- `transmissibility`
+- `rock_conductivity`
+- `volume_heat_capacity`
+- `mass_heat_capacity`
+- `molar_mass`
+- `absolute_temperature_numeric`
+
+The following additional derived quantities are also supported:
+
+- `Kh`
+- `gigapascal`
+- `time_over_volume`
+- `liquid_rate_surface`
+- `gas_rate_surface`
+- `liquid_rate_reservoir`
+- `gas_rate_reservoir`
+- `critical_volume`
+- `thermal_expansion_c1`
+- `thermal_expansion_c2`
+- `aquifer_transmissibility`
+
+"""
 function deck_unit(sys::DeckUnitSystem, s::Symbol)
     return deck_unit(sys, Val(s))
 end

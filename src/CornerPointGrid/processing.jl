@@ -375,7 +375,9 @@ function grid_from_primitives(primitives; nnc = missing, pinch = missing)
     nlinex = nx+1
     nliney = ny+1
 
-    extra_node_lookup = Dict()
+    # Lookup for extra nodes that are not in the pillars but are made due to intersections over faults.
+    # The Float64 type is intentional.
+    extra_node_lookup = Dict{SVector{3, Float64}, Int}()
 
     function add_face_from_nodes!(V, Vpos, nodes)
         n_global_nodes = length(primitives.nodes)

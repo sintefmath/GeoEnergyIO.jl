@@ -263,7 +263,12 @@ function cpgrid_primitives(coord, zcorn, cartdims; actnum = missing)
 end
 
 function process_lines!(lines)
-    nodes = Vector{SVector{3, Float64}}()
+    if length(lines) > 0
+        T = eltype(lines[1].z)
+    else
+        T = Float64
+    end
+    nodes = Vector{SVector{3, T}}()
     active_lines = BitVector(undef, length(lines))
     node_counter = 1
     for (line_ix, line) in enumerate(lines)

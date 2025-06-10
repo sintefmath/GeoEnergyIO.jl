@@ -20,7 +20,7 @@ end
 
 function get_line(coord, i, j, nx, ny)
     ix = ijk_to_linear(i, j, 1, (nx, ny, 1))
-    T = SVector{3, Float64}
+    T = SVector{3, eltype(coord)}
     x1 = T(coord[ix, 1:3])
     x2 = T(coord[ix, 4:end])
 

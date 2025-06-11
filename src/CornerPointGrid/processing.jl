@@ -21,7 +21,7 @@ function cpgrid_primitives(coord, zcorn, cartdims; actnum = missing)
     @assert nliney*nlinex == size(coord, 1)
 
     function generate_line(p1, p2)
-        T_coord = promote_type(eltype(p1), eltype(p2))
+        T_coord = promote_type(eltype(p1), eltype(p2), typeof(z_mean))
         line_length_hint = 4*nz
         z = sizehint!(Vector{T_coord}(), line_length_hint)
         cells = sizehint!(Vector{Int}(), line_length_hint)

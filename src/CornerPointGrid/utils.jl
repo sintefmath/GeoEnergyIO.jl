@@ -38,7 +38,7 @@ function interp_coord(line::NamedTuple, z)
     return pt
 end
 
-function interp_coord(p0::SVector{3, T}, p1::SVector{3, T}, z::T) where T<:Real
+function interp_coord(p0::SVector{3, T}, p1::SVector{3, T}, z::V) where {T<:Real, V<:Real}
     z0 = p0[3]
     z1 = p1[3]
     if z0 ≈ z1 

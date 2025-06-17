@@ -20,7 +20,7 @@ end
 
 function get_line(coord, i, j, nx, ny)
     ix = ijk_to_linear(i, j, 1, (nx, ny, 1))
-    T = SVector{3, Float64}
+    T = SVector{3, eltype(coord)}
     x1 = T(coord[ix, 1:3])
     x2 = T(coord[ix, 4:end])
 
@@ -38,7 +38,7 @@ function interp_coord(line::NamedTuple, z)
     return pt
 end
 
-function interp_coord(p0::SVector{3, T}, p1::SVector{3, T}, z::T) where T<:Real
+function interp_coord(p0::SVector{3, T}, p1::SVector{3, T}, z::V) where {T<:Real, V<:Real}
     z0 = p0[3]
     z1 = p1[3]
     if z0 ≈ z1 

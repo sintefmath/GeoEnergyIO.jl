@@ -21,8 +21,9 @@ function cpgrid_primitives(coord, zcorn, cartdims; actnum = missing)
     @assert nliney*nlinex == size(coord, 1)
 
     function generate_line(p1, p2)
+        T_coord = promote_type(eltype(p1), eltype(p2), typeof(z_mean))
         line_length_hint = 4*nz
-        z = sizehint!(Vector{Float64}(), line_length_hint)
+        z = sizehint!(Vector{T_coord}(), line_length_hint)
         cells = sizehint!(Vector{Int}(), line_length_hint)
         cellpos = sizehint!(Vector{Int}(), line_length_hint)
         nodes = sizehint!(Vector{Int}(), line_length_hint)
@@ -32,8 +33,8 @@ function cpgrid_primitives(coord, zcorn, cartdims; actnum = missing)
             cells = cells,
             cellpos = cellpos,
             nodes = nodes,
-            x1 = SVector{3, Float64}(p1),
-            x2 = SVector{3, Float64}(p2),
+            x1 = SVector{3, T_coord}(p1),
+            x2 = SVector{3, T_coord}(p2),
             equal_points = p1 ≈ p2
             )
     end
@@ -262,7 +263,12 @@ function cpgrid_primitives(coord, zcorn, cartdims; actnum = missing)
 end
 
 function process_lines!(lines)
-    nodes = Vector{SVector{3, Float64}}()
+    if length(lines) > 0
+        T = eltype(lines[1].z)
+    else
+        T = Float64
+    end
+    nodes = Vector{SVector{3, T}}()
     active_lines = BitVector(undef, length(lines))
     node_counter = 1
     for (line_ix, line) in enumerate(lines)
@@ -369,7 +375,9 @@ function grid_from_primitives(primitives; nnc = missing, pinch = missing)
     nlinex = nx+1
     nliney = ny+1
 
-    extra_node_lookup = Dict()
+    # Lookup for extra nodes that are not in the pillars but are made due to intersections over faults.
+    # The Float64 type is intentional.
+    extra_node_lookup = Dict{SVector{3, Float64}, Int}()
 
     function add_face_from_nodes!(V, Vpos, nodes)
         n_global_nodes = length(primitives.nodes)

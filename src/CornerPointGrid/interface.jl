@@ -156,6 +156,16 @@ function mesh_from_dxdydz_and_tops(grid; actnum = get_effective_actnum(grid))
     else
         I_tops = BilinearInterpolant(x_top, y_top, tops)
     end
+    T = promote_type(eltype(tops), eltype(dx), eltype(dy), eltype(dz))
+    if T != eltype(dx)
+        dx = T.(dx)
+    end
+    if T != eltype(dy)
+        dy = T.(dy)
+    end
+    if T != eltype(dz)
+        dz = T.(dz)
+    end
     G = CartesianMesh(cartdims, (dx, dy, dz))
     # We always want to return an unstructured mesh.
     G = UnstructuredMesh(G, z_is_depth = true)

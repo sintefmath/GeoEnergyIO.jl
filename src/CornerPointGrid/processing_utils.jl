@@ -362,6 +362,20 @@ function find_crossing_node(x1, x2, x3, x4)
 end
 
 function cpgrid_get_or_add_crossing_node!(extra_node_lookup, nodes, pt)
+    function to_float(x::Float64)
+        return x
+    end
+    function to_float(x)
+        # Special hack for dual tracers + ForwardDiff.Dual...
+        # This should be ok since the geometric point lookup is what matters.
+        if hasproperty(x, :primal)
+            x = x.primal
+        elseif hasproperty(x, :value)
+            x = x.value
+        end
+        return x
+    end
+    pt = map(to_float, pt)
     if haskey(extra_node_lookup, pt)
         ix = extra_node_lookup[pt]
     else

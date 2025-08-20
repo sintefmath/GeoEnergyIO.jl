@@ -14,6 +14,10 @@ OrderedCollections = "bac558e1-5e72-5ebc-8fee-abe8a469f55d"
 Parsers = "69de0a69-1ddd-5017-9359-2bf0b02dc9f0"
 PrecompileTools = "aea7be01-6a6a-4083-8856-8a6e6704d82a"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
+HDF5 = "f67ccb44-e63f-5c2f-98bd-6dc0ccc4ba2f"
+Lerche = "d42ef402-04e6-4356-9f73-091573ea58dc"
+XML = "72c71f33-b9b6-44de-8c94-c961784809e2"
+ZipArchives = "49080126-0e18-4c2a-b176-c102e4b3760c"
 
 [weakdeps]
 PythonCall = "6099a3de-0909-46bc-b1f4-468b9a2dfc0d"
@@ -32,6 +36,10 @@ Parsers = "2.7.1"
 PrecompileTools = "1.2.0"
 PythonCall = "0.9"
 StaticArrays = "1.4.4"
+HDF5 = "0.17"
+Lerche = "0.5.6"
+XML = "0.3.6"
+ZipArchives = "2.5.1"
 julia = "1.8"
 
 [extras]

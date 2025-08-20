@@ -193,12 +193,12 @@ import GeoEnergyIO.IXParser:
     @test t.value == "NAME"
     @test length(t.body) == 2
     @test t.body[1] isa IXFunctionCall
-    @test t.body[1].name == "one_function"
+    @test t.body[1].keyword == "one_function"
     @test t.body[1].args[1] isa IXEqualRecord
     @test t.body[1].args[1].keyword == "cells"
     @test t.body[1].args[1].value == [(1, 2, 1), (2, 3, 1), (3, 1, 2)]
     @test t.body[2] isa IXFunctionCall
-    @test t.body[2].name == "function_name"
+    @test t.body[2].keyword == "function_name"
     @test t.body[2].args[1] isa IXEqualRecord
     @test t.body[2].args[1].keyword == "cells"
     @test t.body[2].args[1].value == [(88, 2, 1), (99, 5, 1)]
@@ -213,12 +213,12 @@ import GeoEnergyIO.IXParser:
     t = parse_ix_record(teststr)
 
     @test t isa IXSimulationRecord
-    @test t.component_id == "FM"
+    @test t.keyword == "FM"
     @test t.casename == "CaseName"
     @test t.arg[1] isa IXIncludeRecord
-    @test t.arg[1].name == "INCLUDE_DIR/TESTFILE.ixf"
+    @test t.arg[1].filename == "INCLUDE_DIR/TESTFILE.ixf"
     @test t.arg[2] isa IXIncludeRecord
-    @test t.arg[2].name == "MODEL_Field_management.ixf"
+    @test t.arg[2].filename == "MODEL_Field_management.ixf"
     @test t.arg[2].options["type"] == "epc"
     @test t.arg[2].options["epc_type"] == "props"
     @test t.arg[2].options["resqml_type"] == "props"
@@ -231,10 +231,10 @@ import GeoEnergyIO.IXParser:
     """
     t = parse_ix_record(teststr)
     @test t isa IXSimulationRecord
-    @test t.component_id == "IX"
+    @test t.keyword == "IX"
     @test ismissing(t.casename)
     @test t.arg[1] isa IXIncludeRecord
-    @test t.arg[1].name == "INCLUDE_DIR/TESTFILE.ixf"
+    @test t.arg[1].filename == "INCLUDE_DIR/TESTFILE.ixf"
 
     teststr = """
     Simulation  {
@@ -275,7 +275,7 @@ import GeoEnergyIO.IXParser:
     @test t.value == "GROUP 1"
     @test length(t.body) == 3
     @test t.body[1] isa IXFunctionCall
-    @test t.body[1].name == "remove_all_constraints_except"
+    @test t.body[1].keyword == "remove_all_constraints_except"
     @test t.body[1].args[1] isa IXEqualRecord
     @test t.body[1].args[1].keyword == "constraint_ids"
     @test t.body[1].args[1].value == [IXKeyword("DRAWDOWN_PIW"), IXKeyword("MAX_DRAWDOWN")]
@@ -309,7 +309,7 @@ import GeoEnergyIO.IXParser:
     @test fcall isa IXEqualRecord
     @test fcall.keyword == "TopGroup"
     @test fcall.value isa IXFunctionCall# ("Group", Any[IXKeyword("FIELD")])
-    @test fcall.value.name == "Group"
+    @test fcall.value.keyword == "Group"
     @test fcall.value.args[1] isa IXKeyword
     @test fcall.value.args[1] == IXKeyword("FIELD")
 

@@ -16,17 +16,17 @@ struct IXKeyword <: AbstractIXRecord
 end
 
 struct IXFunctionCall <: AbstractIXRecord
-    name::String
+    keyword::String
     args::Vector{Any}
 end
 
 struct IXIncludeRecord <: AbstractIXRecord
-    name::String
+    filename::String
     options::Dict{String, Any}
 end
 
 struct IXSimulationRecord <: AbstractIXRecord
-    component_id::String
+    keyword::String
     casename::Union{String, Missing}
     arg::Any
 end

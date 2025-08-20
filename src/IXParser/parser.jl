@@ -93,7 +93,7 @@ function read_afi_file(fpath; verbose = true)
     )
     for r in parsed.children
         r::IXSimulationRecord
-        cid = r.component_id
+        cid = r.keyword
         if cid == "FM"
             dest = FM
             msg("Found field management model.")
@@ -106,7 +106,7 @@ function read_afi_file(fpath; verbose = true)
         end
         for rec in r.arg
             if rec isa IXIncludeRecord
-                pth = rec.name
+                pth = rec.filename
                 include_pth = normpath(joinpath(basepath, pth))
                 if !isfile(include_pth)
                     error("Include file $include_pth does not exist, skipping.")

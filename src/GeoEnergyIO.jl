@@ -15,6 +15,7 @@ module GeoEnergyIO
     import .CornerPointGrid: mesh_from_grid_section, cpgrid_from_horizons
 
     include("IXParser/IXParser.jl")
+    include("RESQML/RESQML.jl")
 
     import Jutul: JutulCase, UnstructuredMesh, DataDomain, physical_representation
     export read_restart, read_init, read_egrid, read_summary

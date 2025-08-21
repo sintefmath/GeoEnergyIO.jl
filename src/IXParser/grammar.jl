@@ -134,7 +134,6 @@ function convert_ix_inner_record(a)
     return only(a)
 end
 
-
 function convert_ix_bare_string(s)
     s = only(s)
     s = strip(s, '\'')
@@ -144,6 +143,18 @@ function convert_ix_bare_string(s)
         return false
     elseif s == "NONE"
         return nothing
+    elseif s == "OPEN"
+        return IX_OPEN
+    elseif s == "CLOSED"
+        return IX_CLOSED
+    elseif s == "HEAT"
+        return IX_HEAT
+    elseif s == "I"
+        return IX_I
+    elseif s == "J"
+        return IX_J
+    elseif s == "K"
+        return IX_K
     else
         return IXKeyword(s)
     end

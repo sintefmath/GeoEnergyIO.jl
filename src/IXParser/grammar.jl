@@ -82,6 +82,7 @@ function setup_ix_grammar()
 end
 
 function parse_ix_record(s::AbstractString, grammar = setup_ix_grammar())
+    s = replace(s, "\"\"" => "NONE")
     return Lerche.parse(grammar, s)
 end
 

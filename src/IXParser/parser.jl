@@ -40,7 +40,15 @@ function parse_epc_info(epc_pth)
         f, ext = splitext(name)
         if lowercase(ext) == ".xml"
             raw = ZipArchives.zip_readentry(zipfile, glob_path, String)
-            out[glob_path] = parse(XML.Node, raw)
+            xml = parse(XML.Node, raw)
+            if dir == ""
+                out[name] = xml
+            else
+                if !haskey(out, dir)
+                    out[dir] = Dict{String, Any}()
+                end
+                out[dir][name] = xml
+            end
         end
     end
     return out

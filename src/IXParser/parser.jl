@@ -25,11 +25,9 @@ function read_ix_include_file!(dest, include_pth, options; verbose = true)
 end
 
 function read_ixf_file!(dest, include_pth, options; verbose = verbose)
+    basepath = splitdir(include_pth)[1]
     parsed = parse_ix_file(include_pth)
-    sect_vec = dest["MODEL_DEFINITION"]
-    for rec in parsed.children
-        push!(sect_vec, rec)
-    end
+    process_records!(dest, parsed.children, basepath)
     return dest
 end
 
@@ -84,8 +82,17 @@ function read_afi_file(fpath; verbose = true)
     basepath, fname = splitdir(fpath)
     check_extension(fname, "afi")
     parsed = parse_ix_file(fpath)
-    FM = DTYPE("EXTENSION" => String[], "MODEL_DEFINITION" => Any[])
-    IX = DTYPE("EXTENSION" => String[], "MODEL_DEFINITION" => Any[])
+    function make_section()
+        return DTYPE(
+            "MODEL_DEFINITION" => Any[],
+            "START" => Any[],
+            "GRID" => Any[],
+            "EXTENSION" => String[],
+            "STEPS" => OrderedDict()
+        )
+    end
+    FM = make_section()
+    IX = make_section()
     out = DTYPE(
         "name" => missing,
         "FM" => FM,
@@ -104,23 +111,44 @@ function read_afi_file(fpath; verbose = true)
         else
             error("Unknown simulation component $(cid) in file $fname, expected FM or IX")
         end
-        for rec in r.arg
-            if rec isa IXIncludeRecord
-                pth = rec.filename
-                include_pth = normpath(joinpath(basepath, pth))
-                if !isfile(include_pth)
-                    error("Include file $include_pth does not exist, skipping.")
+        process_records!(dest, r.arg, basepath, verbose = verbose)
+    end
+    return out
+end
+
+function process_records!(dest, recs::Vector, basepath; verbose = true)
+    msg(x) = verbose && println(x)
+    warn(x) = println("WARNING: $x")
+    unsupported(x) = println("UNSUPPORTED KEYWORD: $x")
+
+    # Just in case...
+    current_section = dest["MODEL_DEFINITION"]
+    for rec in recs
+        if rec isa IXIncludeRecord
+            pth = rec.filename
+            include_pth = normpath(joinpath(basepath, pth))
+            if !isfile(include_pth)
+                error("Include file $include_pth does not exist, skipping.")
+            end
+            msg("Processing include record: $pth")
+            read_ix_include_file!(dest, include_pth, rec.options, verbose = true)
+        elseif rec isa IXExtensionRecord
+            ext = rec.value
+            msg("Processing extension record: $ext")
+            push!(dest["EXTENSION"], ext)
+        else
+            kw = rec.keyword
+            if kw in ("START", "MODEL_DEFINITION")
+                current_section = dest[kw]
+            elseif kw in ("DATE", "TIME")
+                if !haskey(dest["STEPS"], rec)
+                    dest["STEPS"][rec] = []
                 end
-                msg("Processing include record: $pth")
-                read_ix_include_file!(dest, include_pth, rec.options; verbose = true)
-            elseif rec isa IXExtensionRecord
-                ext = rec.value
-                msg("Processing extension record: $ext")
-                push!(dest["EXTENSION"], ext)
+                current_section = dest["STEPS"][rec]
             else
-                error("Unknown record type $(typeof(rec)) in file $fname")
+                push!(current_section, rec)
             end
         end
     end
-    return out
+    return dest
 end

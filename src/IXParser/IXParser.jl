@@ -4,6 +4,7 @@ module IXParser
     import HDF5
     import ZipArchives
     import XML
+    import OrderedCollections: OrderedDict
 
     """
     Well completion flags

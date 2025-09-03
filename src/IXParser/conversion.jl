@@ -54,6 +54,11 @@ function restructure_and_convert_units_afi(afi;
         end
     end
     resqml = get(afi["IX"], "RESQML", Dict())
+    out["RESQML"] = Dict{String, Any}()
+    for r in get(resqml, "props", [])
+        v = convert_resqml_props(r)
+        out["RESQML"][v["title"]] = v
+    end
     return out
 end
 

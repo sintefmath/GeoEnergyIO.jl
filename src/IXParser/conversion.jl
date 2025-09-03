@@ -366,7 +366,7 @@ end
 
 function convert_ix_records(vals::AbstractVector, name, unit_systems)
     out = Any[]
-    unhandled = Dict{Symbol, Int}()
+    unhandled = OrderedDict{Symbol, Int}()
     for v in vals
         v_new = convert_ix_record(v, unit_systems, unhandled, Val(Symbol(v.keyword)))
         push!(out, (keyword = v.keyword, value = v_new))

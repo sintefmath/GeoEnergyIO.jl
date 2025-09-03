@@ -43,14 +43,14 @@ function restructure_and_convert_units_afi(afi;
     for s in ["IX", "FM"]
         out[s] = copy(afi[s])
         delete!(out[s], "START")
-        out[s]["MODEL_DEFINITION"] = convert_ix_records(afi[s]["MODEL_DEFINITION"], unit_systems)
+        out[s]["MODEL_DEFINITION"] = convert_ix_records(afi[s]["MODEL_DEFINITION"], "$s MODEL_DEFINITION", unit_systems)
         out[s]["STEPS"] = OrderedDict{DateTime, Any}()
         if haskey(afi[s], "START")
-            out[s]["STEPS"][tsteps[1]] = convert_ix_records(afi[s]["START"], unit_systems)
+            out[s]["STEPS"][tsteps[1]] = convert_ix_records(afi[s]["START"], "$s START", unit_systems)
         end
         for d in keys(afi[s]["STEPS"])
             dt = time_from_record(d, start_time, input_units)
-            out[s]["STEPS"][dt] = convert_ix_records(afi[s]["STEPS"][d], unit_systems)
+            out[s]["STEPS"][dt] = convert_ix_records(afi[s]["STEPS"][d], "$s TIME $dt", unit_systems)
         end
     end
     resqml = get(afi["IX"], "RESQML", missing)
@@ -241,19 +241,24 @@ function convert_ix_values!(x::Missing, kw, unit_systems; kwarg...)
 end
 
 
-function convert_ix_record(val, unit_systems, ::Val{kw}) where kw
+function convert_ix_record(val, unit_systems, unhandled::AbstractDict, ::Val{kw}) where kw
     skip_list = (
         :Units,
         :Simulation,
         :GridMgr,
     )
     if !(kw in skip_list)
-        println("Unknown IX record with keyword $kw, returning as-is. Units may not be converted, use with care.")
+        if haskey(unhandled, kw)
+            unhandled[kw] += 1
+        else
+            unhandled[kw] = 1
+        end
+        # println("Unknown IX record with keyword $kw, returning as-is. Units may not be converted, use with care.")
     end
     return val
 end
 
-function convert_ix_record(x::IXStandardRecord, unit_systems, ::Val{:WellDef})
+function convert_ix_record(x::IXStandardRecord, unit_systems, unhandled::AbstractDict, ::Val{:WellDef})
     @assert x.keyword == "WellDef"
     wname = x.value
     well = Dict{String, Any}(
@@ -286,11 +291,23 @@ function convert_ix_record(x::IXStandardRecord, unit_systems, ::Val{:WellDef})
 end
 
 
-function convert_ix_records(vals::AbstractVector, unit_systems)
+function convert_ix_records(vals::AbstractVector, name, unit_systems)
     out = Any[]
+    unhandled = Dict{Symbol, Int}()
     for v in vals
-        v_new = convert_ix_record(v, unit_systems, Val(Symbol(v.keyword)))
+        v_new = convert_ix_record(v, unit_systems, unhandled, Val(Symbol(v.keyword)))
         push!(out, (keyword = v.keyword, value = v_new))
+    end
+    num_unhandled = length(keys(unhandled))
+    if num_unhandled > 0
+        println("$name: Found $num_unhandled unhandled IX record types:")
+        for (k, v) in pairs(unhandled)
+            if v == 1
+                println("  $k: $v occurence.")
+            else
+                println("  $k: $v occurences.")
+            end
+        end
     end
     return out
 end

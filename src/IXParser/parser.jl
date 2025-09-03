@@ -94,7 +94,6 @@ function read_afi_file(fpath; verbose = true)
         return DTYPE(
             "MODEL_DEFINITION" => Any[],
             "START" => Any[],
-            "GRID" => Any[],
             "EXTENSION" => String[],
             "STEPS" => OrderedDict()
         )

@@ -5,6 +5,8 @@ module IXParser
     import ZipArchives
     import XML
     import OrderedCollections: OrderedDict
+    import Dates: DateTime
+    using GeoEnergyIO
 
     """
     Well completion flags
@@ -15,4 +17,6 @@ module IXParser
     include("types.jl")
     include("grammar.jl")
     include("parser.jl")
+    include("conversion.jl")
+    include("resqml.jl")
 end

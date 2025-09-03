@@ -3,7 +3,7 @@ module IXParser
     import Lerche: @inline_rule, @rule, Transformer
     import HDF5
     import ZipArchives
-    import XML: children
+    import XML: children, Node
     import OrderedCollections: OrderedDict
     import Dates: DateTime
     using GeoEnergyIO

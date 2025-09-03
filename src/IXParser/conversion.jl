@@ -53,11 +53,13 @@ function restructure_and_convert_units_afi(afi;
             out[s]["STEPS"][dt] = convert_ix_records(afi[s]["STEPS"][d], unit_systems)
         end
     end
-    resqml = get(afi["IX"], "RESQML", Dict())
-    out["RESQML"] = Dict{String, Any}()
-    for r in get(resqml, "props", [])
-        v = convert_resqml_props(r)
-        out["RESQML"][v["title"]] = v
+    resqml = get(afi["IX"], "RESQML", missing)
+    if !ismissing(resqml)
+        out["RESQML"] = Dict{String, Any}()
+        for r in get(resqml, "props", [])
+            v = convert_resqml_props(r)
+            out["RESQML"][v["title"]] = v
+        end
     end
     return out
 end
@@ -169,7 +171,6 @@ end
 
 function start_time_from_record(x)
     sim_rec = unpack_equals(x.value)
-
     start_time = DateTime(
         sim_rec["StartYear"],
         month_to_int(sim_rec["StartMonth"].keyword),
@@ -178,6 +179,7 @@ function start_time_from_record(x)
         get(sim_rec, "StartMinute", 0),
         get(sim_rec, "StartSecond", 0),
     )
+    return start_time
 end
 
 function time_from_record(x, start_time, usys)
@@ -240,7 +242,14 @@ end
 
 
 function convert_ix_record(val, unit_systems, ::Val{kw}) where kw
-    println("Unknown IX record with keyword $kw, returning as-is.")
+    skip_list = (
+        :Units,
+        :Simulation,
+        :GridMgr,
+    )
+    if !(kw in skip_list)
+        println("Unknown IX record with keyword $kw, returning as-is. Units may not be converted, use with care.")
+    end
     return val
 end
 

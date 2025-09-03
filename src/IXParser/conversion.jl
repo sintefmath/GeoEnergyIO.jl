@@ -246,7 +246,16 @@ function convert_ix_record(val, unit_systems, unhandled::AbstractDict, ::Val{kw}
         :Simulation,
         :GridMgr,
     )
-    if !(kw in skip_list)
+    single_equals_list = (
+        :FluidFlowGrid,
+        :AllWellDrawdownLimitOptions,
+        :GridReport,
+        :TimeStepSolution,
+        :RegionFamily
+    )
+    if kw in single_equals_list
+        val = convert_ix_record_to_dict(val)
+    elseif !(kw in skip_list)
         if haskey(unhandled, kw)
             unhandled[kw] += 1
         else
@@ -278,6 +287,8 @@ function convert_ix_record(x::IXStandardRecord, unit_systems, unhandled::Abstrac
             else
                 @info "Unhandled IX StructuredInfo field $(rec.keyword)"
             end
+        else
+            error("Expected IXEqualRecord in StructuredInfo record body, got $(typeof(rec))")
         end
     end
     return Dict{String, Any}(
@@ -289,6 +300,14 @@ function convert_ix_record(x::IXStandardRecord, unit_systems, unhandled::Abstrac
         "UUID" => uuid,
     )
 end
+
+function convert_ix_record(x::IXEqualRecord, unit_systems, unhandled::AbstractDict, ::Val{:StructuredInfoMgr})
+    return Dict(
+        "name" => x.keyword,
+        "UUID" => only(x.value).value
+    )
+end
+
 
 function convert_ix_record(x::IXStandardRecord, unit_systems, unhandled::AbstractDict, ::Val{:WellDef})
     @assert x.keyword == "WellDef"
@@ -322,6 +341,28 @@ function convert_ix_record(x::IXStandardRecord, unit_systems, unhandled::Abstrac
     return well
 end
 
+function convert_ix_record_to_dict(x::IXEqualRecord)
+    out = Dict{String, Any}(
+        "name" => x.keyword
+    )
+    for rec in x.value
+        rec::IXEqualRecord
+        out[rec.keyword] = rec.value
+    end
+    return out
+end
+
+function convert_ix_record_to_dict(x::IXStandardRecord)
+    out = Dict{String, Any}(
+        "group" => x.value,
+        "name" => x.keyword
+    )
+    for rec in x.body
+        rec::IXEqualRecord
+        out[rec.keyword] = rec.value
+    end
+    return out
+end
 
 function convert_ix_records(vals::AbstractVector, name, unit_systems)
     out = Any[]

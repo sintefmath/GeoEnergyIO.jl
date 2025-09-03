@@ -327,6 +327,7 @@ function convert_edit_record(x::IXStandardRecord)
         "group" => x.value,
         "name" => x.keyword,
     )
+    @info "???" out x.body
     set_ix_array_values!(out, x.body)
     @info "??" out x.body
     return out

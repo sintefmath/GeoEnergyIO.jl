@@ -96,19 +96,19 @@ function reshape_ix_matrix(m)
     return (header = header, M = tmp[2:end, :])
 end
 
-function set_ix_array_values!(dest, rec::IXEqualRecord)
-    if length(rec.value) > 0
-        sample = rec.value[1]
+function set_ix_array_values!(dest, v::Vector)
+    if length(v) > 0
+        sample = v[1]
         if sample isa IXKeyword
             # We have a matrix with headers
-            header, M = reshape_ix_matrix(rec.value)
+            header, M = reshape_ix_matrix(v)
             for (i, h) in enumerate(header)
                 dest[h] = [M[k, i] for k in axes(M, 1)]
             end
         else
             sample::IXEqualRecord
             # We have multiple bare arrays assigning values
-            for (i, er) in enumerate(rec.value)
+            for (i, er) in enumerate(v)
                 h = er.keyword
                 v = er.value
                 if length(v) == 0
@@ -118,8 +118,12 @@ function set_ix_array_values!(dest, rec::IXEqualRecord)
             end
         end
     end
+    return dest
 end
 
+function set_ix_array_values!(dest, rec::IXEqualRecord)
+    return set_ix_array_values!(dest, rec.value)
+end
 
 function get_unit_system_pair(from::Symbol, target::Symbol)
     from_sys = GeoEnergyIO.InputParser.DeckUnitSystem(from)
@@ -253,14 +257,24 @@ function convert_ix_record(val, unit_systems, unhandled::AbstractDict, ::Val{kw}
         :TimeStepSolution,
         :RegionFamily
     )
+    edit_list = (
+        :CellPropertyEdit,
+        :BoxPropertyEdit
+    )
     if kw in single_equals_list
         val = convert_ix_record_to_dict(val)
+    elseif kw in edit_list
+        val = convert_edit_record(val)
     elseif !(kw in skip_list)
         if haskey(unhandled, kw)
             unhandled[kw] += 1
         else
             unhandled[kw] = 1
         end
+
+        @info "Unhandled" val
+        @info "!!" val.body
+        error()
         # println("Unknown IX record with keyword $kw, returning as-is. Units may not be converted, use with care.")
     end
     return val
@@ -308,6 +322,15 @@ function convert_ix_record(x::IXEqualRecord, unit_systems, unhandled::AbstractDi
     )
 end
 
+function convert_edit_record(x::IXStandardRecord)
+    out = Dict{String, Any}(
+        "group" => x.value,
+        "name" => x.keyword,
+    )
+    set_ix_array_values!(out, x.body)
+    @info "??" out x.body
+    return out
+end
 
 function convert_ix_record(x::IXStandardRecord, unit_systems, unhandled::AbstractDict, ::Val{:WellDef})
     @assert x.keyword == "WellDef"

@@ -120,15 +120,15 @@ import GeoEnergyIO.IXParser:
     @test bdy.value[5] == (1, 2, 3)
     @test bdy.value[6] == "COMPLETION1"
     @test bdy.value[7] == 1
-    @test bdy.value[8] == IXKeyword("OPEN")
+    @test bdy.value[8] == GeoEnergyIO.IXParser.IX_OPEN
     @test bdy.value[9] == (5, 5, 20)
     @test bdy.value[10] == "COMPLETION2"
     @test bdy.value[11] == 1
-    @test bdy.value[12] == IXKeyword("OPEN")
+    @test bdy.value[12] == GeoEnergyIO.IXParser.IX_OPEN
     @test bdy.value[13] == (3, 99, 7)
     @test bdy.value[14] == "COMPLETION3"
     @test bdy.value[15] == 1
-    @test bdy.value[16] == IXKeyword("OPEN")
+    @test bdy.value[16] == GeoEnergyIO.IXParser.IX_OPEN
 
     teststr = """
     MODEL_DEFINITION

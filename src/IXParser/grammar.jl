@@ -38,6 +38,8 @@ function setup_ix_grammar()
         | bare_string
         | function_call
 
+    array_newline: NEWLINE
+    array_line_end: array_type array_newline
     script: "@{" ANYTHING+ "}@"
     float: SIGNED_FLOAT | FLOAT
     integer: SIGNED_INT | INT
@@ -46,6 +48,8 @@ function setup_ix_grammar()
     any_string: bare_string | string
     array  : NAME "[" [value ( value)*] "]"
     named_array : NAME string "[" [value ( value)*] "]"
+    // array  : NAME "[" [array_type (( array_type)* array_line_end?)*] "]"
+    // named_array : NAME string "[" [array_type (( array_type)* array_line_end?)*] "]"
     full_record: NAME string "{"  (inner_record)* "}"
     equal_record: NAME "=" (value | function_call)
     anon_record: NAME "{" (inner_record)* "}"

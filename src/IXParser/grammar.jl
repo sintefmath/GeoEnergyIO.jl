@@ -38,15 +38,17 @@ function setup_ix_grammar()
         | bare_string
         | tuple
 
+    array_type: tuple_type
+
     script: "@{" ANYTHING+ "}@"
     float: SIGNED_FLOAT | FLOAT
     integer: SIGNED_INT | INT
     string : ESCAPED_STRING
     bare_string: NAME | ESCAPED_STRING_SINGLE
     any_string: bare_string | string
-    array  : NAME "[" [value ( value)*] "]"
-    named_array : NAME string "[" [value ( value)*] "]"
-    bare_array: "[" value (value)* "]"
+    array  : NAME "[" [array_type ( array_type)*] "]"
+    named_array : NAME string "[" [array_type ( array_type)*] "]"
+    bare_array: "[" array_type (array_type)* "]"
     full_record: NAME string "{"  (inner_record)* "}"
     equal_record: NAME "=" (value | function_call)
     anon_record: NAME "{" (inner_record)* "}"
@@ -208,6 +210,7 @@ end
 @inline_rule float(t::IXTransformer,n) = Base.parse(Float64, n)
 @inline_rule integer(t::IXTransformer,n) = Base.parse(Int, n)
 @inline_rule tuple_type(t::IXTransformer,n) = n
+@inline_rule array_type(t::IXTransformer,n) = n
 
 @rule array(t::IXTransformer, a) = convert_ix_array(a; is_named = false)
 @rule named_array(t::IXTransformer, a) = convert_ix_array(a; is_named = true)

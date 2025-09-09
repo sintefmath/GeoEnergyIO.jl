@@ -89,8 +89,9 @@ function ix_units(afi)
 end
 
 function reshape_ix_matrix(m)
-    ncols = findfirst(x -> !(x isa IXKeyword), m)
+    ncols = findfirst(x -> x isa IXArrayEndline, m)
     !isnothing(ncols) || error("No IXKeyword found in matrix, cannot reshape.")
+    m = filter(x -> !(x isa IXArrayEndline), m)
     tmp = permutedims(reshape(m, ncols - 1, :))
     header = map(x -> x.keyword, tmp[1, :])
     return (header = header, M = tmp[2:end, :])

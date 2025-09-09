@@ -32,14 +32,12 @@ function setup_ix_grammar()
             | bare_string
 
 
-    array_type: float
+    tuple_type: float
         | integer
         | string
         | bare_string
-        | function_call
+        | tuple
 
-    array_newline: NEWLINE
-    array_line_end: array_type array_newline
     script: "@{" ANYTHING+ "}@"
     float: SIGNED_FLOAT | FLOAT
     integer: SIGNED_INT | INT
@@ -48,8 +46,7 @@ function setup_ix_grammar()
     any_string: bare_string | string
     array  : NAME "[" [value ( value)*] "]"
     named_array : NAME string "[" [value ( value)*] "]"
-    // array  : NAME "[" [array_type (( array_type)* array_line_end?)*] "]"
-    // named_array : NAME string "[" [array_type (( array_type)* array_line_end?)*] "]"
+    bare_array: "[" value (value)* "]"
     full_record: NAME string "{"  (inner_record)* "}"
     equal_record: NAME "=" (value | function_call)
     anon_record: NAME "{" (inner_record)* "}"
@@ -58,8 +55,7 @@ function setup_ix_grammar()
     extension_record: "EXTENSION" string include_param*
     simulation_record: ("Simulation" (full_record | anon_record)) | "Simulation" "{" inner_record (inner_record)* "}"
     include_param: "{" equal_record (equal_record)* "}"
-    tuple.10: "(" array_type (array_type)* ")"
-    bare_array: "[" value (value)* "]"
+    tuple.10: "(" tuple_type (tuple_type)* ")"
     empty_array: "[" "]"
     function_call: NAME "(" [inner_record (inner_record)*] ")"
 
@@ -211,7 +207,7 @@ end
 
 @inline_rule float(t::IXTransformer,n) = Base.parse(Float64, n)
 @inline_rule integer(t::IXTransformer,n) = Base.parse(Int, n)
-@inline_rule array_type(t::IXTransformer,n) = n
+@inline_rule tuple_type(t::IXTransformer,n) = n
 
 @rule array(t::IXTransformer, a) = convert_ix_array(a; is_named = false)
 @rule named_array(t::IXTransformer, a) = convert_ix_array(a; is_named = true)
@@ -225,7 +221,6 @@ end
 @rule anon_record(t::IXTransformer, a) = convert_ix_anon_record(a)
 @rule bare_string(t::IXTransformer, a) = convert_ix_bare_string(a)
 @rule string(t::IXTransformer, a) = to_string(only(a))
-@rule ijk_tuple(t::IXTransformer, a) = convert_ix_ijk_tuple(a)
 @rule empty_array(t::IXTransformer, _) = []
 @rule function_call(t::IXTransformer, a) = IXFunctionCall(to_string(a[1]), a[2:end])
 @rule bare_array(t::IXTransformer, a) = a

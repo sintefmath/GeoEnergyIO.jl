@@ -85,8 +85,11 @@ function setup_ix_grammar()
     return Lerche.Lark(grammar, transformer = IXTransformer())
 end
 
+const IX_ENDLINE = raw"IX_ENDLINE"
+
 function parse_ix_record(s::AbstractString, grammar = setup_ix_grammar())
     s = replace(s, "\"\"" => "NONE")
+    s = replace_square_bracketed_newlines(s, " $IX_ENDLINE ")
     return Lerche.parse(grammar, s)
 end
 
@@ -159,6 +162,8 @@ function convert_ix_bare_string(s)
         return IX_J
     elseif s == "K"
         return IX_K
+    elseif s == "IX_ENDLINE"
+        return IXArrayEndline()
     else
         return IXKeyword(s)
     end

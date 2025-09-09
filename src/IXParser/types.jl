@@ -30,3 +30,7 @@ struct IXSimulationRecord <: AbstractIXRecord
     casename::Union{String, Missing}
     arg::Any
 end
+
+struct IXArrayEndline <: AbstractIXRecord
+
+end

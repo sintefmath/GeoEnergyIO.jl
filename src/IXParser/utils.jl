@@ -1,5 +1,5 @@
 function replace_square_bracketed_newlines(s, replacement=" NEWLINE ")
-    section_regex = r"\[(.*?)\]"s # 's' flag for single-line mode (dot matches newline)
+    section_regex = r"\[\n*(.*?)\n*\]"s # 's' flag for single-line mode (dot matches newline)
     m = match(section_regex, s)
     if isnothing(m)
         return s

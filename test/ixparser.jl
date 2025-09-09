@@ -108,6 +108,7 @@ import GeoEnergyIO.IXParser:
     }
     """
     t = parse_ix_record(teststr)
+    ix_endl = GeoEnergyIO.IXParser.IXArrayEndline()
     @test t.keyword == "WellDef"
     @test t.value == "ORIGEN_PROD-1"
     bdy = t.body[1]
@@ -117,18 +118,21 @@ import GeoEnergyIO.IXParser:
     @test bdy.value[2] == IXKeyword("Completion")
     @test bdy.value[3] == IXKeyword("SegmentNode")
     @test bdy.value[4] == IXKeyword("Status")
-    @test bdy.value[5] == (1, 2, 3)
-    @test bdy.value[6] == "COMPLETION1"
-    @test bdy.value[7] == 1
-    @test bdy.value[8] == GeoEnergyIO.IXParser.IX_OPEN
-    @test bdy.value[9] == (5, 5, 20)
-    @test bdy.value[10] == "COMPLETION2"
-    @test bdy.value[11] == 1
-    @test bdy.value[12] == GeoEnergyIO.IXParser.IX_OPEN
-    @test bdy.value[13] == (3, 99, 7)
-    @test bdy.value[14] == "COMPLETION3"
-    @test bdy.value[15] == 1
-    @test bdy.value[16] == GeoEnergyIO.IXParser.IX_OPEN
+    @test bdy.value[5] == ix_endl
+    @test bdy.value[6] == (1, 2, 3)
+    @test bdy.value[7] == "COMPLETION1"
+    @test bdy.value[8] == 1
+    @test bdy.value[9] == GeoEnergyIO.IXParser.IX_OPEN
+    @test bdy.value[10] == ix_endl
+    @test bdy.value[11] == (5, 5, 20)
+    @test bdy.value[12] == "COMPLETION2"
+    @test bdy.value[13] == 1
+    @test bdy.value[14] == GeoEnergyIO.IXParser.IX_OPEN
+    @test bdy.value[15] == ix_endl
+    @test bdy.value[16] == (3, 99, 7)
+    @test bdy.value[17] == "COMPLETION3"
+    @test bdy.value[18] == 1
+    @test bdy.value[19] == GeoEnergyIO.IXParser.IX_OPEN
 
     teststr = """
     MODEL_DEFINITION
@@ -358,7 +362,7 @@ import GeoEnergyIO.IXParser:
     @testset "newline-replacement" begin
         text = "Some text before.[\nContent\n of the section.\n]\nText after. Second region here.[Another\nsection\nhere.]End."
         new_text = GeoEnergyIO.IXParser.replace_square_bracketed_newlines(text)
-        ref_text = "Some text before.[ NEWLINE Content NEWLINE  of the section. NEWLINE ]\nText after. Second region here.[Another NEWLINE section NEWLINE here.]End."
+        ref_text = "Some text before.[Content NEWLINE  of the section.]\nText after. Second region here.[Another NEWLINE section NEWLINE here.]End."
         @test new_text == ref_text
 
         text = """

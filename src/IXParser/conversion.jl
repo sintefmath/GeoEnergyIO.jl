@@ -1,3 +1,6 @@
+include("record_conversion/meta.jl")
+include("record_conversion/wells.jl")
+include("record_conversion/grid.jl")
 
 function restructure_and_convert_units_afi(afi;
         units = :si,
@@ -282,48 +285,6 @@ function convert_ix_record(val, unit_systems, unhandled::AbstractDict, ::Val{kw}
     return val
 end
 
-function convert_ix_record(x::IXStandardRecord, unit_systems, unhandled::AbstractDict, ::Val{:StructuredInfo})
-    I = 0
-    J = 0
-    K = 0
-    first_cell_id = 1
-    uuid = missing
-    for rec in x.body
-        if rec isa IXEqualRecord
-            if rec.keyword == "NumberCellsInI"
-                I = rec.value
-            elseif rec.keyword == "NumberCellsInJ"
-                J = rec.value
-            elseif rec.keyword == "NumberCellsInK"
-                K = rec.value
-            elseif rec.keyword == "UUID"
-                uuid = rec.value
-            elseif rec.keyword == "FirstCellId"
-                first_cell_id = rec.value
-            else
-                @info "Unhandled IX StructuredInfo field $(rec.keyword)"
-            end
-        else
-            error("Expected IXEqualRecord in StructuredInfo record body, got $(typeof(rec))")
-        end
-    end
-    return Dict{String, Any}(
-        "name" => x.value,
-        "I" => I,
-        "J" => J,
-        "K" => K,
-        "FirstCellId" => first_cell_id,
-        "UUID" => uuid,
-    )
-end
-
-function convert_ix_record(x::IXEqualRecord, unit_systems, unhandled::AbstractDict, ::Val{:StructuredInfoMgr})
-    return Dict(
-        "name" => x.keyword,
-        "UUID" => only(x.value).value
-    )
-end
-
 function convert_edit_record(x::IXStandardRecord)
     out = Dict{String, Any}(
         "group" => x.value,
@@ -331,38 +292,6 @@ function convert_edit_record(x::IXStandardRecord)
     )
     set_ix_array_values!(out, x.body)
     return out
-end
-
-function convert_ix_record(x::IXStandardRecord, unit_systems, unhandled::AbstractDict, ::Val{:WellDef})
-    @assert x.keyword == "WellDef"
-    wname = x.value
-    well = Dict{String, Any}(
-        "WellToCellConnections" => Dict{String, Any}(),
-        "Functions" => Any[]
-    )
-    for rec in x.body
-        kw = rec.keyword
-        if kw == "WellToCellConnections"
-            set_ix_array_values!(well[kw], rec)
-        elseif rec isa IXFunctionCall
-            push!(well["Functions"], rec)
-        elseif rec isa IXEqualRecord
-            well[kw] = rec.value
-        else
-            # No idea...
-            well[kw] = rec
-        end
-    end
-    for (k, v) in pairs(well)
-        if k == "WellToCellConnections"
-            well[k] = convert_ix_values!(v, k, unit_systems; throw = true)
-        elseif k in ("Undefined", "ResVolConditions", "Functions", "PseudoPressureModel", "AllowCrossFlow", "HeadDensityCalculation")
-            # Do nothing
-        else
-            @info "Unhandled IX WellDef field $k..."
-        end
-    end
-    return well
 end
 
 function convert_ix_record_to_dict(x::IXEqualRecord)

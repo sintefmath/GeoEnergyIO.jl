@@ -258,6 +258,7 @@ function convert_ix_record(val, unit_systems, unhandled::AbstractDict, ::Val{kw}
         :FluidFlowGrid,
         :AllWellDrawdownLimitOptions,
         :GridReport,
+        :FluidMgr,
         :TimeStepSolution,
         :RegionFamily,
         :CellActivity

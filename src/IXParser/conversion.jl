@@ -256,7 +256,8 @@ function convert_ix_record(val, unit_systems, unhandled::AbstractDict, ::Val{kw}
         :AllWellDrawdownLimitOptions,
         :GridReport,
         :TimeStepSolution,
-        :RegionFamily
+        :RegionFamily,
+        :CellActivity
     )
     edit_list = (
         :CellPropertyEdit,
@@ -273,8 +274,8 @@ function convert_ix_record(val, unit_systems, unhandled::AbstractDict, ::Val{kw}
             unhandled[kw] = 1
         end
 
-        @info "Unhandled" val
-        @info "!!" val.body
+        @info "Unhandled $kw" val
+        # @info "!!" val.body
         error()
         # println("Unknown IX record with keyword $kw, returning as-is. Units may not be converted, use with care.")
     end
@@ -328,9 +329,7 @@ function convert_edit_record(x::IXStandardRecord)
         "group" => x.value,
         "name" => x.keyword,
     )
-    @info "???" out x.body
     set_ix_array_values!(out, x.body)
-    @info "??" out x.body
     return out
 end
 

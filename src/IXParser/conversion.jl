@@ -264,11 +264,12 @@ function convert_ix_record(val, unit_systems, unhandled::AbstractDict, ::Val{kw}
     )
     edit_list = (
         :CellPropertyEdit,
+        :FaultPropertyEdit,
         :BoxPropertyEdit
     )
     if kw in single_equals_list
         val = convert_ix_record_to_dict(val)
-    elseif kw in edit_list
+    elseif kw in edit_list || endswith("$kw", "Edit")
         val = convert_edit_record(val)
     elseif !(kw in skip_list)
         if haskey(unhandled, kw)

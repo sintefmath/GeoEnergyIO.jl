@@ -32,3 +32,12 @@ function convert_ix_record(x::IXStandardRecord, unit_systems, unhandled::Abstrac
         "UUID" => uuid,
     )
 end
+
+function convert_ix_record(x::IXEqualRecord, unit_systems, unhandled::AbstractDict, ::Val{:Faults})
+    names = String[]
+    for rec in x.value
+        rec.keyword == "FaultNames" || error("Expected FaultNames record in Faults record body, got $(rec.keyword)")
+        append!(names, rec.value)
+    end
+    return names
+end

@@ -8,9 +8,10 @@ function replace_square_bracketed_newlines(s, replacement=" NEWLINE ")
     str = ""
     for m in eachmatch(section_regex, s)
         str *= s[start:m.offset-1]
-        content = replace(m.captures[1], "\n" => replacement)
+        content = replace(only(m.captures), "\n" => replacement)
         str *= "[" * content * "]"
         start = m.offset + length(m.match)
     end
+    str *= s[start:end]
     return str
 end

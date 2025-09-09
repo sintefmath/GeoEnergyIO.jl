@@ -358,8 +358,36 @@ import GeoEnergyIO.IXParser:
     @testset "newline-replacement" begin
         text = "Some text before.[\nContent\n of the section.\n]\nText after. Second region here.[Another\nsection\nhere.]End."
         new_text = GeoEnergyIO.IXParser.replace_square_bracketed_newlines(text)
-        ref_text = "Some text before.[ NEWLINE Content NEWLINE  of the section. NEWLINE ]\nText after. Second region here.[Another NEWLINE section NEWLINE here.]"
+        ref_text = "Some text before.[ NEWLINE Content NEWLINE  of the section. NEWLINE ]\nText after. Second region here.[Another NEWLINE section NEWLINE here.]End."
         @test new_text == ref_text
+
+        text = """
+        MODEL_DEFINITION
+
+        StructuredInfo "CoarseGrid" {
+            FirstCellId=1
+            NumberCellsInI=10
+            NumberCellsInJ=10
+            NumberCellsInK=10
+            UUID="UUID-GOES-HERE"
+        }
+        Units  {
+            UnitSystem=ECLIPSE_METRIC
+        }
+
+        Simulation  {
+            StartDay=1
+            StartMonth=JANUARY
+            StartYear=2030
+            PhasesPresent=[OIL WATER]
+            StartHour=0
+            StartMinute=0
+            StartSecond=0
+        }
+        """
+
+        new_text = GeoEnergyIO.IXParser.replace_square_bracketed_newlines(text, "")
+        @test new_text == text
     end
 end
 

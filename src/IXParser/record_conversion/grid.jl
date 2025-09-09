@@ -41,3 +41,21 @@ function convert_ix_record(x::IXEqualRecord, unit_systems, unhandled::AbstractDi
     end
     return names
 end
+
+function convert_ix_record(x::IXStandardRecord, unit_systems, unhandled::AbstractDict, ::Val{:FaultDefinition})
+    name = x.value
+    data = Dict{String, Any}()
+    for rec in x.body
+        if !haskey(data, rec.keyword)
+            data[rec.keyword] = Dict{String, Any}()
+        end
+        if rec.keyword == "FaultIJKBoxDefinition"
+            d = Dict{String, Any}()
+            set_ix_array_values!(d, rec.body)
+            data[rec.keyword][rec.value] = d
+        else
+            data[rec.keyword] = rec
+        end
+    end
+    return (name = name, data = data)
+end

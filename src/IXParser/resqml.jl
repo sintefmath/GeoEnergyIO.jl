@@ -1,8 +1,8 @@
 
-function search_xml_nodes(x, tag::String; out = :all)
+function search_xml_nodes(x, search_tag::String; out = :all)
     for child in children(x)
         # @info "??" i XML.tag(i) XML.attributes(i) children(i)
-        if XML.tag(child) == tag
+        if tag(child) == search_tag
             if out == :all
                 v = child
             elseif out == :children
@@ -12,7 +12,7 @@ function search_xml_nodes(x, tag::String; out = :all)
             end
             return v
         end
-        val = search_xml_nodes(child, tag; out = out)
+        val = search_xml_nodes(child, search_tag; out = out)
         if !ismissing(val)
             return val
         end
@@ -25,7 +25,7 @@ function unwrap_single(x::Missing, T = missing)
 end
 
 function unwrap_single(x, T = missing)
-    x = x |> only |> XML.value
+    x = x |> only |> value
     if !ismissing(T)
         x = convert(T, x)
     else

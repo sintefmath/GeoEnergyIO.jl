@@ -19,4 +19,5 @@ module IXParser
     include("parser.jl")
     include("conversion.jl")
     include("resqml.jl")
+    include("utils.jl")
 end

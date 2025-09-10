@@ -191,7 +191,6 @@ function month_to_int(m::AbstractString)
 end
 
 function start_time_from_record(x)
-    @info "????" x typeof(x)
     sim_rec = unpack_equals(x.value)
     start_time = DateTime(
         sim_rec["StartYear"],
@@ -252,6 +251,7 @@ function convert_ix_record(val, unit_systems, unhandled::AbstractDict, ::Val{kw}
     )
     single_equals_list = (
         :FluidFlowGrid,
+        :CustomControl,
         :FluidStreamMgr,
         :AllWellDrawdownLimitOptions,
         :CouplingProperties,

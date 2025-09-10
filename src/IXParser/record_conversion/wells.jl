@@ -35,7 +35,6 @@ function convert_ix_record(x::IXStandardRecord, unit_systems, unhandled::Abstrac
 end
 
 function convert_ix_record(x::IXStandardRecord, unit_systems, unhandled::AbstractDict, ::Val{:SeparatorStage})
-    @info "????" x
     out = convert_ix_record_to_dict(x, unit_systems)
     return out
 end

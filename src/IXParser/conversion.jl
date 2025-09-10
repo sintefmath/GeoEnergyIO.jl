@@ -374,6 +374,7 @@ function convert_dict_entries!(table, unit_systems)
             continue
         elseif v isa IXKeyword
             v = v.keyword
+            continue
         end
         u = get(upairs, k, missing)
         if ismissing(u)

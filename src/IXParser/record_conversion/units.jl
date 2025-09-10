@@ -8,6 +8,7 @@ function conversion_ix_dict()
 
     for k in [
         "Cell",
+        "DataType",
         "Completion",
         "PenetrationDirection",
         "PiMultiplier",
@@ -16,6 +17,7 @@ function conversion_ix_dict()
         "SegmentNode",
         "RelPerm",
         "WaterRelPermFunction",
+        "NumberOfPressureDepthTableNodes",
         "Saturation",
     ]
         u[k] = :id
@@ -24,7 +26,15 @@ function conversion_ix_dict()
     u["Skin"] = :id
     # PVT
     u["Viscosity"] = :viscosity
-    for k in ["Pressure", "BubblePointPressure", "RefPressure", "CapPressure"]
+    for k in [
+        "Pressure",
+        "BubblePointPressure",
+        "RefPressure",
+        "CapPressure",
+        "WOCCapPressure",
+        "GOCCapPressure",
+        "DatumPressure",
+    ]
         u[k] = :pressure
     end
 
@@ -34,6 +44,9 @@ function conversion_ix_dict()
 
     for k in ["Compressibility", "ViscosityCompressibility", "PoreVolCompressibility"]
         u[k] = :compressibility
+    end
+    for k in ["DatumDepth", "WOCDepth", "GOCDepth", "Depth"]
+        u[k] = :length
     end
     u["ConstantSolutionGOR"] = :u_rs
 

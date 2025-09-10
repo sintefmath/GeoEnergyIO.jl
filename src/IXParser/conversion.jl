@@ -244,6 +244,7 @@ function convert_ix_record(val, unit_systems, unhandled::AbstractDict, ::Val{kw}
     )
     single_equals_list = (
         :Completion,
+        :Status,
         :GuideRateBalanceAction,
         :FluidFlowGrid,
         :CustomControl,
@@ -276,7 +277,6 @@ function convert_ix_record(val, unit_systems, unhandled::AbstractDict, ::Val{kw}
         val = convert_edit_record(val)
     elseif kw in convert_subrecords_list
         val = convert_ix_record_and_subrecords(val, unit_systems, unhandled)
-        
     elseif !(kw in skip_list)
         is_report = endswith(kw_as_str, "Report") || endswith(kw_as_str, "Reports")
         if !is_report
@@ -286,8 +286,8 @@ function convert_ix_record(val, unit_systems, unhandled::AbstractDict, ::Val{kw}
                 unhandled[kw] = 1
             end
 
-            # @info "Unhandled $kw" val
-            # error()
+            @info "Unhandled $kw" val
+            error()
             # println("Unknown IX record with keyword $kw, returning as-is. Units may not be converted, use with care.")
         end
     end

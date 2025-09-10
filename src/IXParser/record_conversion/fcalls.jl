@@ -9,13 +9,13 @@ end
 function convert_function_argument(arg, unit_systems, context_kw = missing)
     kw = arg.keyword
     function convert_farg(x::IXKeyword)
-        return x
+        return convert_farg(String(x))
     end
     function convert_farg(x::AbstractString)
         return x
     end
     function convert_farg(x)
-        error("Unhandled function argument type $(typeof(x)) in context $context_kw")
+        error("Unhandled function argument type $kw $(typeof(x)) in context $context_kw")
     end
 
     return IXEqualRecord(kw, map(convert_farg, arg.value))

@@ -63,6 +63,9 @@ function convert_ix_record(x::IXStandardRecord, unit_systems, unhandled::Abstrac
             val = rec.value
             if val isa IXKeyword
                 val = String(val)
+            elseif !(kw in ("Status", ))
+                @info "????" rec kw
+                val = convert_ix_record(rec, unit_systems, unhandled, kw)
             end
         elseif rec isa IXFunctionCall
             kw = rec.keyword

@@ -9,25 +9,30 @@ function check_extension(fname, ext)
     e == lowercase(ext) || error("File $fname does not have the expected extension $ext, got $e")
 end
 
-function read_ix_include_file(fname, options; verbose = true)
-    return read_ix_include_file!(Dict{String, Any}(), fname, options; verbose = true)
+function read_ix_include_file(fname, options; kwarg...)
+    return read_ix_include_file!(Dict{String, Any}(), fname, options; kwarg...)
 end
 
-function read_ix_include_file!(dest, include_pth, options; verbose = true)
+function read_ix_include_file!(dest, include_pth, options; verbose = false, strict = false)
     ext = get_extension(include_pth)
     if ext == "ixf"
-        read_ixf_file!(dest, include_pth, options; verbose = verbose)
+        read_ixf_file!(dest, include_pth, options; verbose = verbose, strict = strict)
     elseif ext == "epc"
-        read_epc_file!(dest, include_pth, options; verbose = verbose)
+        read_epc_file!(dest, include_pth, options; verbose = verbose, strict = strict)
     else
-        println("Unsupported file extension $ext for include file $include_pth - will be ignored.")
+        msg = "Unsupported file extension $ext for include file $include_pth"
+        if strict
+            error(msg)
+        else
+            println("$msg - will be ignored.")
+        end
     end
 end
 
-function read_ixf_file!(dest, include_pth, options; verbose = verbose)
+function read_ixf_file!(dest, include_pth, options; kwarg...)
     basepath = splitdir(include_pth)[1]
     parsed = parse_ix_file(include_pth)
-    process_records!(dest, parsed.children, basepath)
+    process_records!(dest, parsed.children, basepath; kwarg...)
     return dest
 end
 
@@ -54,7 +59,7 @@ function parse_epc_info(epc_pth)
     return out
 end
 
-function read_epc_file!(dest, include_pth, options; verbose = verbose)
+function read_epc_file!(dest, include_pth, options; verbose = false, strict = false)
     function unpack_resqml(x)
         resqml = x["RESQML"]
         k = only(keys(resqml))
@@ -81,11 +86,28 @@ function read_epc_file!(dest, include_pth, options; verbose = verbose)
     return dest
 end
 
-function read_afi_file(fpath; verbose = true)
+"""
+    read_afi_file("somefile.afi")
+    read_afi_file(fpath; verbose = true, convert = false, strict = false)
+
+Read .afi files. The .afi file is the main file of the IX input format and
+contains references to other files, such as .ixf and .epc files.
+
+# Arguments
+- `fpath::String`: Path to the .afi file.
+- `verbose::Bool=true`: Whether to print progress messages.
+- `convert::Bool=false`: Whether to convert the parsed records to more
+  user-friendly with unit conversion applied. The output format is substantially
+  altered by enabling this option.
+- `strict::Bool=false`: Whether to throw errors on unrecognized keywords.
+"""
+function read_afi_file(fpath;
+        verbose = true,
+        convert = false,
+        strict = false
+    )
     DTYPE = Dict{String, Any}
     msg(x) = verbose && println(x)
-    warn(x) = println("WARNING: $x")
-    unsupported(x) = println("UNSUPPORTED KEYWORD: $x")
     # Starting to read the file...
     basepath, fname = splitdir(fpath)
     check_extension(fname, "afi")
@@ -118,15 +140,16 @@ function read_afi_file(fpath; verbose = true)
         else
             error("Unknown simulation component $(cid) in file $fname, expected FM or IX")
         end
-        process_records!(dest, r.arg, basepath, verbose = verbose)
+        process_records!(dest, r.arg, basepath, verbose = verbose, strict = strict)
+    end
+    if convert
+        out = restructure_and_convert_units_afi(out; verbose = verbose, strict = strict)
     end
     return out
 end
 
-function process_records!(dest, recs::Vector, basepath; verbose = true)
+function process_records!(dest, recs::Vector, basepath; verbose = true, strict = false)
     msg(x) = verbose && println(x)
-    warn(x) = println("WARNING: $x")
-    unsupported(x) = println("UNSUPPORTED KEYWORD: $x")
 
     # Just in case...
     current_section = dest["MODEL_DEFINITION"]
@@ -138,7 +161,7 @@ function process_records!(dest, recs::Vector, basepath; verbose = true)
                 error("Include file $include_pth does not exist, skipping.")
             end
             msg("Processing include record: $pth")
-            read_ix_include_file!(dest, include_pth, rec.options, verbose = true)
+            read_ix_include_file!(dest, include_pth, rec.options, verbose = true, strict = strict)
         elseif rec isa IXExtensionRecord
             ext = rec.value
             msg("Processing extension record: $ext")

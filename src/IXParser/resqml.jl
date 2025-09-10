@@ -1,7 +1,6 @@
 
 function search_xml_nodes(x, search_tag::String; out = :all)
     for child in children(x)
-        # @info "??" i XML.tag(i) XML.attributes(i) children(i)
         if tag(child) == search_tag
             if out == :all
                 v = child
@@ -53,8 +52,6 @@ function convert_resqml_props(r, unit_systems = missing; verbose = false, strict
             break
         end
     end
-    # @info "??" is_discrete is_continuous prop # XML.attributes(prop[1]) children(prop)
-
     uuid = find_string_by_tag(prop, "eml20:UUID")
 
     out = Dict{String, Any}()

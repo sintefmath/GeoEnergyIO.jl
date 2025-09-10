@@ -111,7 +111,7 @@ function set_ix_array_values!(dest, v::Vector; T = missing)
     convert_t(x::Number, T::Type) = convert(T, x)
     convert_t(x::Number, T::Type) = convert(T, x)
     # These don't convert
-    convert_t(x::Union{AbstractArray, Number, AbstractString}, ::Missing) = x
+    convert_t(x, ::Missing) = x
     convert_t(x::AbstractString, ::Type) = x
 
     if length(v) > 0
@@ -268,7 +268,7 @@ function convert_ix_record(val, unit_systems, unhandled::AbstractDict, ::Val{kw}
     )
     Main.lastrec[] = val
     if kw in single_equals_list
-        val = convert_ix_record_to_dict(val)
+        val = convert_ix_record_to_dict(val, recurse = false)
     elseif kw in edit_list || endswith("$kw", "Edit")
         val = convert_edit_record(val)
     elseif kw in convert_subrecords_list
@@ -297,28 +297,35 @@ function convert_edit_record(x::IXStandardRecord)
     return out
 end
 
-function convert_ix_record_to_dict(x::IXEqualRecord)
+
+function convert_ix_record_to_dict(x::Union{IXEqualRecord, IXStandardRecord}, unit_systems = missing; recurse = true)
     out = Dict{String, Any}(
         "name" => x.keyword
     )
-    for rec in x.value
-        rec::IXEqualRecord
-        out[rec.keyword] = rec.value
+    if x isa IXStandardRecord
+        out["group"] = x.value
+        dest = x.body
+    else
+        dest = x.value
+    end
+    for rec in dest
+        if rec isa IXEqualRecord
+            v = rec.value
+        elseif rec isa AbstractString
+            v = rec
+        elseif recurse
+            v = convert_ix_record_to_dict(rec, unit_systems)
+        else
+            error("Type conversion for $rec with recurse=false is not implemented")
+        end
+        out[rec.keyword] = v
+    end
+    if !ismissing(unit_systems)
+        convert_dict_entries!(out, unit_systems)
     end
     return out
 end
 
-function convert_ix_record_to_dict(x::IXStandardRecord)
-    out = Dict{String, Any}(
-        "group" => x.value,
-        "name" => x.keyword
-    )
-    for rec in x.body
-        rec::IXEqualRecord
-        out[rec.keyword] = rec.value
-    end
-    return out
-end
 
 function convert_ix_records(vals::AbstractVector, name, unit_systems)
     out = Any[]
@@ -347,6 +354,9 @@ function convert_ix_record_and_subrecords(x::IXStandardRecord, unit_systems, unh
         "group" => x.value,
         "name" => kw
     )
+    if x.body isa AbstractIXRecord
+        x.body = [x.body]
+    end
     for rec in x.body
         out[rec.keyword] = convert_ix_record(rec, unit_systems, unhandled, Val(Symbol(rec.keyword)))
     end

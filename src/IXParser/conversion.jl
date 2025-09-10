@@ -317,17 +317,23 @@ function convert_ix_record_to_dict(x::Union{IXEqualRecord, IXStandardRecord}, un
     else
         dest = x.value
     end
-    for rec in dest
-        if rec isa IXEqualRecord
-            v = rec.value
-        elseif rec isa AbstractString || rec isa IXFunctionCall
-            v = rec
-        elseif recurse
-            v = convert_ix_record_to_dict(rec, unit_systems)
-        else
-            error("Type conversion for $rec with recurse=false is not implemented")
+    is_endline = any(y -> y isa IXArrayEndline, dest)
+    if is_endline
+        # Some kind of matrix/array
+        set_ix_array_values!(out, dest)
+    else
+        for rec in dest
+            if rec isa IXEqualRecord
+                v = rec.value
+            elseif rec isa AbstractString || rec isa IXFunctionCall
+                v = rec
+            elseif recurse
+                v = convert_ix_record_to_dict(rec, unit_systems)
+            else
+                error("Type conversion for $rec with recurse=false is not implemented")
+            end
+            out[rec.keyword] = v
         end
-        out[rec.keyword] = v
     end
     if !ismissing(unit_systems)
         convert_dict_entries!(out, unit_systems)

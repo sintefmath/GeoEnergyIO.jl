@@ -36,12 +36,11 @@ function convert_ix_record(x::IXEqualRecord, unit_systems, unhandled::AbstractDi
     @assert kw == "WaterCompressibilities"
     table = Dict{String, Any}()
     set_ix_array_values!(table, x.value, T = Float64)
-    upairs = unit_systems.ix_dict
     for (k, v) in pairs(table)
         if k == "FormationVolumeFactor"
             u = :liquid_formation_volume_factor
         else
-            u = upairs[k]
+            u = get_unit_type_ix_keyword(unit_systems, k)
         end
         if v isa Number
             table[k] = swap_unit_system(v, unit_systems, u)

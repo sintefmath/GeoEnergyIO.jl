@@ -80,3 +80,15 @@ function convert_ix_record(x::IXStandardRecord, unit_systems, unhandled::Abstrac
     end
     return out
 end
+
+function convert_ix_record(x::IXEqualRecord, unit_systems, unhandled::AbstractDict, ::Val{:Constraints})
+    constraints = Dict{String, Any}()
+    verb = String(x.value[1])
+    for k in x.value[2:end]
+        constraint_value, constraint_name = k
+        constraint_name = String(constraint_name)
+        u = get_unit_type_ix_keyword(unit_systems, constraint_name; throw = false)
+        constraints[constraint_name] = swap_unit_system(constraint_value, unit_systems, u)
+    end
+    return (verb = verb, constraints = constraints)
+end

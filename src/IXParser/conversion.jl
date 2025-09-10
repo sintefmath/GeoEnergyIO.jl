@@ -210,16 +210,10 @@ function time_from_record(x, start_time, usys)
     end
 end
 
-function convert_ix_values!(x::AbstractArray, kw, unit_systems; throw = true, u = conversion_ix_dict())
-    if haskey(u, kw)
-        utype = u[kw]
-        if utype != :id
-            GeoEnergyIO.InputParser.swap_unit_system!(x, unit_systems, utype)
-        end
-    elseif throw
-        error("No conversion rule for IX array with keyword $kw")
-    else
-        println("No conversion rule for IX array with keyword $kw, returning as-is.")
+function convert_ix_values!(x::AbstractArray, kw, unit_systems; throw = true)
+    utype = get_unit_type_ix_keyword(unit_systems, kw; throw = throw)
+    if utype != :id
+        GeoEnergyIO.InputParser.swap_unit_system!(x, unit_systems, utype)
     end
     return x
 end
@@ -244,7 +238,6 @@ function convert_ix_record(val, unit_systems, unhandled::AbstractDict, ::Val{kw}
     )
     single_equals_list = (
         :Completion,
-        :Status,
         :GuideRateBalanceAction,
         :FluidFlowGrid,
         :CustomControl,
@@ -392,7 +385,6 @@ function parse_and_convert_numerical_table(x::IXStandardRecord, unit_systems, k 
 end
 
 function convert_dict_entries!(table, unit_systems)
-    upairs = unit_systems.ix_dict
     for (k, v) in pairs(table)
         if v isa AbstractString || isnothing(v) || ismissing(v)
             continue
@@ -403,11 +395,7 @@ function convert_dict_entries!(table, unit_systems)
         elseif v isa IXKeyword
             v = v.keyword
         else
-            u = get(upairs, k, missing)
-            if ismissing(u)
-                @warn "No unit type declared for IX table column $k. Add it to conversion_ix_dict() if needed."
-                continue
-            end
+            u = get_unit_type_ix_keyword(unit_systems, k)
             if v isa Number
                 v = swap_unit_system(v, unit_systems, u)
             else
@@ -420,4 +408,18 @@ end
 
 function convert_ix_record(x, unit_systems, unhandled::AbstractDict, ::Val{:RockCompressibility})
     return parse_and_convert_numerical_table(x, unit_systems, "RockCompressibility")
+end
+
+function get_unit_type_ix_keyword(unit_systems, k; throw = false)
+    u = get(unit_systems.ix_dict, k, missing)
+    if ismissing(u)
+        msg = "No unit type declared for IX entry $k. Units may be wrong! Add it to conversion_ix_dict() if needed."
+        u = :id
+        if throw
+            error(msg)
+        else
+            println(msg)
+        end
+    end
+    return u
 end

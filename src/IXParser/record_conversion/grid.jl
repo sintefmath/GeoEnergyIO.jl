@@ -59,3 +59,25 @@ function convert_ix_record(x::IXStandardRecord, unit_systems, unhandled::Abstrac
     end
     return (name = name, data = data)
 end
+
+function convert_ix_record(x, unit_systems, unhandled::AbstractDict, ::Val{:RockRegionMapping})
+    return convert_region_mapping(x)
+end
+
+function convert_ix_record(x, unit_systems, unhandled::AbstractDict, ::Val{:FluidRegionMapping})
+    return convert_region_mapping(x)
+end
+
+function convert_ix_record(x, unit_systems, unhandled::AbstractDict, ::Val{:EquilibriumRegionMapping})
+    return convert_region_mapping(x)
+end
+
+function convert_region_mapping(x::IXEqualRecord)
+    tab = Dict{String, Any}()
+    set_ix_array_values!(tab, x)
+    out = Dict(
+        "name" => x.value,
+        "table" => tab,
+    )
+    return out
+end

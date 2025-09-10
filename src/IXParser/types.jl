@@ -26,6 +26,9 @@ struct IXKeyword <: AbstractIXRecord
     keyword::String
 end
 
+Base.String(x::IXKeyword) = x.keyword
+Base.convert(::Type{String}, x::IXKeyword) = x.keyword
+
 struct IXFunctionCall <: AbstractIXRecord
     keyword::String
     args::Vector{Any}

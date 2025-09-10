@@ -67,6 +67,7 @@ function conversion_ix_dict()
         u[k] = :relative_temperature
     end
     u["ConstantSolutionGOR"] = :u_rs
+    u["SolutionGOR"] = :u_rs
 
     for k in ["OIL_PRODUCTION_RATE", "WATER_PRODUCTION_RATE", "LIQUID_PRODUCTION_RATE"]
         u[k] = :liquid_rate_surface

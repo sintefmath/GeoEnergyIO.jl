@@ -34,7 +34,9 @@ function restructure_and_convert_units_afi(afi;
     unique!(tsteps)
     sort!(tsteps)
     @assert tsteps[1] == start_time
-    @info "Found $(length(tsteps)) unique time steps in IX and FM sections, starting at $start_time"
+    if verbose
+        println("Found $(length(tsteps)) unique time steps in IX and FM sections, starting at $start_time")
+    end
     # out = Dict{String, Any}(
     #     "wells" => Dict{String, Any}(),
     #     "schedule" => Dict{String, Any}(),
@@ -382,7 +384,7 @@ function convert_ix_records(vals::AbstractVector, name, unit_systems; verbose = 
         push!(out, (keyword = kw, value = v_new))
     end
     num_unhandled = length(keys(unhandled))
-    if num_unhandled > 0
+    if num_unhandled > 0 && verbose > -1
         println("$name: Found $num_unhandled unhandled IX record types:")
         for (k, v) in pairs(unhandled)
             if v == 1

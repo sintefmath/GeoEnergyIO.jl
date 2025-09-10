@@ -19,6 +19,9 @@ function conversion_ix_dict()
         "WaterRelPermFunction",
         "NumberOfPressureDepthTableNodes",
         "Saturation",
+        "TargetFractionToDestination",
+        "Destination",
+        "StageOutlet",
     ]
         u[k] = :id
     end
@@ -47,6 +50,11 @@ function conversion_ix_dict()
     end
     for k in ["DatumDepth", "WOCDepth", "GOCDepth", "Depth"]
         u[k] = :length
+    end
+    for k in ["Temperature"]
+        # TODO: Check if there are Kelvin/Rankine instances marked as just
+        # "Temperature".
+        u[k] = :relative_temperature
     end
     u["ConstantSolutionGOR"] = :u_rs
 

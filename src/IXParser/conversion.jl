@@ -380,7 +380,7 @@ end
 function convert_dict_entries!(table, unit_systems)
     upairs = unit_systems.ix_dict
     for (k, v) in pairs(table)
-        if v isa AbstractString
+        if v isa AbstractString || isnothing(v) || ismissing(v)
             continue
         elseif v isa IXKeyword
             v = v.keyword

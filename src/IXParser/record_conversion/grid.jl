@@ -1,4 +1,4 @@
-function convert_ix_record(x::IXStandardRecord, unit_systems, unhandled::AbstractDict, ::Val{:StructuredInfo})
+function convert_ix_record(x::IXStandardRecord, unit_systems, meta::AbstractDict, ::Val{:StructuredInfo})
     I = 0
     J = 0
     K = 0
@@ -33,7 +33,7 @@ function convert_ix_record(x::IXStandardRecord, unit_systems, unhandled::Abstrac
     )
 end
 
-function convert_ix_record(x::IXEqualRecord, unit_systems, unhandled::AbstractDict, ::Val{:Faults})
+function convert_ix_record(x::IXEqualRecord, unit_systems, meta::AbstractDict, ::Val{:Faults})
     names = String[]
     for rec in x.value
         rec.keyword == "FaultNames" || error("Expected FaultNames record in Faults record body, got $(rec.keyword)")
@@ -42,7 +42,7 @@ function convert_ix_record(x::IXEqualRecord, unit_systems, unhandled::AbstractDi
     return names
 end
 
-function convert_ix_record(x::IXStandardRecord, unit_systems, unhandled::AbstractDict, ::Val{:FaultDefinition})
+function convert_ix_record(x::IXStandardRecord, unit_systems, meta::AbstractDict, ::Val{:FaultDefinition})
     name = x.value
     data = Dict{String, Any}()
     for rec in x.body
@@ -60,15 +60,15 @@ function convert_ix_record(x::IXStandardRecord, unit_systems, unhandled::Abstrac
     return (name = name, data = data)
 end
 
-function convert_ix_record(x, unit_systems, unhandled::AbstractDict, ::Val{:RockRegionMapping})
+function convert_ix_record(x, unit_systems, meta::AbstractDict, ::Val{:RockRegionMapping})
     return convert_region_mapping(x)
 end
 
-function convert_ix_record(x, unit_systems, unhandled::AbstractDict, ::Val{:FluidRegionMapping})
+function convert_ix_record(x, unit_systems, meta::AbstractDict, ::Val{:FluidRegionMapping})
     return convert_region_mapping(x)
 end
 
-function convert_ix_record(x, unit_systems, unhandled::AbstractDict, ::Val{:EquilibriumRegionMapping})
+function convert_ix_record(x, unit_systems, meta::AbstractDict, ::Val{:EquilibriumRegionMapping})
     return convert_region_mapping(x)
 end
 

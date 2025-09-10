@@ -229,7 +229,7 @@ function convert_ix_values!(x::Missing, kw, unit_systems; kwarg...)
     return x
 end
 
-function convert_ix_record(val, unit_systems, unhandled::AbstractDict, ::Val{kw}) where kw
+function convert_ix_record(val, unit_systems, meta::AbstractDict, ::Val{kw}) where kw
     skip_list = (
         :Units,
         :Simulation,
@@ -270,14 +270,14 @@ function convert_ix_record(val, unit_systems, unhandled::AbstractDict, ::Val{kw}
     elseif kw in edit_list || endswith(kw_as_str, "Edit")
         val = convert_edit_record(val)
     elseif kw in convert_subrecords_list
-        val = convert_ix_record_and_subrecords(val, unit_systems, unhandled)
+        val = convert_ix_record_and_subrecords(val, unit_systems, meta)
     elseif !(kw in skip_list)
         is_report = endswith(kw_as_str, "Report") || endswith(kw_as_str, "Reports")
         if !is_report
-            if haskey(unhandled, kw)
-                unhandled[kw] += 1
+            if haskey(meta, kw)
+                meta[kw] += 1
             else
-                unhandled[kw] = 1
+                meta[kw] = 1
             end
 
             @info "Unhandled $kw" val
@@ -288,12 +288,12 @@ function convert_ix_record(val, unit_systems, unhandled::AbstractDict, ::Val{kw}
     return val
 end
 
-function convert_ix_record(val, unit_systems, unhandled::AbstractDict, kw::Symbol)
-    return convert_ix_record(val, unit_systems, unhandled, Val(kw))
+function convert_ix_record(val, unit_systems, meta::AbstractDict, kw::Symbol)
+    return convert_ix_record(val, unit_systems, meta, Val(kw))
 end
 
-function convert_ix_record(val, unit_systems, unhandled::AbstractDict, kw::String)
-    return convert_ix_record(val, unit_systems, unhandled, Symbol(kw))
+function convert_ix_record(val, unit_systems, meta::AbstractDict, kw::String)
+    return convert_ix_record(val, unit_systems, meta, Symbol(kw))
 end
 
 function convert_edit_record(x::IXStandardRecord)
@@ -338,13 +338,16 @@ end
 function convert_ix_records(vals::AbstractVector, name, unit_systems)
     out = Any[]
     unhandled = OrderedDict{Symbol, Int}()
+    meta = Dict{Symbol, Any}(
+        :unhandled => unhandled,
+    )
     for v in vals
-        v_new = convert_ix_record(v, unit_systems, unhandled, Val(Symbol(v.keyword)))
+        v_new = convert_ix_record(v, unit_systems, meta, Val(Symbol(v.keyword)))
         push!(out, (keyword = v.keyword, value = v_new))
     end
     num_unhandled = length(keys(unhandled))
     if num_unhandled > 0
-        println("$name: Found $num_unhandled unhandled IX record types:")
+        println("$name: Found $num_meta meta IX record types:")
         for (k, v) in pairs(unhandled)
             if v == 1
                 println("  $k: $v occurence.")
@@ -356,7 +359,7 @@ function convert_ix_records(vals::AbstractVector, name, unit_systems)
     return out
 end
 
-function convert_ix_record_and_subrecords(x::IXStandardRecord, unit_systems, unhandled::AbstractDict)
+function convert_ix_record_and_subrecords(x::IXStandardRecord, unit_systems, meta::AbstractDict)
     kw = x.keyword
     out = Dict{String, Any}(
         "group" => x.value,
@@ -366,7 +369,7 @@ function convert_ix_record_and_subrecords(x::IXStandardRecord, unit_systems, unh
         x.body = [x.body]
     end
     for rec in x.body
-        out[rec.keyword] = convert_ix_record(rec, unit_systems, unhandled, Val(Symbol(rec.keyword)))
+        out[rec.keyword] = convert_ix_record(rec, unit_systems, meta, Val(Symbol(rec.keyword)))
     end
     return out
 end
@@ -407,7 +410,7 @@ function convert_dict_entries!(table, unit_systems)
     end
 end
 
-function convert_ix_record(x, unit_systems, unhandled::AbstractDict, ::Val{:RockCompressibility})
+function convert_ix_record(x, unit_systems, meta::AbstractDict, ::Val{:RockCompressibility})
     return parse_and_convert_numerical_table(x, unit_systems, "RockCompressibility")
 end
 

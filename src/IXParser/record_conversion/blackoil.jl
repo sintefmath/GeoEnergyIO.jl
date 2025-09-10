@@ -1,8 +1,8 @@
-function convert_ix_record(x::IXEqualRecord, unit_systems, unhandled::AbstractDict, ::Union{Val{:GasSurfaceDensity}, Val{:OilSurfaceDensity}, Val{:WaterSurfaceDensity}})
+function convert_ix_record(x::IXEqualRecord, unit_systems, meta::AbstractDict, ::Union{Val{:GasSurfaceDensity}, Val{:OilSurfaceDensity}, Val{:WaterSurfaceDensity}})
     return swap_unit_system(x.value, unit_systems, :density)
 end
 
-function convert_ix_record(x::IXStandardRecord, unit_systems, unhandled::AbstractDict, ::Val{:DeadOilTable})
+function convert_ix_record(x::IXStandardRecord, unit_systems, meta::AbstractDict, ::Val{:DeadOilTable})
     kw = x.keyword
     @assert kw == "DeadOilTable"
     table = Dict{String, Any}()
@@ -31,7 +31,7 @@ function convert_ix_record(x::IXStandardRecord, unit_systems, unhandled::Abstrac
     return out
 end
 
-function convert_ix_record(x::IXEqualRecord, unit_systems, unhandled::AbstractDict, ::Val{:WaterCompressibilities})
+function convert_ix_record(x::IXEqualRecord, unit_systems, meta::AbstractDict, ::Val{:WaterCompressibilities})
     kw = x.keyword
     @assert kw == "WaterCompressibilities"
     table = Dict{String, Any}()

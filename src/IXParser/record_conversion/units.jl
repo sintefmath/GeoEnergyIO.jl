@@ -32,8 +32,9 @@ function conversion_ix_dict()
         u[k] = :density
     end
 
-    u["Compressibility"] = :compressibility
-    u["ViscosityCompressibility"] = :compressibility
+    for k in ["Compressibility", "ViscosityCompressibility", "PoreVolCompressibility"]
+        u[k] = :compressibility
+    end
     u["ConstantSolutionGOR"] = :u_rs
 
     return u

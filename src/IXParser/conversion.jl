@@ -350,3 +350,36 @@ function convert_ix_record_and_subrecords(x::IXStandardRecord, unit_systems, unh
     end
     return out
 end
+
+function parse_and_convert_numerical_table(x::IXStandardRecord, unit_systems, k = missing)
+    if !ismissing(k)
+        @assert x.keyword == k
+    end
+    table = Dict{String, Any}()
+    out = Dict{String, Any}(
+        "name" => x.value,
+        "table" => table,
+    )
+    set_ix_array_values!(table, x.body, T = Float64)
+    upairs = unit_systems.ix_dict
+    for (k, v) in pairs(table)
+        if v isa AbstractString
+            continue
+        end
+        u = get(upairs, k, missing)
+        if ismissing(u)
+            @warn "No unit type declared for IX table column $k. Add it to conversion_ix_dict() if needed."
+            continue
+        end
+        if v isa Number
+            table[k] = swap_unit_system(v, unit_systems, u)
+        else
+            swap_unit_system!(v, unit_systems, u)
+        end
+    end
+    return out
+end
+
+function convert_ix_record(x, unit_systems, unhandled::AbstractDict, ::Val{:RockCompressibility})
+    return parse_and_convert_numerical_table(x, unit_systems, "RockCompressibility")
+end

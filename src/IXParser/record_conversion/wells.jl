@@ -39,18 +39,19 @@ function convert_ix_record(x::IXStandardRecord, unit_systems, meta, ::Val{:Separ
     return out
 end
 
-function convert_ix_record(x::IXStandardRecord, unit_systems, meta, ::Val{:Group})
+function convert_ix_record(x::IXStandardRecord, unit_systems, meta, ::Union{Val{:Group}, Val{:StaticList}})
     group_name = x.value
     members = Tuple{String, String}[]
+    mem_type = "Group"
     for rec in x.body
-        rec.keyword == "Members" || error("Expected Members record in Group record body, got $(rec.keyword))")
+        mem_type = rec.keyword
         @assert length(rec.value) == 2
         group_type, group_members = rec.value
         for v in group_members
             push!(members, (group_type, v))
         end
     end
-    return (group = group_name, members = members, )
+    return (group = group_name, members = members, type = mem_type)
 end
 
 function convert_ix_record(x::IXStandardRecord, unit_systems, meta, ::Val{:Well})

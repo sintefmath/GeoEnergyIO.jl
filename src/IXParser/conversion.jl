@@ -4,7 +4,8 @@ include("record_conversion/record_conversion.jl")
 
 function restructure_and_convert_units_afi(afi;
         units = :si,
-        verbose = false
+        verbose = false,
+        strict = false
     )
     # First we find starting dates (Simulation / FieldManagement)
     model_def = afi["IX"]["MODEL_DEFINITION"]
@@ -42,7 +43,7 @@ function restructure_and_convert_units_afi(afi;
     #     "init" => Dict{String, Any}()
     # )
 
-    parse_arg = (verbose = verbose, )
+    parse_arg = (verbose = verbose, strict = strict)
     out =  Dict{String, Any}()
     for s in ["IX", "FM"]
         out[s] = copy(afi[s])
@@ -236,6 +237,7 @@ function convert_ix_record(val, unit_systems, meta, ::Val{kw}) where kw
         :Simulation,
         :FieldManagement,
         :GridMgr,
+        :END_INPUT
     )
     single_equals_list = (
         :Completion,
@@ -281,10 +283,9 @@ function convert_ix_record(val, unit_systems, meta, ::Val{kw}) where kw
             else
                 uhandled[kw] = 1
             end
-
-            @info "Unhandled $kw" val
-            error()
-            # println("Unknown IX record with keyword $kw, returning as-is. Units may not be converted, use with care.")
+            if meta.strict
+                error("Unhandled keyword $kw: $val. As strict=true, this is an error.")
+            end
         end
     end
     return val
@@ -349,12 +350,13 @@ function convert_ix_record_to_dict(x::Union{IXEqualRecord, IXStandardRecord}, un
 end
 
 
-function convert_ix_records(vals::AbstractVector, name, unit_systems; verbose = false)
+function convert_ix_records(vals::AbstractVector, name, unit_systems; verbose = false, strict = false)
     out = Any[]
     unhandled = OrderedDict{Symbol, Int}()
     meta = (
         unhandled = unhandled,
-        verbose = verbose
+        verbose = verbose,
+        strict = strict
     )
     if verbose && length(vals) > 0
         println("Converting entry $name")

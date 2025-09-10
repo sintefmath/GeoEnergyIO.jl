@@ -4,6 +4,7 @@ include("record_conversion/record_conversion.jl")
 
 function restructure_and_convert_units_afi(afi;
         units = :si,
+        verbose = false
     )
     # First we find starting dates (Simulation / FieldManagement)
     model_def = afi["IX"]["MODEL_DEFINITION"]
@@ -41,19 +42,19 @@ function restructure_and_convert_units_afi(afi;
     #     "init" => Dict{String, Any}()
     # )
 
-
+    parse_arg = (verbose = verbose, )
     out =  Dict{String, Any}()
     for s in ["IX", "FM"]
         out[s] = copy(afi[s])
         delete!(out[s], "START")
-        out[s]["MODEL_DEFINITION"] = convert_ix_records(afi[s]["MODEL_DEFINITION"], "$s MODEL_DEFINITION", unit_systems)
+        out[s]["MODEL_DEFINITION"] = convert_ix_records(afi[s]["MODEL_DEFINITION"], "$s MODEL_DEFINITION", unit_systems; parse_arg...)
         out[s]["STEPS"] = OrderedDict{DateTime, Any}()
         if haskey(afi[s], "START")
-            out[s]["STEPS"][tsteps[1]] = convert_ix_records(afi[s]["START"], "$s START", unit_systems)
+            out[s]["STEPS"][tsteps[1]] = convert_ix_records(afi[s]["START"], "$s START", unit_systems; parse_arg...)
         end
         for d in keys(afi[s]["STEPS"])
             dt = time_from_record(d, start_time, input_units)
-            out[s]["STEPS"][dt] = convert_ix_records(afi[s]["STEPS"][d], "$s TIME $dt", unit_systems)
+            out[s]["STEPS"][dt] = convert_ix_records(afi[s]["STEPS"][d], "$s TIME $dt", unit_systems; parse_arg...)
         end
     end
     resqml = get(afi["IX"], "RESQML", missing)
@@ -229,7 +230,7 @@ function convert_ix_values!(x::Missing, kw, unit_systems; kwarg...)
     return x
 end
 
-function convert_ix_record(val, unit_systems, meta::AbstractDict, ::Val{kw}) where kw
+function convert_ix_record(val, unit_systems, meta, ::Val{kw}) where kw
     skip_list = (
         :Units,
         :Simulation,
@@ -288,11 +289,11 @@ function convert_ix_record(val, unit_systems, meta::AbstractDict, ::Val{kw}) whe
     return val
 end
 
-function convert_ix_record(val, unit_systems, meta::AbstractDict, kw::Symbol)
+function convert_ix_record(val, unit_systems, meta, kw::Symbol)
     return convert_ix_record(val, unit_systems, meta, Val(kw))
 end
 
-function convert_ix_record(val, unit_systems, meta::AbstractDict, kw::String)
+function convert_ix_record(val, unit_systems, meta, kw::String)
     return convert_ix_record(val, unit_systems, meta, Symbol(kw))
 end
 
@@ -335,11 +336,12 @@ function convert_ix_record_to_dict(x::Union{IXEqualRecord, IXStandardRecord}, un
 end
 
 
-function convert_ix_records(vals::AbstractVector, name, unit_systems)
+function convert_ix_records(vals::AbstractVector, name, unit_systems; verbose = false)
     out = Any[]
     unhandled = OrderedDict{Symbol, Int}()
-    meta = Dict{Symbol, Any}(
-        :unhandled => unhandled,
+    meta = (
+        unhandled = unhandled,
+        verbose = verbose
     )
     for v in vals
         v_new = convert_ix_record(v, unit_systems, meta, Val(Symbol(v.keyword)))
@@ -359,7 +361,7 @@ function convert_ix_records(vals::AbstractVector, name, unit_systems)
     return out
 end
 
-function convert_ix_record_and_subrecords(x::IXStandardRecord, unit_systems, meta::AbstractDict)
+function convert_ix_record_and_subrecords(x::IXStandardRecord, unit_systems, meta)
     kw = x.keyword
     out = Dict{String, Any}(
         "group" => x.value,
@@ -410,7 +412,7 @@ function convert_dict_entries!(table, unit_systems)
     end
 end
 
-function convert_ix_record(x, unit_systems, meta::AbstractDict, ::Val{:RockCompressibility})
+function convert_ix_record(x, unit_systems, meta, ::Val{:RockCompressibility})
     return parse_and_convert_numerical_table(x, unit_systems, "RockCompressibility")
 end
 

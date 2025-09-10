@@ -1,4 +1,4 @@
-function convert_ix_record(x::IXStandardRecord, unit_systems, meta::AbstractDict, ::Val{:WellDef})
+function convert_ix_record(x::IXStandardRecord, unit_systems, meta, ::Val{:WellDef})
     @assert x.keyword == "WellDef"
     wname = x.value
     well = Dict{String, Any}(
@@ -30,16 +30,16 @@ function convert_ix_record(x::IXStandardRecord, unit_systems, meta::AbstractDict
     return well
 end
 
-function convert_ix_record(x::IXStandardRecord, unit_systems, meta::AbstractDict, ::Val{:Separator})
+function convert_ix_record(x::IXStandardRecord, unit_systems, meta, ::Val{:Separator})
     return convert_ix_record_and_subrecords(x, unit_systems, meta)
 end
 
-function convert_ix_record(x::IXStandardRecord, unit_systems, meta::AbstractDict, ::Val{:SeparatorStage})
+function convert_ix_record(x::IXStandardRecord, unit_systems, meta, ::Val{:SeparatorStage})
     out = convert_ix_record_to_dict(x, unit_systems)
     return out
 end
 
-function convert_ix_record(x::IXStandardRecord, unit_systems, meta::AbstractDict, ::Val{:Group})
+function convert_ix_record(x::IXStandardRecord, unit_systems, meta, ::Val{:Group})
     group_name = x.value
     members = Tuple{String, String}[]
     for rec in x.body
@@ -53,7 +53,7 @@ function convert_ix_record(x::IXStandardRecord, unit_systems, meta::AbstractDict
     return (group = group_name, members = members, )
 end
 
-function convert_ix_record(x::IXStandardRecord, unit_systems, meta::AbstractDict, ::Val{:Well})
+function convert_ix_record(x::IXStandardRecord, unit_systems, meta, ::Val{:Well})
     out = Dict{String, Any}(
         "name" => x.value,
     )
@@ -80,7 +80,7 @@ function convert_ix_record(x::IXStandardRecord, unit_systems, meta::AbstractDict
     return out
 end
 
-function convert_ix_record(x::Union{IXEqualRecord, AbstractArray}, unit_systems, meta::AbstractDict, ::Union{Val{:Constraints}, Val{:HistoricalData}})
+function convert_ix_record(x::Union{IXEqualRecord, AbstractArray}, unit_systems, meta, ::Union{Val{:Constraints}, Val{:HistoricalData}})
     constraints = Dict{String, Any}()
     if length(x.value) > 0
         verb = String(x.value[1])

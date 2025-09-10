@@ -275,10 +275,11 @@ function convert_ix_record(val, unit_systems, meta, ::Val{kw}) where kw
     elseif !(kw in skip_list)
         is_report = endswith(kw_as_str, "Report") || endswith(kw_as_str, "Reports")
         if !is_report
-            if haskey(meta, kw)
-                meta[kw] += 1
+            uhandled = meta.unhandled
+            if haskey(uhandled, kw)
+                uhandled[kw] += 1
             else
-                meta[kw] = 1
+                uhandled[kw] = 1
             end
 
             @info "Unhandled $kw" val
@@ -302,7 +303,13 @@ function convert_edit_record(x::IXStandardRecord)
         "group" => x.value,
         "name" => x.keyword,
     )
-    set_ix_array_values!(out, x.body)
+    if length(x.body) == 1
+        v = only(x.body)
+        v::IXEqualRecord
+        out[v.keyword] = v.value
+    else
+        set_ix_array_values!(out, x.body)
+    end
     return out
 end
 

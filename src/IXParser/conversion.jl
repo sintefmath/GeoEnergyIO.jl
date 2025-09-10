@@ -382,19 +382,23 @@ function convert_dict_entries!(table, unit_systems)
     for (k, v) in pairs(table)
         if v isa AbstractString || isnothing(v) || ismissing(v)
             continue
+        end
+
+        if v isa AbstractDict
+            convert_dict_entries!(v, unit_systems)
         elseif v isa IXKeyword
             v = v.keyword
-            continue
-        end
-        u = get(upairs, k, missing)
-        if ismissing(u)
-            @warn "No unit type declared for IX table column $k. Add it to conversion_ix_dict() if needed."
-            continue
-        end
-        if v isa Number
-            v = swap_unit_system(v, unit_systems, u)
         else
-            swap_unit_system!(v, unit_systems, u)
+            u = get(upairs, k, missing)
+            if ismissing(u)
+                @warn "No unit type declared for IX table column $k. Add it to conversion_ix_dict() if needed."
+                continue
+            end
+            if v isa Number
+                v = swap_unit_system(v, unit_systems, u)
+            else
+                swap_unit_system!(v, unit_systems, u)
+            end
         end
         table[k] = v
     end

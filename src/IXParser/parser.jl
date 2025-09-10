@@ -99,7 +99,12 @@ contains references to other files, such as .ixf and .epc files.
 - `convert::Bool=false`: Whether to convert the parsed records to more
   user-friendly with unit conversion applied. The output format is substantially
   altered by enabling this option.
-- `strict::Bool=false`: Whether to throw errors on unrecognized keywords.
+- `strict::Bool=false`: Whether to throw errors on unrecognized keywords or
+  unsupported files.
+
+# Notes
+For input of dense data (e.g. grid properties), the parser is limited to the
+RESQML format. This means that .gsg files are not supported.
 """
 function read_afi_file(fpath;
         verbose = true,

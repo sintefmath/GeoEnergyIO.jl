@@ -37,6 +37,8 @@ function conversion_ix_dict()
         "WOCCapPressure",
         "GOCCapPressure",
         "DatumPressure",
+        "BOTTOM_HOLE_PRESSURE",
+        "BHP"
     ]
         u[k] = :pressure
     end
@@ -58,5 +60,11 @@ function conversion_ix_dict()
     end
     u["ConstantSolutionGOR"] = :u_rs
 
+    for k in ["OIL_PRODUCTION_RATE", "WATER_PRODUCTION_RATE", "LIQUID_PRODUCTION_RATE"]
+        u[k] = :liquid_rate_surface
+    end
+    for k in ["GAS_PRODUCTION_RATE"]
+        u[k] = :gas_rate_surface
+    end
     return u
 end

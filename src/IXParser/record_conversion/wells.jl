@@ -63,8 +63,7 @@ function convert_ix_record(x::IXStandardRecord, unit_systems, unhandled::Abstrac
             val = rec.value
             if val isa IXKeyword
                 val = String(val)
-            elseif !(kw in ("Status", ))
-                @info "????" rec kw
+            elseif val isa AbstractIXRecord
                 val = convert_ix_record(rec, unit_systems, unhandled, kw)
             end
         elseif rec isa IXFunctionCall
@@ -81,14 +80,19 @@ function convert_ix_record(x::IXStandardRecord, unit_systems, unhandled::Abstrac
     return out
 end
 
-function convert_ix_record(x::IXEqualRecord, unit_systems, unhandled::AbstractDict, ::Val{:Constraints})
+function convert_ix_record(x::Union{IXEqualRecord, AbstractArray}, unit_systems, unhandled::AbstractDict, ::Union{Val{:Constraints}, Val{:HistoricalData}})
     constraints = Dict{String, Any}()
-    verb = String(x.value[1])
-    for k in x.value[2:end]
-        constraint_value, constraint_name = k
-        constraint_name = String(constraint_name)
-        u = get_unit_type_ix_keyword(unit_systems, constraint_name; throw = false)
-        constraints[constraint_name] = swap_unit_system(constraint_value, unit_systems, u)
+    if length(x.value) > 0
+        verb = String(x.value[1])
+        for k in x.value[2:end]
+            constraint_value, constraint_name = k
+            constraint_name = String(constraint_name)
+            u = get_unit_type_ix_keyword(unit_systems, constraint_name; throw = false)
+            constraints[constraint_name] = swap_unit_system(constraint_value, unit_systems, u)
+        end
+        out = (verb = verb, constraints = constraints)
+    else
+        out = missing
     end
-    return (verb = verb, constraints = constraints)
+    return out
 end

@@ -238,6 +238,7 @@ function convert_ix_record(val, unit_systems, unhandled::AbstractDict, ::Val{kw}
     )
     single_equals_list = (
         :Completion,
+        :HistoricalControlModes,
         :GuideRateBalanceAction,
         :FluidFlowGrid,
         :CustomControl,

@@ -4,6 +4,7 @@ include("record_conversion/meta.jl")
 include("record_conversion/wells.jl")
 include("record_conversion/grid.jl")
 include("record_conversion/blackoil.jl")
+include("record_conversion/satfun.jl")
 include("record_conversion/units.jl")
 
 function restructure_and_convert_units_afi(afi;
@@ -105,21 +106,20 @@ function reshape_ix_matrix(m)
 end
 
 function set_ix_array_values!(dest, v::Vector; T = missing)
-    function convert_t(x)
-        if ismissing(T)
-            out = x
-        else
-            out = T.(x)
-        end
-        return out
-    end
+    convert_t(x::AbstractArray, T::Type) = T.(x)
+    convert_t(x::Number, T::Type) = convert(T, x)
+    convert_t(x::Number, T::Type) = convert(T, x)
+    # These don't convert
+    convert_t(x::Union{AbstractArray, Number, AbstractString}, ::Missing) = x
+    convert_t(x::AbstractString, ::Type) = x
+
     if length(v) > 0
         sample = v[1]
         if sample isa IXKeyword
             # We have a matrix with headers
             header, M = reshape_ix_matrix(v)
             for (i, h) in enumerate(header)
-                dest[h] = convert_t([M[k, i] for k in axes(M, 1)])
+                dest[h] = convert_t([M[k, i] for k in axes(M, 1)], T)
             end
         else
             sample::IXEqualRecord
@@ -130,7 +130,7 @@ function set_ix_array_values!(dest, v::Vector; T = missing)
                 if length(v) == 0
                     v = missing
                 end
-                dest[h] = convert_t(v)
+                dest[h] = convert_t(v, T)
             end
         end
     end

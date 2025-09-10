@@ -5,19 +5,26 @@ function conversion_ix_dict()
     # WellDef
     u["WellBoreRadius"] = :length
     u["Transmissibility"] = :transmissibility
-    u["Cell"] = :id
-    u["Completion"] = :id
-    u["PenetrationDirection"] = :id
-    u["PiMultiplier"] = :id
-    u["Status"] = :id
-    u["RockRegionName"] = :id
-    u["SegmentNode"] = :id
-    u["Status"] = :id
+
+    for k in [
+        "Cell",
+        "Completion",
+        "PenetrationDirection",
+        "PiMultiplier",
+        "Status",
+        "RockRegionName",
+        "SegmentNode",
+        "RelPerm",
+        "WaterRelPermFunction",
+        "Saturation",
+    ]
+        u[k] = :id
+    end
     # TODO: Check.
     u["Skin"] = :id
     # PVT
     u["Viscosity"] = :viscosity
-    for k in ["Pressure", "BubblePointPressure", "RefPressure"]
+    for k in ["Pressure", "BubblePointPressure", "RefPressure", "CapPressure"]
         u[k] = :pressure
     end
 

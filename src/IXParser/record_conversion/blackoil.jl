@@ -20,9 +20,13 @@ function convert_ix_record(x::IXStandardRecord, unit_systems, unhandled::Abstrac
                 u = :liquid_formation_volume_factor
             end
         else
-            u =  upairs[k]
+            u = upairs[k]
         end
-        swap_unit_system!(v, unit_systems, u)
+        if v isa Number
+            table[k] = swap_unit_system(v, unit_systems, u)
+        else
+            swap_unit_system!(v, unit_systems, u)
+        end
     end
     return out
 end

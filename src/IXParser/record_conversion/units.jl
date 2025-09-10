@@ -18,5 +18,11 @@ function conversion_ix_dict()
     # PVT
     u["Viscosity"] = :viscosity
     u["Pressure"] = :pressure
+    u["BubblePointPressure"] = :pressure
+    u["OilSurfaceDensity"] = :density
+    u["GasSurfaceDensity"] = :density
+    u["WaterSurfaceDensity"] = :density
+    u["ConstantSolutionGOR"] = :u_rs
+
     return u
 end

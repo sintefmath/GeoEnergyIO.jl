@@ -376,7 +376,7 @@ function convert_ix_records(vals::AbstractVector, name, unit_systems; verbose = 
     end
     num_unhandled = length(keys(unhandled))
     if num_unhandled > 0
-        println("$name: Found $num_unhandled meta IX record types:")
+        println("$name: Found $num_unhandled unhandled IX record types:")
         for (k, v) in pairs(unhandled)
             if v == 1
                 println("  $k: $v occurence.")

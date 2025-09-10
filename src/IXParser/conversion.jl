@@ -250,6 +250,7 @@ function convert_ix_record(val, unit_systems, unhandled::AbstractDict, ::Val{kw}
         :GridMgr,
     )
     single_equals_list = (
+        :Completion,
         :GuideRateBalanceAction,
         :FluidFlowGrid,
         :CustomControl,
@@ -292,9 +293,8 @@ function convert_ix_record(val, unit_systems, unhandled::AbstractDict, ::Val{kw}
                 unhandled[kw] = 1
             end
 
-            @info "Unhandled $kw" val
-            # @info "!!" val.body
-            error()
+            # @info "Unhandled $kw" val
+            # error()
             # println("Unknown IX record with keyword $kw, returning as-is. Units may not be converted, use with care.")
         end
     end

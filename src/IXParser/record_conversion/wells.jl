@@ -55,13 +55,10 @@ function convert_ix_record(x::IXStandardRecord, unit_systems, unhandled::Abstrac
 end
 
 function convert_ix_record(x::IXStandardRecord, unit_systems, unhandled::AbstractDict, ::Val{:Well})
-    @info "???" x
-
     out = Dict{String, Any}(
         "name" => x.value,
     )
     for rec in x.body
-        @info "???" rec
         if rec isa IXEqualRecord
             kw = rec.keyword
             val = rec.value
@@ -100,8 +97,7 @@ function convert_function_argument(arg, unit_systems, context_kw = missing)
         return x
     end
     function convert_farg(x)
-        @info "???" x
-        error()
+        error("Unhandled function argument type $(typeof(x)) in context $context_kw")
     end
 
     return IXEqualRecord(kw, map(convert_farg, arg.value))

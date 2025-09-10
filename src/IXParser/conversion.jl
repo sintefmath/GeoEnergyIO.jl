@@ -320,7 +320,10 @@ function convert_edit_record(x::IXStandardRecord)
 end
 
 
-function convert_ix_record_to_dict(x::Union{IXEqualRecord, IXStandardRecord}, unit_systems = missing; recurse = true)
+function convert_ix_record_to_dict(x::Union{IXEqualRecord, IXStandardRecord}, unit_systems = missing;
+        recurse = true,
+        skip = Tuple{}()
+    )
     out = Dict{String, Any}(
         "name" => x.keyword
     )
@@ -336,6 +339,10 @@ function convert_ix_record_to_dict(x::Union{IXEqualRecord, IXStandardRecord}, un
         set_ix_array_values!(out, dest)
     else
         for rec in dest
+            kw = rec.keyword
+            if kw in skip
+                continue
+            end
             if rec isa IXEqualRecord
                 v = rec.value
             elseif rec isa AbstractString || rec isa IXFunctionCall
@@ -345,7 +352,7 @@ function convert_ix_record_to_dict(x::Union{IXEqualRecord, IXStandardRecord}, un
             else
                 error("Type conversion for $rec with recurse=false is not implemented")
             end
-            out[rec.keyword] = v
+            out[kw] = v
         end
     end
     if !ismissing(unit_systems)

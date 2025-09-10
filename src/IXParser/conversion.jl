@@ -1,6 +1,10 @@
+import GeoEnergyIO.InputParser: swap_unit_system, swap_unit_system!, swap_unit_system_axes!
+
 include("record_conversion/meta.jl")
 include("record_conversion/wells.jl")
 include("record_conversion/grid.jl")
+include("record_conversion/blackoil.jl")
+include("record_conversion/units.jl")
 
 function restructure_and_convert_units_afi(afi;
         units = :si,
@@ -11,7 +15,7 @@ function restructure_and_convert_units_afi(afi;
     !isnothing(sim_ix) || error("No Simulation record found in IX MODEL_DEFINITION.")
     start_time = start_time_from_record(model_def[sim_ix])
     input_units = ix_units(afi)
-    unit_systems = get_unit_system_pair(input_units, units)
+    unit_systems = get_unit_system_pair(input_units, units, ix_dict = conversion_ix_dict())
 
     model_def_fm = afi["FM"]["MODEL_DEFINITION"]
     fm_ix = findfirst(x -> x.keyword == "FieldManagement", model_def_fm)
@@ -100,14 +104,22 @@ function reshape_ix_matrix(m)
     return (header = header, M = tmp[2:end, :])
 end
 
-function set_ix_array_values!(dest, v::Vector)
+function set_ix_array_values!(dest, v::Vector; T = missing)
+    function convert_t(x)
+        if ismissing(T)
+            out = x
+        else
+            out = T.(x)
+        end
+        return out
+    end
     if length(v) > 0
         sample = v[1]
         if sample isa IXKeyword
             # We have a matrix with headers
             header, M = reshape_ix_matrix(v)
             for (i, h) in enumerate(header)
-                dest[h] = [M[k, i] for k in axes(M, 1)]
+                dest[h] = convert_t([M[k, i] for k in axes(M, 1)])
             end
         else
             sample::IXEqualRecord
@@ -118,7 +130,7 @@ function set_ix_array_values!(dest, v::Vector)
                 if length(v) == 0
                     v = missing
                 end
-                dest[h] = v
+                dest[h] = convert_t(v)
             end
         end
     end
@@ -129,11 +141,11 @@ function set_ix_array_values!(dest, rec::IXEqualRecord)
     return set_ix_array_values!(dest, rec.value)
 end
 
-function get_unit_system_pair(from::Symbol, target::Symbol)
+function get_unit_system_pair(from::Symbol, target::Symbol; kwarg...)
     from_sys = GeoEnergyIO.InputParser.DeckUnitSystem(from)
     target_sys = GeoEnergyIO.InputParser.DeckUnitSystem(target)
     # We have a pair of unit systems to convert between
-    return (from = from_sys, to = target_sys)
+    return (; from = from_sys, to = target_sys, kwarg...)
 end
 
 function find_keyword(x::Vector, kw::String)
@@ -204,25 +216,6 @@ function time_from_record(x, start_time, usys)
     end
 end
 
-function conversion_ix_dict()
-    u = Dict{String, Symbol}()
-
-    # WellDef
-    u["WellBoreRadius"] = :length
-    u["Transmissibility"] = :transmissibility
-    u["Cell"] = :id
-    u["Completion"] = :id
-    u["PenetrationDirection"] = :id
-    u["PiMultiplier"] = :id
-    u["Status"] = :id
-    u["RockRegionName"] = :id
-    u["SegmentNode"] = :id
-    u["Status"] = :id
-    # TODO: Check.
-    u["Skin"] = :id
-    return u
-end
-
 function convert_ix_values!(x::AbstractArray, kw, unit_systems; throw = true, u = conversion_ix_dict())
     if haskey(u, kw)
         utype = u[kw]
@@ -268,10 +261,16 @@ function convert_ix_record(val, unit_systems, unhandled::AbstractDict, ::Val{kw}
         :FaultPropertyEdit,
         :BoxPropertyEdit
     )
+    convert_subrecords_list = (
+        :BlackOilFluidModel,
+    )
+    Main.lastrec[] = val
     if kw in single_equals_list
         val = convert_ix_record_to_dict(val)
     elseif kw in edit_list || endswith("$kw", "Edit")
         val = convert_edit_record(val)
+    elseif kw in convert_subrecords_list
+        val = convert_ix_record_and_subrecords(val, unit_systems, unhandled)
     elseif !(kw in skip_list)
         if haskey(unhandled, kw)
             unhandled[kw] += 1
@@ -340,3 +339,14 @@ function convert_ix_records(vals::AbstractVector, name, unit_systems)
     return out
 end
 
+function convert_ix_record_and_subrecords(x::IXStandardRecord, unit_systems, unhandled::AbstractDict)
+    kw = x.keyword
+    out = Dict{String, Any}(
+        "group" => x.value,
+        "name" => kw
+    )
+    for rec in x.body
+        out[rec.keyword] = convert_ix_record(rec, unit_systems, unhandled, Val(Symbol(rec.keyword)))
+    end
+    return out
+end

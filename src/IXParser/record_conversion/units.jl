@@ -50,7 +50,14 @@ function conversion_ix_dict()
     for k in ["Compressibility", "ViscosityCompressibility", "PoreVolCompressibility"]
         u[k] = :compressibility
     end
-    for k in ["DatumDepth", "WOCDepth", "GOCDepth", "Depth"]
+    for k in [
+            "DatumDepth",
+            "WOCDepth",
+            "GOCDepth",
+            "Depth",
+            "PressureEquivalentRadius",
+            "PermeabilityThickness"
+        ]
         u[k] = :length
     end
     for k in ["Temperature"]

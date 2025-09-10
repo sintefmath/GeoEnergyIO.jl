@@ -5,6 +5,7 @@ include("record_conversion/wells.jl")
 include("record_conversion/grid.jl")
 include("record_conversion/blackoil.jl")
 include("record_conversion/satfun.jl")
+include("record_conversion/equil.jl")
 include("record_conversion/units.jl")
 
 function restructure_and_convert_units_afi(afi;
@@ -254,7 +255,8 @@ function convert_ix_record(val, unit_systems, unhandled::AbstractDict, ::Val{kw}
         :FluidMgr,
         :TimeStepSolution,
         :RegionFamily,
-        :CellActivity
+        :CellActivity,
+        :RockOptions
     )
     edit_list = (
         :CellPropertyEdit,
@@ -361,10 +363,17 @@ function parse_and_convert_numerical_table(x::IXStandardRecord, unit_systems, k 
         "table" => table,
     )
     set_ix_array_values!(table, x.body, T = Float64)
+    convert_dict_entries!(table, unit_systems)
+    return out
+end
+
+function convert_dict_entries!(table, unit_systems)
     upairs = unit_systems.ix_dict
     for (k, v) in pairs(table)
         if v isa AbstractString
             continue
+        elseif v isa IXKeyword
+            v = v.keyword
         end
         u = get(upairs, k, missing)
         if ismissing(u)
@@ -372,12 +381,12 @@ function parse_and_convert_numerical_table(x::IXStandardRecord, unit_systems, k 
             continue
         end
         if v isa Number
-            table[k] = swap_unit_system(v, unit_systems, u)
+            v = swap_unit_system(v, unit_systems, u)
         else
             swap_unit_system!(v, unit_systems, u)
         end
+        table[k] = v
     end
-    return out
 end
 
 function convert_ix_record(x, unit_systems, unhandled::AbstractDict, ::Val{:RockCompressibility})

@@ -6,9 +6,20 @@ struct IXStandardRecord <: AbstractIXRecord
     body::Vector{Any}
 end
 
+function Base.show(io::IO, t::MIME"text/plain", dopt::IXStandardRecord)
+    println(io, "IXStandardRecord with keyword: $(dopt.keyword), value: $(dopt.value), body:")
+    for line in dopt.body
+        Base.show(io, t, line)
+    end
+end
+
 struct IXEqualRecord <: AbstractIXRecord
     keyword::String
     value::Any
+end
+
+function Base.show(io::IO, t::MIME"text/plain", dopt::IXEqualRecord)
+    println(io, "IXEqualRecord: $(dopt.keyword) = $(dopt.value)")
 end
 
 struct IXKeyword <: AbstractIXRecord

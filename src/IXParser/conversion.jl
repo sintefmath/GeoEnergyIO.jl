@@ -301,6 +301,14 @@ function convert_ix_record(val, unit_systems, unhandled::AbstractDict, ::Val{kw}
     return val
 end
 
+function convert_ix_record(val, unit_systems, unhandled::AbstractDict, kw::Symbol)
+    return convert_ix_record(val, unit_systems, unhandled, Val(kw))
+end
+
+function convert_ix_record(val, unit_systems, unhandled::AbstractDict, kw::String)
+    return convert_ix_record(val, unit_systems, unhandled, Symbol(kw))
+end
+
 function convert_edit_record(x::IXStandardRecord)
     out = Dict{String, Any}(
         "group" => x.value,

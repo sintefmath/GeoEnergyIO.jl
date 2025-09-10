@@ -71,6 +71,9 @@ function convert_ix_record(x::IXStandardRecord, unit_systems, unhandled::Abstrac
         elseif rec isa IXFunctionCall
             kw = rec.keyword
             val = convert_function_call(rec, unit_systems, "Well")
+        elseif rec isa IXStandardRecord
+            kw = rec.keyword
+            val = convert_ix_record(rec, unit_systems, unhandled, kw)
         else
             error("Expected IXEqualRecord in Well record body, got $(typeof(rec))")
         end

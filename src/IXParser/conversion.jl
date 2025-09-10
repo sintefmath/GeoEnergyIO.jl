@@ -21,8 +21,8 @@ function restructure_and_convert_units_afi(afi;
 
     model_def_fm = afi["FM"]["MODEL_DEFINITION"]
     fm_ix = findfirst(x -> x.keyword == "FieldManagement", model_def_fm)
-    if !isnothing(sim_ix)
-        fm_rec = start_time_from_record(model_def[sim_ix])
+    if !isnothing(fm_ix)
+        fm_rec = start_time_from_record(model_def_fm[fm_ix])
         if fm_rec != start_time
             @warn "Simulation and FieldManagement start times do not match. IX=$start_time, FM=$fm_rec"
         end
@@ -191,6 +191,7 @@ function month_to_int(m::AbstractString)
 end
 
 function start_time_from_record(x)
+    @info "????" x typeof(x)
     sim_rec = unpack_equals(x.value)
     start_time = DateTime(
         sim_rec["StartYear"],
@@ -246,11 +247,14 @@ function convert_ix_record(val, unit_systems, unhandled::AbstractDict, ::Val{kw}
     skip_list = (
         :Units,
         :Simulation,
+        :FieldManagement,
         :GridMgr,
     )
     single_equals_list = (
         :FluidFlowGrid,
+        :FluidStreamMgr,
         :AllWellDrawdownLimitOptions,
+        :CouplingProperties,
         :GridReport,
         :FluidMgr,
         :TimeStepSolution,
@@ -267,23 +271,28 @@ function convert_ix_record(val, unit_systems, unhandled::AbstractDict, ::Val{kw}
         :BlackOilFluidModel,
     )
     Main.lastrec[] = val
+    kw_as_str = "$kw"
     if kw in single_equals_list
-        val = convert_ix_record_to_dict(val, recurse = false)
-    elseif kw in edit_list || endswith("$kw", "Edit")
+        val = convert_ix_record_to_dict(val, recurse = true)
+    elseif kw in edit_list || endswith(kw_as_str, "Edit")
         val = convert_edit_record(val)
     elseif kw in convert_subrecords_list
         val = convert_ix_record_and_subrecords(val, unit_systems, unhandled)
+        
     elseif !(kw in skip_list)
-        if haskey(unhandled, kw)
-            unhandled[kw] += 1
-        else
-            unhandled[kw] = 1
-        end
+        is_report = endswith(kw_as_str, "Report") || endswith(kw_as_str, "Reports")
+        if !is_report
+            if haskey(unhandled, kw)
+                unhandled[kw] += 1
+            else
+                unhandled[kw] = 1
+            end
 
-        @info "Unhandled $kw" val
-        # @info "!!" val.body
-        error()
-        # println("Unknown IX record with keyword $kw, returning as-is. Units may not be converted, use with care.")
+            @info "Unhandled $kw" val
+            # @info "!!" val.body
+            error()
+            # println("Unknown IX record with keyword $kw, returning as-is. Units may not be converted, use with care.")
+        end
     end
     return val
 end

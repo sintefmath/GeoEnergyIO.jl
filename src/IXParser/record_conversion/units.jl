@@ -8,6 +8,7 @@ function conversion_ix_dict()
 
     for k in [
         "Cell",
+        "SubTableIndex",
         "DataType",
         "Completion",
         "PenetrationDirection",

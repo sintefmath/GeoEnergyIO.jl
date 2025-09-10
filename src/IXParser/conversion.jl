@@ -277,18 +277,23 @@ function convert_ix_record(val, unit_systems, meta, ::Val{kw}) where kw
     elseif !(kw in skip_list)
         is_report = endswith(kw_as_str, "Report") || endswith(kw_as_str, "Reports")
         if !is_report
-            uhandled = meta.unhandled
-            if haskey(uhandled, kw)
-                uhandled[kw] += 1
-            else
-                uhandled[kw] = 1
-            end
-            if meta.strict
-                error("Unhandled keyword $kw: $val. As strict=true, this is an error.")
-            end
+            log_unhandled!(meta, kw)
         end
     end
     return val
+end
+
+function log_unhandled!(meta, kw)
+    kw = Symbol(kw)
+    uhandled = meta.unhandled
+    if haskey(uhandled, kw)
+        uhandled[kw] += 1
+    else
+        uhandled[kw] = 1
+    end
+    if meta.strict
+        error("Unhandled keyword $kw. As strict=true, this is an error.")
+    end
 end
 
 function convert_ix_record(val, unit_systems, meta, kw::Symbol)
@@ -371,7 +376,7 @@ function convert_ix_records(vals::AbstractVector, name, unit_systems; verbose = 
     end
     num_unhandled = length(keys(unhandled))
     if num_unhandled > 0
-        println("$name: Found $num_meta meta IX record types:")
+        println("$name: Found $num_unhandled meta IX record types:")
         for (k, v) in pairs(unhandled)
             if v == 1
                 println("  $k: $v occurence.")

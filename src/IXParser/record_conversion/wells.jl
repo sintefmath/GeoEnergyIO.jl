@@ -24,7 +24,7 @@ function convert_ix_record(x::IXStandardRecord, unit_systems, meta, ::Val{:WellD
         elseif k in ("Undefined", "ResVolConditions", "Functions", "PseudoPressureModel", "AllowCrossFlow", "HeadDensityCalculation")
             # Do nothing
         else
-            @info "Unhandled IX WellDef field $k..."
+            log_unhandled!(meta, k)
         end
     end
     return well

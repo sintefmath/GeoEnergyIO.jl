@@ -1,12 +1,6 @@
 import GeoEnergyIO.InputParser: swap_unit_system, swap_unit_system!, swap_unit_system_axes!
 
-include("record_conversion/meta.jl")
-include("record_conversion/wells.jl")
-include("record_conversion/grid.jl")
-include("record_conversion/blackoil.jl")
-include("record_conversion/satfun.jl")
-include("record_conversion/equil.jl")
-include("record_conversion/units.jl")
+include("record_conversion/record_conversion.jl")
 
 function restructure_and_convert_units_afi(afi;
         units = :si,
@@ -108,7 +102,6 @@ end
 
 function set_ix_array_values!(dest, v::Vector; T = missing)
     convert_t(x::AbstractArray, T::Type) = T.(x)
-    convert_t(x::Number, T::Type) = convert(T, x)
     convert_t(x::Number, T::Type) = convert(T, x)
     # These don't convert
     convert_t(x, ::Missing) = x
@@ -275,7 +268,7 @@ function convert_ix_record(val, unit_systems, unhandled::AbstractDict, ::Val{kw}
     convert_subrecords_list = (
         :BlackOilFluidModel,
     )
-    Main.lastrec[] = val
+    # Main.lastrec[] = val
     kw_as_str = "$kw"
     if kw in single_equals_list
         val = convert_ix_record_to_dict(val, recurse = true)

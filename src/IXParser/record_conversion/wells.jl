@@ -40,7 +40,6 @@ function convert_ix_record(x::IXStandardRecord, unit_systems, unhandled::Abstrac
 end
 
 function convert_ix_record(x::IXStandardRecord, unit_systems, unhandled::AbstractDict, ::Val{:Group})
-    Main.lastrec[] = x
     group_name = x.value
     members = Tuple{String, String}[]
     for rec in x.body
@@ -77,28 +76,4 @@ function convert_ix_record(x::IXStandardRecord, unit_systems, unhandled::Abstrac
         out[kw] = val
     end
     return out
-end
-
-function convert_function_call(fcall::IXFunctionCall, unit_systems, context_kw = missing)
-    kw = fcall.keyword
-    args = fcall.args
-        Main.lastrec[] = fcall
-
-    converted_args = map(arg -> convert_function_argument(arg, unit_systems, context_kw), args)
-    return IXFunctionCall(kw, converted_args)
-end
-
-function convert_function_argument(arg, unit_systems, context_kw = missing)
-    kw = arg.keyword
-    function convert_farg(x::IXKeyword)
-        return x
-    end
-    function convert_farg(x::AbstractString)
-        return x
-    end
-    function convert_farg(x)
-        error("Unhandled function argument type $(typeof(x)) in context $context_kw")
-    end
-
-    return IXEqualRecord(kw, map(convert_farg, arg.value))
 end

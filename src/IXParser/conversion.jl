@@ -250,8 +250,13 @@ function convert_ix_record(val, unit_systems, unhandled::AbstractDict, ::Val{kw}
         :GridMgr,
     )
     single_equals_list = (
+        :Well,
+        :GuideRateBalanceAction,
         :FluidFlowGrid,
         :CustomControl,
+        :ActionSequence,
+        :Strategy,
+        :Expression,
         :FluidStreamMgr,
         :AllWellDrawdownLimitOptions,
         :CouplingProperties,
@@ -320,7 +325,7 @@ function convert_ix_record_to_dict(x::Union{IXEqualRecord, IXStandardRecord}, un
     for rec in dest
         if rec isa IXEqualRecord
             v = rec.value
-        elseif rec isa AbstractString
+        elseif rec isa AbstractString || rec isa IXFunctionCall
             v = rec
         elseif recurse
             v = convert_ix_record_to_dict(rec, unit_systems)

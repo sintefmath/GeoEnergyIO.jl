@@ -250,7 +250,6 @@ function convert_ix_record(val, unit_systems, unhandled::AbstractDict, ::Val{kw}
         :GridMgr,
     )
     single_equals_list = (
-        :Well,
         :GuideRateBalanceAction,
         :FluidFlowGrid,
         :CustomControl,

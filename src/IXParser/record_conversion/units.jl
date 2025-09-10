@@ -17,11 +17,16 @@ function conversion_ix_dict()
     u["Skin"] = :id
     # PVT
     u["Viscosity"] = :viscosity
-    u["Pressure"] = :pressure
-    u["BubblePointPressure"] = :pressure
-    u["OilSurfaceDensity"] = :density
-    u["GasSurfaceDensity"] = :density
-    u["WaterSurfaceDensity"] = :density
+    for k in ["Pressure", "BubblePointPressure", "RefPressure"]
+        u[k] = :pressure
+    end
+
+    for k in ["OilSurfaceDensity", "GasSurfaceDensity", "WaterSurfaceDensity", "SurfaceDensity"]
+        u[k] = :density
+    end
+
+    u["Compressibility"] = :compressibility
+    u["ViscosityCompressibility"] = :compressibility
     u["ConstantSolutionGOR"] = :u_rs
 
     return u

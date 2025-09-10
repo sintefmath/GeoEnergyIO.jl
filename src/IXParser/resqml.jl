@@ -38,7 +38,7 @@ function find_string_by_tag(prop, tag::String)
     return unwrap_single(search_xml_nodes(prop, tag, out = :children), String)
 end
 
-function convert_resqml_props(r)
+function convert_resqml_props(r, unit_systems = missing; verbose = false, strict = false)
     (haskey(r, :epc) && haskey(r, :h5)) || error("RESQML record must have both :epc and :h5 fields.")
     namespace_resqml = r.epc["namespace_resqml20"]
     prop = missing
@@ -69,7 +69,44 @@ function convert_resqml_props(r)
     read_obj = HDF5.read(r.h5["/RESQML/$uuid_obj"])
     if length(keys(read_obj)) == 1
         read_obj = only(values(read_obj))
+        if is_continuous
+            read_obj = convert_resqml_units(read_obj, out["unit"], unit_systems; throw = strict)
+        else
+            # Assume that units only apply for continuous props
+            @assert ismissing(out["unit"])
+        end
+    else
+        @warn "Expected only one dataset in /RESQML/$uuid_obj, got $(keys(read_obj)). Returning all values. No unit conversion will be done."
     end
     out["values"] = read_obj
     return out
 end
+
+function convert_resqml_units(data, unit, ::Missing)
+    return data
+end
+
+function convert_resqml_units(data, unit, unit_systems; throw = true)
+    sys = unit_systems.to
+    unit = lowercase(unit)
+    if unit == "md"
+        v = si_unit(:milli)*si_unit(:darcy)/sys.permeability
+    elseif unit == "euc"
+        v = missing
+    else
+        msg = "Unit conversion for RESQML unit $unit not implemented."
+        if strict
+            error(msg)
+        else
+            @warn msg
+            v = missing
+        end
+    end
+    if ismissing(v)
+        data = map(Float64, data)
+    else
+        data = map(x -> Float64(x)*v, data)
+    end
+    return data
+end
+

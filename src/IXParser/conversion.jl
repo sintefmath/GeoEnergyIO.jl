@@ -37,13 +37,6 @@ function restructure_and_convert_units_afi(afi;
     if verbose
         println("Found $(length(tsteps)) unique time steps in IX and FM sections, starting at $start_time")
     end
-    # out = Dict{String, Any}(
-    #     "wells" => Dict{String, Any}(),
-    #     "schedule" => Dict{String, Any}(),
-    #     "pvtfun" => Dict{String, Any}(),
-    #     "satfun" => Dict{String, Any}(),
-    #     "init" => Dict{String, Any}()
-    # )
 
     parse_arg = (verbose = verbose, strict = strict)
     out =  Dict{String, Any}()
@@ -64,7 +57,7 @@ function restructure_and_convert_units_afi(afi;
     if !ismissing(resqml)
         out["RESQML"] = Dict{String, Any}()
         for r in get(resqml, "props", [])
-            v = convert_resqml_props(r)
+            v = convert_resqml_props(r, unit_systems, verbose = verbose, strict = strict)
             out["RESQML"][v["title"]] = v
         end
     end

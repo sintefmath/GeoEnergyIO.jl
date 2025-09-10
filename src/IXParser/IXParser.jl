@@ -6,6 +6,7 @@ module IXParser
     import XML: children, Node, tag, attributes, value
     import OrderedCollections: OrderedDict
     import Dates: DateTime
+    import Jutul: si_unit
     using GeoEnergyIO
 
     """

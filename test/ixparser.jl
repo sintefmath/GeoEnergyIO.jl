@@ -1,6 +1,7 @@
 using Test
 using GeoEnergyIO
 using Dates
+using Jutul
 
 import GeoEnergyIO.IXParser:
     IXStandardRecord,
@@ -421,8 +422,6 @@ import GeoEnergyIO.IXParser:
             @test is_disc == resqml[k]["is_discrete"]
             @test is_disc == !resqml[k]["is_continuous"]
         end
-        ##
-        using Jutul, GLMakie
         gj = mesh_from_grid_section(setup["IX"]["RESQML"]["GRID"])
 
         @test number_of_cells(gj) == 192750

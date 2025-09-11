@@ -23,3 +23,36 @@ end
 function strip_empty_strings(s::AbstractString)
     return replace(s, " \"\" " => "NONE")
 end
+
+function read_obsh_file(pth)
+    h = open(pth)
+    units = readline(h)
+    date_format = readline(h)
+    data, header = readdlm(h, header = true)
+    new_header = String[]
+    for h in header
+        if h == "DATE"
+            for fmt in date_format
+                if fmt == 'D'
+                    push!(new_header, "DAY")
+                elseif fmt == 'M'
+                    push!(new_header, "MONTH")
+                elseif fmt == 'Y'
+                    push!(new_header, "YEAR")
+                else
+                    error("Unknown date format character $fmt in $date_format")
+                end
+            end
+        elseif h != ""
+            push!(new_header, h)
+        end
+    end
+    close(h)
+    return Dict(
+        "units" => units,
+        "date_format" => date_format,
+        "header" => new_header,
+        "data" => data,
+    )
+end
+

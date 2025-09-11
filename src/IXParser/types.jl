@@ -48,3 +48,8 @@ end
 struct IXArrayEndline <: AbstractIXRecord
 
 end
+
+struct IXRepeatRecord <: AbstractIXRecord
+    count::Int
+    value::Union{Float64, Int}
+end

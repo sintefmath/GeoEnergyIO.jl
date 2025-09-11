@@ -39,9 +39,13 @@ function setup_ix_grammar()
         | tuple
 
     array_type: tuple_type
+        | repeat_float
+        | repeat_int
 
     script: "@{" ANYTHING+ "}@"
     float: SIGNED_FLOAT | FLOAT
+    repeat_float: integer "*" float
+    repeat_int: integer "*" integer
     integer: SIGNED_INT | INT
     string : ESCAPED_STRING
     bare_string: NAME | ESCAPED_STRING_SINGLE
@@ -206,6 +210,12 @@ function parse_ix_script(a)
     return a
 end
 
+function parse_repeat(a; T = Float64)
+    n, v = a
+    n = convert(Int, n)
+    v = convert(T, v)
+    return IXRepeatRecord(n, v)
+end
 
 @inline_rule float(t::IXTransformer,n) = Base.parse(Float64, n)
 @inline_rule integer(t::IXTransformer,n) = Base.parse(Int, n)
@@ -233,6 +243,9 @@ end
 @rule extension_record(t::IXTransformer, a) = IXExtensionRecord(only(a))
 @rule tuple(t::IXTransformer, a) = convert_ix_tuple(a)
 @rule script(t::IXTransformer, a) = parse_ix_script(a)
+
+@rule repeat_float(t::IXTransformer, a) = parse_repeat(a; T = Float64)
+@rule repeat_int(t::IXTransformer, a) = parse_repeat(a; T = Int)
 
 @rule t(t::IXTransformer, _) = true
 @rule f(t::IXTransformer, _) = false

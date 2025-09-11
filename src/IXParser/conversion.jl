@@ -61,11 +61,29 @@ function restructure_and_convert_units_afi(afi;
     end
     resqml = get(afi["IX"], "RESQML", missing)
     if !ismissing(resqml)
-        out["RESQML"] = Dict{String, Any}()
-        for r in get(resqml, "props", [])
-            v = convert_resqml_props(r, unit_systems, verbose = verbose, strict = strict)
-            out["RESQML"][v["title"]] = v
+        out["IX"]["RESQML"] = convert_resqml(resqml, unit_systems, verbose = verbose, strict = strict)
+    end
+    return out
+end
+
+function convert_resqml(resqml, unit_systems; verbose = false, strict = false)
+    out = Dict{String, Any}()
+    for r in get(resqml, "props", [])
+        v = convert_resqml_props(r, unit_systems, verbose = verbose, strict = strict)
+        out[v["title"]] = v
+    end
+    geom_and_props = get(resqml, "geom_and_props", [])
+    for (i, g) in enumerate(geom_and_props)
+        if i == 1
+            t = "GRID"
+            actnum = get(out, "ACTIVE_CELL_FLAG", missing)
+            v = convert_to_grid_section(read(g.h5), actnum)
+        else
+            # No idea if this actually happens in practice...
+            t = "geom_and_props_$i"
+            v = g
         end
+        out[t] = v
     end
     return out
 end

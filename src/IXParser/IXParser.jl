@@ -7,6 +7,7 @@ module IXParser
     import OrderedCollections: OrderedDict
     import Dates: DateTime
     import Jutul: si_unit
+    import GeoEnergyIO.RESQML: convert_to_grid_section
     using GeoEnergyIO
 
     # Well completion flags

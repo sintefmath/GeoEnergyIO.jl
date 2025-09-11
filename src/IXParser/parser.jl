@@ -29,7 +29,13 @@ function read_ix_include_file!(dest, include_pth, options; verbose = false, stri
     end
 end
 
-function read_ixf_file!(dest, include_pth, options; kwarg...)
+function read_ixf_file(include_pth, arg...; kwarg...)
+    dest = Dict{String, Any}()
+    read_ixf_file!(dest, include_pth, arg...; kwarg...)
+    return dest
+end
+
+function read_ixf_file!(dest, include_pth, options = missing; kwarg...)
     basepath = splitdir(include_pth)[1]
     parsed = parse_ix_file(include_pth)
     process_records!(dest, parsed.children, basepath; kwarg...)

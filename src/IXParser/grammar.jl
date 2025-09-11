@@ -66,7 +66,7 @@ function setup_ix_grammar()
     function_call: NAME "(" [inner_record (inner_record)*] ")"
 
     COMMENT: /#+.*/
-    NAME: /[A-Za-z_][A-Za-z0-9_\-]*/
+    NAME: /[A-Za-z_][A-Za-z0-9_\.\-]*/
     ANYTHING: /.+/
 
     _STRING_INNER: /.*?/

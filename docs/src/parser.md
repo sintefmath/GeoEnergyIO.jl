@@ -1,6 +1,8 @@
 
 # Parsing of simulation cases
 
+## Parsing of .DATA files
+
 The most significant feature of this module is a parser for .DATA reservoir
 simulation cases. The format originated with the Eclipse reservoir simulator
 produced by SLB and is now used by many reservoir simulators. The most useful
@@ -19,7 +21,7 @@ spe1_pth = GeoEnergyIO.test_input_file_path("SPE1", "SPE1.DATA")
 spe1 = parse_data_file(spe1_pth)
 ```
 
-## Handling unsupported keywords
+### Handling unsupported keywords
 
 Not all keywords are supported by the parser, but not all keywords are important. The input format is such that it is difficult to automatically skip keywords, but you an manually add keywords to the skip list:
 
@@ -44,4 +46,19 @@ GeoEnergyIO.InputParser.skip_kw!(:MY_DATA_KW, 1)
 # "even more data" 1 9 /
 # /
 GeoEnergyIO.InputParser.skip_kw!(:MY_LONG_DATA_KW, Inf)
+```
+
+## Parsing of .afi files and RESQML
+
+The package includes experimental support for reading the .afi file format used by IX, as well as RESQML files for the dense data. Files that make use of .gsg files for input is not yet supported, but will parse the remainder of the .afi/ixf files.
+
+```@docs
+GeoEnergyIO.IXParser.read_afi_file
+```
+
+This function is currently unexported and subject to change. To import:
+
+```julia
+import GeoEnergyIO.IXParser: read_afi_file, parse_epc_info
+afi = read_afi_file("path/to/file.afi", verbose = false)
 ```

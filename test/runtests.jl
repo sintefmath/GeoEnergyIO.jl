@@ -238,3 +238,5 @@ import Jutul: number_of_cells, number_of_boundary_faces, number_of_faces, conver
         @test number_of_cells(m) == (nx-1)*(ny-1)*(l1 + l2) - l1 - l2
     end
 end
+
+include("ixparser.jl")

@@ -188,6 +188,9 @@ function process_records!(dest, recs::Vector, basepath; verbose = true, strict =
                 end
                 current_section = dest[kw]
             elseif kw in ("DATE", "TIME")
+                if !haskey(dest, "STEPS")
+                    dest["STEPS"] = OrderedDict{String, Any}()
+                end
                 if !haskey(dest["STEPS"], rec)
                     dest["STEPS"][rec] = []
                 end

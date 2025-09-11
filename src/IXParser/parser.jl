@@ -189,7 +189,9 @@ function process_records!(dest, recs::Vector, basepath; verbose = true, strict =
                 current_section = dest[kw]
             elseif kw in ("DATE", "TIME")
                 if !haskey(dest, "STEPS")
-                    dest["STEPS"] = OrderedDict{String, Any}()
+                    # This means that we are parsing a file standalone, use a
+                    # wide key definition just in case.
+                    dest["STEPS"] = OrderedDict{Any, Any}()
                 end
                 if !haskey(dest["STEPS"], rec)
                     dest["STEPS"][rec] = []

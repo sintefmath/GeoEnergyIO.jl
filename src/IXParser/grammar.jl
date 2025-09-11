@@ -171,12 +171,47 @@ function convert_ix_bare_string(s)
     end
 end
 
+function expand_repeats!(dest, x::IXRepeatRecord)
+
+end
+
+
 function convert_ix_array(a; is_named::Bool)
+    kw = to_string(a[1])
     if is_named
-        return IXStandardRecord(to_string(a[1]), to_string(a[2]), a[3:end])
+        val = to_string(a[2])
+        el_start = 3
     else
-        return IXEqualRecord(to_string(a[1]), Array(a[2:end]))
+        el_start = 2
     end
+
+    els = Any[]
+    prev_type = missing
+    for i in el_start:length(a)
+        v = a[i]
+        if v isa IXRepeatRecord
+            for _ in 1:v.count
+                push!(els, v.value)
+            end
+        else
+            push!(els, v)
+        end
+        current_type = typeof(els[end])
+        if ismissing(prev_type)
+            prev_type = current_type
+        elseif current_type != prev_type
+            prev_type = Any
+        end
+    end
+    if prev_type != Any
+        els = convert(Vector{prev_type}, els)
+    end
+    if is_named
+        out = IXStandardRecord(kw, val, els)
+    else
+        out = IXEqualRecord(kw, els)
+    end
+    return out
 end
 
 function convert_ix_ijk_tuple(a)

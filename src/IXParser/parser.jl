@@ -157,6 +157,9 @@ function process_records!(dest, recs::Vector, basepath; verbose = true, strict =
     msg(x) = verbose && println(x)
 
     # Just in case...
+    if !haskey(dest, "MODEL_DEFINITION")
+        dest["MODEL_DEFINITION"] = Any[]
+    end
     current_section = dest["MODEL_DEFINITION"]
     for rec in recs
         if rec isa IXIncludeRecord
@@ -174,6 +177,9 @@ function process_records!(dest, recs::Vector, basepath; verbose = true, strict =
         else
             kw = rec.keyword
             if kw in ("START", "MODEL_DEFINITION")
+                if !haskey(dest, kw)
+                    dest[kw] = Any[]
+                end
                 current_section = dest[kw]
             elseif kw in ("DATE", "TIME")
                 if !haskey(dest["STEPS"], rec)

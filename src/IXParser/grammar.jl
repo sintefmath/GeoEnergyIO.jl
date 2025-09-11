@@ -54,7 +54,7 @@ function setup_ix_grammar()
     named_array : NAME string "[" [array_type ( array_type)*] "]"
     bare_array: "[" array_type (array_type)* "]"
     full_record: NAME string "{"  (inner_record)* "}"
-    equal_record: NAME "=" (value | function_call)
+    equal_record: NAME bare_array? "=" (value | function_call)
     anon_record: NAME "{" (inner_record)* "}"
     string_record: NAME string
     include_record: "INCLUDE" string include_param*
@@ -128,7 +128,15 @@ function to_string(x)
 end
 
 function convert_ix_equal_record(a)
-    return IXEqualRecord(to_string(a[1]), a[2])
+    N = length(a)
+    kw = to_string(a[1])
+    if N == 3
+        out = IXAssignmentRecord(kw, only(a[2]), a[3])
+    else
+        @assert N == 2
+        out = IXEqualRecord(kw, a[2])
+    end
+    return out
 end
 
 function convert_ix_record(a)

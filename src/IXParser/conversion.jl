@@ -129,6 +129,9 @@ function set_ix_array_values!(dest, v::Vector; T = missing)
     convert_t(x::AbstractString, ::Type) = x
 
     if length(v) > 0
+        pos = findfirst(x -> !(x isa IXArrayEndline), v)
+        !isnothing(pos) || error("No non-endline entry found in array, cannot set values.")
+        v = v[pos:end]
         sample = v[1]
         if sample isa IXKeyword
             # We have a matrix with headers

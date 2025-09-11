@@ -396,6 +396,39 @@ import GeoEnergyIO.IXParser:
         new_text = GeoEnergyIO.IXParser.replace_square_bracketed_newlines(text, "")
         @test new_text == text
 
+        # Multiple entries in standard record
+        teststr = """
+        Well "Well1" "Well1"  "Well2" "Well3" {
+            HistoricalControlModes=[RES_VOLUME_INJECTION_RATE]
+            AutomaticClosureBehavior=ALL_COMPLETIONS_SHUTIN
+            Status=ALL_COMPLETIONS_SHUTIN 
+            Type= WATER_INJECTOR 
+            Status = OPEN
+        }
+        """
+
+        s = GeoEnergyIO.IXParser.parse_ix_record(teststr)
+
+        @test s.value == ["Well1", "Well1", "Well2", "Well3"]
+        @test s.body[1] isa GeoEnergyIO.IXParser.IXEqualRecord
+        @test s.body[1].keyword == "HistoricalControlModes"
+        # Check pathological group with no spaces
+        teststr = """
+        Well "Well1"	"Well1"  "Well2""Well3"	 {
+            HistoricalControlModes=[RES_VOLUME_INJECTION_RATE]
+            AutomaticClosureBehavior=ALL_COMPLETIONS_SHUTIN
+            Status=ALL_COMPLETIONS_SHUTIN 
+            Type= WATER_INJECTOR 
+            Status = OPEN
+        }
+        """
+
+        s = GeoEnergyIO.IXParser.parse_ix_record(teststr)
+
+        @test s.value == ["Well1", "Well1", "Well2", "Well3"]
+        @test s.body[1] isa GeoEnergyIO.IXParser.IXEqualRecord
+        @test s.body[1].keyword == "HistoricalControlModes"
+
         @testset "assignment" begin
             teststr = """
             WellDef "WNAME" {         

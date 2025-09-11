@@ -15,3 +15,11 @@ function replace_square_bracketed_newlines(s, replacement=" NEWLINE ")
     str *= s[start:end]
     return str
 end
+
+function strip_comments(s::AbstractString)
+    return replace(s, r"#.*" => "")
+end
+
+function strip_empty_strings(s::AbstractString)
+    return replace(s, " \"\" " => "NONE")
+end

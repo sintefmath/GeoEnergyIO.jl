@@ -90,7 +90,8 @@ end
 const IX_ENDLINE = raw"IX_ENDLINE"
 
 function parse_ix_record(s::AbstractString, grammar = setup_ix_grammar())
-    s = replace(s, " \"\" " => "NONE")
+    s = strip_empty_strings(s)
+    s = strip_comments(s)
     s = replace_square_bracketed_newlines(s, " $IX_ENDLINE ")
     return Lerche.parse(grammar, s)
 end

@@ -59,6 +59,25 @@ GeoEnergyIO.IXParser.read_afi_file
 This function is currently unexported and subject to change. To import:
 
 ```julia
-import GeoEnergyIO.IXParser: read_afi_file, parse_epc_info
-afi = read_afi_file("path/to/file.afi", verbose = false)
+import GeoEnergyIO.IXParser: read_afi_file
+afi = read_afi_file("path/to/file.afi")
+```
+
+As an example, we can parse and convert the a OLYMPUS realization from the test suite, process it as a corner-point mesh, and plot the porosity.
+
+```@example afi_olympus
+using Jutul, GeoEnergyIO, GLMakie
+import GeoEnergyIO.IXParser: read_afi_file
+fn = GeoEnergyIO.test_input_file_path("OLYMPUS_25_AFI_RESQML", "OLYMPUS_25.afi")
+# Set the convert flag to convert data into "processed" format with converted units and keywords that can more easily be fed to other functions:
+setup = read_afi_file(fn, convert = true)
+```
+
+```@example afi_olympus
+grid_sec = setup["IX"]["RESQML"]["GRID"]
+g = mesh_from_grid_section(grid_sec)
+poro = vec(setup["IX"]["RESQML"]["POROSITY"]["values"])
+actnum = vec(grid_sec["ACTNUM"])
+fig, ax, plt = plot_cell_data(g, poro[actnum])
+fig
 ```

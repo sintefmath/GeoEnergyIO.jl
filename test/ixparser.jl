@@ -1,5 +1,6 @@
 using Test
 using GeoEnergyIO
+using Dates
 
 import GeoEnergyIO.IXParser:
     IXStandardRecord,
@@ -9,8 +10,9 @@ import GeoEnergyIO.IXParser:
     IXSimulationRecord,
     IXIncludeRecord,
     IXExtensionRecord,
-    parse_ix_record
-
+    parse_ix_record,
+    read_afi_file,
+    restructure_and_convert_units_afi
 
 @testset "IXParser" begin
     teststr = """
@@ -392,6 +394,45 @@ import GeoEnergyIO.IXParser:
 
         new_text = GeoEnergyIO.IXParser.replace_square_bracketed_newlines(text, "")
         @test new_text == text
+    end
+
+    @testset "SPE9" begin
+        fn = GeoEnergyIO.test_input_file_path("SPE9_AFI_GSG", "SPE9_clean_split.afi")
+        setup = read_afi_file(fn, verbose = false, convert = true)
+        # Check that we have 91 times defined (=90 timesteps)
+        @test length(setup["FM"]["STEPS"]) == 91
+        # Check that all timesteps are 10 days
+        steps = collect(keys(setup["FM"]["STEPS"]))
+        dt = map(x -> x.value, diff(steps))
+        @test all(dt .≈ 864000000)
+    end
+
+    @testset "OLYMPUS_25" begin
+        fn = GeoEnergyIO.test_input_file_path("OLYMPUS_25_AFI_RESQML", "OLYMPUS_25.afi")
+        setup = read_afi_file(fn, verbose = false, convert = true)
+        # Check that we have 241 times defined (=240 timesteps)
+        @test length(setup["FM"]["STEPS"]) == 241
+
+        resqml = setup["IX"]["RESQML"]
+        for k in ["ACTIVE_CELL_FLAG", "NET_TO_GROSS_RATIO", "POROSITY", "SATURATION_FUNCTION_DRAINAGE_TABLE_NO", "PERM_I", "PERM_J", "PERM_K"]
+            @test haskey(resqml, k)
+            @test size(resqml[k]["values"]) == (118, 181, 16)
+            is_disc = k in ["ACTIVE_CELL_FLAG", "SATURATION_FUNCTION_DRAINAGE_TABLE_NO"]
+            @test is_disc == resqml[k]["is_discrete"]
+            @test is_disc == !resqml[k]["is_continuous"]
+        end
+        ##
+        using Jutul, GLMakie
+        gj = mesh_from_grid_section(setup["IX"]["RESQML"]["GRID"])
+
+        @test number_of_cells(gj) == 192750
+        @test number_of_faces(gj) == 552227
+        @test number_of_boundary_faces(gj) == 63773
+
+        geo = Jutul.tpfv_geometry(gj)
+        @test all(geo.volumes .> 0.0)
+        @test all(geo.areas .> 0.0)
+        @test all(geo.boundary_areas .> 0.0)
     end
 end
 

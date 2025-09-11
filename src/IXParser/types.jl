@@ -2,7 +2,7 @@ abstract type AbstractIXRecord end
 
 struct IXStandardRecord <: AbstractIXRecord
     keyword::String
-    value::String
+    value::Union{String, Vector{String}}
     body::Vector{Any}
 end
 
@@ -15,6 +15,12 @@ end
 
 struct IXEqualRecord <: AbstractIXRecord
     keyword::String
+    value::Any
+end
+
+struct IXAssignmentRecord <: AbstractIXRecord
+    keyword::String
+    index::Int
     value::Any
 end
 
@@ -47,4 +53,9 @@ end
 
 struct IXArrayEndline <: AbstractIXRecord
 
+end
+
+struct IXRepeatRecord <: AbstractIXRecord
+    count::Int
+    value::Union{Float64, Int}
 end

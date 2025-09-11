@@ -5,6 +5,7 @@ module IXParser
     import ZipArchives
     import XML: children, Node, tag, attributes, value
     import OrderedCollections: OrderedDict
+    import DelimitedFiles: readdlm
     import Dates: DateTime
     import Jutul: si_unit
     import GeoEnergyIO.RESQML: convert_to_grid_section

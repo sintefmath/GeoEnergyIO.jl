@@ -29,7 +29,13 @@ function read_ix_include_file!(dest, include_pth, options; verbose = false, stri
     end
 end
 
-function read_ixf_file!(dest, include_pth, options; kwarg...)
+function read_ixf_file(include_pth, arg...; kwarg...)
+    dest = Dict{String, Any}()
+    read_ixf_file!(dest, include_pth, arg...; kwarg...)
+    return dest
+end
+
+function read_ixf_file!(dest, include_pth, options = missing; kwarg...)
     basepath = splitdir(include_pth)[1]
     parsed = parse_ix_file(include_pth)
     process_records!(dest, parsed.children, basepath; kwarg...)
@@ -157,6 +163,9 @@ function process_records!(dest, recs::Vector, basepath; verbose = true, strict =
     msg(x) = verbose && println(x)
 
     # Just in case...
+    if !haskey(dest, "MODEL_DEFINITION")
+        dest["MODEL_DEFINITION"] = Any[]
+    end
     current_section = dest["MODEL_DEFINITION"]
     for rec in recs
         if rec isa IXIncludeRecord
@@ -174,8 +183,16 @@ function process_records!(dest, recs::Vector, basepath; verbose = true, strict =
         else
             kw = rec.keyword
             if kw in ("START", "MODEL_DEFINITION")
+                if !haskey(dest, kw)
+                    dest[kw] = Any[]
+                end
                 current_section = dest[kw]
             elseif kw in ("DATE", "TIME")
+                if !haskey(dest, "STEPS")
+                    # This means that we are parsing a file standalone, use a
+                    # wide key definition just in case.
+                    dest["STEPS"] = OrderedDict{Any, Any}()
+                end
                 if !haskey(dest["STEPS"], rec)
                     dest["STEPS"][rec] = []
                 end

@@ -395,6 +395,135 @@ import GeoEnergyIO.IXParser:
 
         new_text = GeoEnergyIO.IXParser.replace_square_bracketed_newlines(text, "")
         @test new_text == text
+
+        # Multiple entries in standard record
+        teststr = """
+        Well "Well1" "Well1"  "Well2" "Well3" {
+            HistoricalControlModes=[RES_VOLUME_INJECTION_RATE]
+            AutomaticClosureBehavior=ALL_COMPLETIONS_SHUTIN
+            Status=ALL_COMPLETIONS_SHUTIN 
+            Type= WATER_INJECTOR 
+            Status = OPEN
+        }
+        """
+
+        s = GeoEnergyIO.IXParser.parse_ix_record(teststr)
+
+        @test s.value == ["Well1", "Well1", "Well2", "Well3"]
+        @test s.body[1] isa GeoEnergyIO.IXParser.IXEqualRecord
+        @test s.body[1].keyword == "HistoricalControlModes"
+        # Check pathological group with no spaces
+        teststr = """
+        Well "Well1"	"Well1"  "Well2""Well3"	 {
+            HistoricalControlModes=[RES_VOLUME_INJECTION_RATE]
+            AutomaticClosureBehavior=ALL_COMPLETIONS_SHUTIN
+            Status=ALL_COMPLETIONS_SHUTIN 
+            Type= WATER_INJECTOR 
+            Status = OPEN
+        }
+        """
+
+        s = GeoEnergyIO.IXParser.parse_ix_record(teststr)
+
+        @test s.value == ["Well1", "Well1", "Well2", "Well3"]
+        @test s.body[1] isa GeoEnergyIO.IXParser.IXEqualRecord
+        @test s.body[1].keyword == "HistoricalControlModes"
+
+        @testset "assignment" begin
+            teststr = """
+            WellDef "WNAME" {         
+                WellToCellConnections { 
+                    Status[1]=OPEN  
+                    PiMultiplier[1]=1.0  
+                    Status[2]=OPEN  
+                    PiMultiplier[2]=1.0  
+                }
+                AllowCrossFlow=TRUE
+            }
+            """
+
+            s = GeoEnergyIO.IXParser.parse_ix_record(teststr)
+            @test s isa GeoEnergyIO.IXParser.IXStandardRecord
+            @test s.keyword == "WellDef"
+            @test s.value == "WNAME"
+            @test length(s.body) == 2
+            @test s.body[1] isa GeoEnergyIO.IXParser.IXEqualRecord
+            @test s.body[1].keyword == "WellToCellConnections"
+            @test s.body[1].value[1] == GeoEnergyIO.IXParser.IXAssignmentRecord("Status", 1, GeoEnergyIO.IXParser.IX_OPEN)
+            @test s.body[1].value[2] == GeoEnergyIO.IXParser.IXAssignmentRecord("PiMultiplier", 1, 1.0)
+            @test s.body[1].value[3] == GeoEnergyIO.IXParser.IXAssignmentRecord("Status", 2, GeoEnergyIO.IXParser.IX_OPEN)
+            @test s.body[1].value[4] == GeoEnergyIO.IXParser.IXAssignmentRecord("PiMultiplier", 2, 1.0)
+
+            @test s.body[2] isa GeoEnergyIO.IXParser.IXEqualRecord
+            @test s.body[2].keyword == "AllowCrossFlow"
+            @test s.body[2].value == true
+        end
+
+        @testset "repeats" begin
+            teststr = """
+            StraightPillarGrid "CoarseGrid" {
+                Units="ECLIPSE_FIELD"
+                DeltaX = [
+                    1.0 1.0 1.0 1.0 1.0
+                ]
+                CellDoubleProperty "PERM_I" {
+                    Values=[ 0.1 0.1 0.1 0.1 0.1]
+                }
+            }
+            """
+            function test_repeat_kw(x)
+                @test x isa GeoEnergyIO.IXParser.IXStandardRecord
+                @test x.keyword == "StraightPillarGrid"
+                @test x.value == "CoarseGrid"
+                @test length(x.body) == 3
+                @test x.body[1] isa GeoEnergyIO.IXParser.IXEqualRecord
+                @test x.body[1].keyword == "Units"
+                @test x.body[1].value == "ECLIPSE_FIELD"
+                @test x.body[2] isa GeoEnergyIO.IXParser.IXEqualRecord
+                @test x.body[2].keyword == "DeltaX"
+                @test x.body[2].value[1:5] == [1.0, 1.0, 1.0, 1.0, 1.0]
+                @test x.body[3] isa GeoEnergyIO.IXParser.IXStandardRecord
+                @test x.body[3].keyword == "CellDoubleProperty"
+                @test x.body[3].value == "PERM_I"
+                @test length(x.body[3].body) == 1
+                @test x.body[3].body[1] isa GeoEnergyIO.IXParser.IXEqualRecord
+                @test x.body[3].body[1].keyword == "Values"
+                @test x.body[3].body[1].value[1:5] == [0.1, 0.1, 0.1, 0.1, 0.1]
+            end
+
+
+            s1 = GeoEnergyIO.IXParser.parse_ix_record(teststr)
+            test_repeat_kw(s1)
+
+            teststr = """
+            StraightPillarGrid "CoarseGrid" {
+                Units="ECLIPSE_FIELD"
+                DeltaX = [
+                    1.0 1.0 1.0 1.0 1.0
+                ]
+                CellDoubleProperty "PERM_I" {
+                    Values=[ 0.1 3*0.1 0.1]
+                }
+            }
+            """
+
+            s2 = GeoEnergyIO.IXParser.parse_ix_record(teststr)
+            test_repeat_kw(s2)
+
+            teststr = """
+            StraightPillarGrid "CoarseGrid" {
+                Units="ECLIPSE_FIELD"
+                DeltaX = [
+                    1.0 1.0 1.0 1.0 1.0
+                ]
+                CellDoubleProperty "PERM_I" {
+                    Values=[ 5*0.1]
+                }
+            }
+            """
+            s3 = GeoEnergyIO.IXParser.parse_ix_record(teststr)
+            test_repeat_kw(s3)
+        end
     end
 
     @testset "SPE9" begin

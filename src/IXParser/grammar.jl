@@ -53,10 +53,10 @@ function setup_ix_grammar()
     array  : NAME "[" [array_type ( array_type)*] "]"
     named_array : NAME string "[" [array_type ( array_type)*] "]"
     bare_array: "[" array_type (array_type)* "]"
-    full_record: NAME string "{"  (inner_record)* "}"
+    string_record: NAME string+
+    full_record: string_record "{"  (inner_record)* "}"
     equal_record: NAME bare_array? "=" (value | function_call)
     anon_record: NAME "{" (inner_record)* "}"
-    string_record: NAME string
     include_record: "INCLUDE" string include_param*
     extension_record: "EXTENSION" string include_param*
     simulation_record: ("Simulation" (full_record | anon_record)) | "Simulation" "{" inner_record (inner_record)* "}"
@@ -140,7 +140,8 @@ function convert_ix_equal_record(a)
 end
 
 function convert_ix_record(a)
-    return IXStandardRecord(to_string(a[1]), to_string(a[2]), a[3:end])
+    start = a[1]::IXEqualRecord
+    return IXStandardRecord(start.keyword, start.value, a[2:end])
 end
 
 function convert_ix_anon_record(a)
@@ -177,10 +178,6 @@ function convert_ix_bare_string(s)
     else
         return IXKeyword(s)
     end
-end
-
-function expand_repeats!(dest, x::IXRepeatRecord)
-
 end
 
 function convert_ix_array(a; is_named::Bool)
@@ -252,6 +249,16 @@ function convert_ix_tuple(a)
     return Tuple(a)
 end
 
+function convert_ix_string_record(a)
+    kw = to_string(a[1])
+    if length(a) == 2
+        g = to_string(a[2])
+    else
+        g = map(to_string, a[2:end])
+    end
+    return IXEqualRecord(kw, g)
+end
+
 function parse_ix_script(a)
     return a
 end
@@ -277,7 +284,9 @@ end
 @rule equal_record(t::IXTransformer, a) = convert_ix_equal_record(a)
 @rule inner_record(t::IXTransformer, a) = convert_ix_inner_record(a)
 # We just alias this one...
-@rule string_record(t::IXTransformer, a) = IXEqualRecord(to_string(a[1]), to_string(a[2]))
+# @rule string_record(t::IXTransformer, a) = IXEqualRecord(to_string(a[1]), to_string(a[2]))
+@rule string_record(t::IXTransformer, a) = convert_ix_string_record(a)
+
 @rule anon_record(t::IXTransformer, a) = convert_ix_anon_record(a)
 @rule bare_string(t::IXTransformer, a) = convert_ix_bare_string(a)
 @rule string(t::IXTransformer, a) = to_string(only(a))

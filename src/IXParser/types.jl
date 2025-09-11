@@ -2,7 +2,7 @@ abstract type AbstractIXRecord end
 
 struct IXStandardRecord <: AbstractIXRecord
     keyword::String
-    value::String
+    value::Union{String, Vector{String}}
     body::Vector{Any}
 end
 

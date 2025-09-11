@@ -140,15 +140,27 @@ function set_ix_array_values!(dest, v::Vector; T = missing)
                 dest[h] = convert_t([M[k, i] for k in axes(M, 1)], T)
             end
         else
-            sample::IXEqualRecord
             # We have multiple bare arrays assigning values
             for (i, er) in enumerate(v)
                 h = er.keyword
-                v = er.value
-                if length(v) == 0
-                    v = missing
+                if er isa IXAssignmentRecord
+                    dest_h = get(dest, h, missing)
+                    ix = er.index
+                    insert_val = convert_t(er.value, T)
+                    if ismissing(dest_h)
+                        dest_h = dest[h] = Vector{typeof(insert_val)}(undef, ix)
+                    end
+                    if length(dest_h) < ix
+                        resize!(dest_h, ix)
+                    end
+                    dest_h[ix] = convert_t(er.value, T)
+                else
+                    v = er.value
+                    if length(v) == 0
+                        v = missing
+                    end
+                    dest[h] = convert_t(v, T)
                 end
-                dest[h] = convert_t(v, T)
             end
         end
     end

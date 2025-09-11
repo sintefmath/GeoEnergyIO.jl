@@ -175,7 +175,6 @@ function expand_repeats!(dest, x::IXRepeatRecord)
 
 end
 
-
 function convert_ix_array(a; is_named::Bool)
     kw = to_string(a[1])
     if is_named
@@ -184,10 +183,19 @@ function convert_ix_array(a; is_named::Bool)
     else
         el_start = 2
     end
+    els = expand_ix_array(a; start = el_start)
+    if is_named
+        out = IXStandardRecord(kw, val, els)
+    else
+        out = IXEqualRecord(kw, els)
+    end
+    return out
+end
 
+function expand_ix_array(a; start::Int = 1)
     els = Any[]
     prev_type = missing
-    for i in el_start:length(a)
+    for i in start:length(a)
         v = a[i]
         if v isa IXRepeatRecord
             for _ in 1:v.count
@@ -206,12 +214,7 @@ function convert_ix_array(a; is_named::Bool)
     if prev_type != Any
         els = convert(Vector{prev_type}, els)
     end
-    if is_named
-        out = IXStandardRecord(kw, val, els)
-    else
-        out = IXEqualRecord(kw, els)
-    end
-    return out
+    return els
 end
 
 function convert_ix_ijk_tuple(a)
@@ -259,6 +262,7 @@ end
 
 @rule array(t::IXTransformer, a) = convert_ix_array(a; is_named = false)
 @rule named_array(t::IXTransformer, a) = convert_ix_array(a; is_named = true)
+@rule bare_array(t::IXTransformer, a) = expand_ix_array(a, start = 1)
 
 @rule keyword(t::IXTransformer, a) = to_string(a)
 @rule full_record(t::IXTransformer, a) = convert_ix_record(a)
@@ -271,7 +275,6 @@ end
 @rule string(t::IXTransformer, a) = to_string(only(a))
 @rule empty_array(t::IXTransformer, _) = []
 @rule function_call(t::IXTransformer, a) = IXFunctionCall(to_string(a[1]), a[2:end])
-@rule bare_array(t::IXTransformer, a) = a
 @rule include_param(t::IXTransformer, a) = convert_ix_include_param(a)
 @rule include_record(t::IXTransformer, a) = convert_ix_include_record(a)
 @rule simulation_record(t::IXTransformer, a) = convert_ix_simulation_record(a)

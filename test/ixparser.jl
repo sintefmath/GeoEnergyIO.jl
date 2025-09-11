@@ -395,6 +395,72 @@ import GeoEnergyIO.IXParser:
 
         new_text = GeoEnergyIO.IXParser.replace_square_bracketed_newlines(text, "")
         @test new_text == text
+
+        @testset "repeats" begin
+            teststr = """
+            StraightPillarGrid "CoarseGrid" {
+                Units="ECLIPSE_FIELD"
+                DeltaX = [
+                    1.0 1.0 1.0 1.0 1.0
+                ]
+                CellDoubleProperty "PERM_I" {
+                    Values=[ 0.1 0.1 0.1 0.1 0.1]
+                }
+            }
+            """
+            function test_repeat_kw(x)
+                @test x isa GeoEnergyIO.IXParser.IXStandardRecord
+                @test x.keyword == "StraightPillarGrid"
+                @test x.value == "CoarseGrid"
+                @test length(x.body) == 3
+                @test x.body[1] isa GeoEnergyIO.IXParser.IXEqualRecord
+                @test x.body[1].keyword == "Units"
+                @test x.body[1].value == "ECLIPSE_FIELD"
+                @test x.body[2] isa GeoEnergyIO.IXParser.IXEqualRecord
+                @test x.body[2].keyword == "DeltaX"
+                @test x.body[2].value[1:5] == [1.0, 1.0, 1.0, 1.0, 1.0]
+                @test x.body[3] isa GeoEnergyIO.IXParser.IXStandardRecord
+                @test x.body[3].keyword == "CellDoubleProperty"
+                @test x.body[3].value == "PERM_I"
+                @test length(x.body[3].body) == 1
+                @test x.body[3].body[1] isa GeoEnergyIO.IXParser.IXEqualRecord
+                @test x.body[3].body[1].keyword == "Values"
+                @test x.body[3].body[1].value[1:5] == [0.1, 0.1, 0.1, 0.1, 0.1]
+            end
+
+
+            s1 = GeoEnergyIO.IXParser.parse_ix_record(teststr)
+            test_repeat_kw(s1)
+
+            teststr = """
+            StraightPillarGrid "CoarseGrid" {
+                Units="ECLIPSE_FIELD"
+                DeltaX = [
+                    1.0 1.0 1.0 1.0 1.0
+                ]
+                CellDoubleProperty "PERM_I" {
+                    Values=[ 0.1 3*0.1 0.1]
+                }
+            }
+            """
+
+            s2 = GeoEnergyIO.IXParser.parse_ix_record(teststr)
+            test_repeat_kw(s2)
+
+            teststr = """
+            StraightPillarGrid "CoarseGrid" {
+                Units="ECLIPSE_FIELD"
+                DeltaX = [
+                    1.0 1.0 1.0 1.0 1.0
+                ]
+                CellDoubleProperty "PERM_I" {
+                    Values=[ 5*0.1]
+                }
+            }
+            """
+            s3 = GeoEnergyIO.IXParser.parse_ix_record(teststr)
+            test_repeat_kw(s3)
+        end
     end
 
     @testset "SPE9" begin

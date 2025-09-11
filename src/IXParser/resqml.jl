@@ -67,7 +67,7 @@ function convert_resqml_props(r, unit_systems = missing; verbose = false, strict
     if length(keys(read_obj)) == 1
         read_obj = only(values(read_obj))
         if is_continuous
-            read_obj = convert_resqml_units(read_obj, out["unit"], unit_systems; throw = strict)
+            read_obj, out["unit"] = convert_resqml_units(read_obj, out["unit"], unit_systems; throw = strict)
         else
             # Assume that units only apply for continuous props
             @assert ismissing(out["unit"])
@@ -101,9 +101,12 @@ function convert_resqml_units(data, unit, unit_systems; throw = true)
     end
     if ismissing(v)
         data = map(Float64, data)
+        u = unit
     else
+        l = GeoEnergyIO.InputParser.deck_unit_system_label(sys)
         data = map(x -> Float64(x)*v, data)
+        u = "$unit (converted to $l)"
     end
-    return data
+    return (data, u)
 end
 

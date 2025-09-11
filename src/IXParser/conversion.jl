@@ -43,7 +43,6 @@ function restructure_and_convert_units_afi(afi;
     for s in ["IX", "FM"]
         self = copy(afi[s])
         delete!(self, "START")
-        delete!(self, "UNITS")
         # Sync over timesteps in global order
         self_steps = OrderedDict{DateTime, Any}()
         for step in tsteps

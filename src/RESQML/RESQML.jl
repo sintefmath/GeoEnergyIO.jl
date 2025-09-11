@@ -27,23 +27,25 @@ module RESQML
 
         # Handle split part by overwriting mapping
         pillar_ind = gdata["PillarIndices"]
-        cpsl = gdata["ColumnsPerSplitCoordinateLine"]
-        cl = cpsl["cumulativeLength"]
-        nsplitcols = length(cl)
-        @assert length(pillar_ind) == nsplitcols
-        num_normal_pillars = nxpillars * nypillars
-        for splitcol in 1:nsplitcols
-            if splitcol == 1
-                start = 1
-            else
-                start = Int(cl[splitcol - 1]) + 1
-            end
-            pillar_index = Int(pillar_ind[splitcol]) + 1
-            stop = Int(cl[splitcol])
-            for ix in start:stop
-                col = Int(cpsl["elements"][ix]) + 1
-                # COMMENTED OUT FOR TESTING
-                mapping[(col, pillar_index)] = splitcol + num_normal_pillars
+        cpsl = get(gdata, "ColumnsPerSplitCoordinateLine", missing)
+        if !ismissing(cpsl)
+            cl = cpsl["cumulativeLength"]
+            nsplitcols = length(cl)
+            @assert length(pillar_ind) == nsplitcols
+            num_normal_pillars = nxpillars * nypillars
+            for splitcol in 1:nsplitcols
+                if splitcol == 1
+                    start = 1
+                else
+                    start = Int(cl[splitcol - 1]) + 1
+                end
+                pillar_index = Int(pillar_ind[splitcol]) + 1
+                stop = Int(cl[splitcol])
+                for ix in start:stop
+                    col = Int(cpsl["elements"][ix]) + 1
+                    # COMMENTED OUT FOR TESTING
+                    mapping[(col, pillar_index)] = splitcol + num_normal_pillars
+                end
             end
         end
         return mapping
@@ -93,7 +95,7 @@ module RESQML
         return zcorn
     end
 
-    function convert_to_grid_section(gdata)
+    function convert_to_grid_section(gdata, resqml = missing)
         # Coordinates of pillars
         coord = gdata["ControlPoints"]
         size(coord, 4) == 2 || error("Expected 4D coordinate array with last dimension of size 2")

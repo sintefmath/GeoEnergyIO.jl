@@ -27,23 +27,25 @@ module RESQML
 
         # Handle split part by overwriting mapping
         pillar_ind = gdata["PillarIndices"]
-        cpsl = gdata["ColumnsPerSplitCoordinateLine"]
-        cl = cpsl["cumulativeLength"]
-        nsplitcols = length(cl)
-        @assert length(pillar_ind) == nsplitcols
-        num_normal_pillars = nxpillars * nypillars
-        for splitcol in 1:nsplitcols
-            if splitcol == 1
-                start = 1
-            else
-                start = Int(cl[splitcol - 1]) + 1
-            end
-            pillar_index = Int(pillar_ind[splitcol]) + 1
-            stop = Int(cl[splitcol])
-            for ix in start:stop
-                col = Int(cpsl["elements"][ix]) + 1
-                # COMMENTED OUT FOR TESTING
-                mapping[(col, pillar_index)] = splitcol + num_normal_pillars
+        cpsl = get(gdata, "ColumnsPerSplitCoordinateLine", missing)
+        if !ismissing(cpsl)
+            cl = cpsl["cumulativeLength"]
+            nsplitcols = length(cl)
+            @assert length(pillar_ind) == nsplitcols
+            num_normal_pillars = nxpillars * nypillars
+            for splitcol in 1:nsplitcols
+                if splitcol == 1
+                    start = 1
+                else
+                    start = Int(cl[splitcol - 1]) + 1
+                end
+                pillar_index = Int(pillar_ind[splitcol]) + 1
+                stop = Int(cl[splitcol])
+                for ix in start:stop
+                    col = Int(cpsl["elements"][ix]) + 1
+                    # COMMENTED OUT FOR TESTING
+                    mapping[(col, pillar_index)] = splitcol + num_normal_pillars
+                end
             end
         end
         return mapping
@@ -93,7 +95,8 @@ module RESQML
         return zcorn
     end
 
-    function convert_to_grid_section(gdata)
+    function convert_to_grid_section(gdata::AbstractDict, actnum = missing)
+        out = Dict{String, Any}()
         # Coordinates of pillars
         coord = gdata["ControlPoints"]
         size(coord, 4) == 2 || error("Expected 4D coordinate array with last dimension of size 2")
@@ -104,14 +107,22 @@ module RESQML
         num_pillars, num_depths = size(pillar_depths)
         cartDims = (pillar_dims[1] - 1, pillar_dims[2] - 1, num_depths - 1)
         @assert num_pillars == prod(pillar_dims) + length(gdata["PillarIndices"])
-        out = Dict{String, Any}()
         out["cartDims"] = cartDims
         # COORD is a vector
         out["COORD"] = build_coord(coord)
         mm = setup_column_pillar_mapping(gdata, pillar_dims)
         # ZCORN is a vector
         out["ZCORN"] = build_zcorn(mm, cartDims, pillar_depths)
-        out["col_pillar_map"] = mm
+        if !ismissing(actnum)
+            if actnum isa AbstractDict
+                actnum = actnum["values"]
+            end
+            if eltype(actnum) != Bool
+                actnum = Bool.(actnum)
+            end
+            size(actnum) == cartDims || error("Malformed ACTNUM array, expected size $(cartDims), got $(size(actnum))")
+            out["ACTNUM"] = actnum
+        end
         return out
     end
 end

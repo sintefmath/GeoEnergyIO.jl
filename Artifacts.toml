@@ -38,6 +38,14 @@ lazy = true
     sha256 = "e6b8b0c0d96e4937dda5d0e740d6017f8b5454543a2ee664fce3c911ac8536be"
     url = "https://github.com/sintefmath/GeoEnergyIO.jl/releases/download/v1.1.1/olympus_1.tar.bz2"
 
+[OLYMPUS_25_AFI_RESQML]
+git-tree-sha1 = "6fc623e03786a3c49b68846dd2d8441ab0808808"
+lazy = true
+
+    [[OLYMPUS_25_AFI_RESQML.download]]
+    sha256 = "39cb9fc468dd93b0240a49a60a6e7f912472dc84c1a8446a30f0921632eb3b1b"
+    url = "https://github.com/sintefmath/GeoEnergyIO.jl/releases/download/v1.1.17/OLYMPUS_25_AFI_RESQML.tar.gz"
+
 [SIMPLE_COMP]
 git-tree-sha1 = "a18b3faa12684e0dfce5b03f455247d5620838ec"
 lazy = true
@@ -61,6 +69,14 @@ lazy = true
     [[SPE9.download]]
     sha256 = "0fdeeae365fa39aaea9331b7ace8a5e7717d7a00042dea0a4b97a339657397ce"
     url = "https://github.com/sintefmath/GeoEnergyIO.jl/releases/download/v1.1.1/spe9.tar.bz2"
+
+[SPE9_AFI_GSG]
+git-tree-sha1 = "ea25e7af1dd72f49f8fd8e7a04170529dcec8011"
+lazy = true
+
+    [[SPE9_AFI_GSG.download]]
+    sha256 = "35b59c37da4b4cf97863ae302f3655da2045f83b16cc95f1de89ae1d8a0a7e2f"
+    url = "https://github.com/sintefmath/GeoEnergyIO.jl/releases/download/v1.1.17/SPE9_AFI_GSG.tar.gz"
 
 [grdecl]
 git-tree-sha1 = "db025f8ad236d29fcb12e4c9d82182adb7c65a35"

@@ -63,6 +63,8 @@ import GeoEnergyIO.IXParser: read_afi_file
 afi = read_afi_file("path/to/file.afi")
 ```
 
+### Example
+
 As an example, we can parse and convert the a OLYMPUS realization from the test suite, process it as a corner-point mesh, and plot the porosity.
 
 ```@example afi_olympus
@@ -80,4 +82,21 @@ poro = vec(setup["IX"]["RESQML"]["POROSITY"]["values"])
 actnum = vec(grid_sec["ACTNUM"])
 fig, ax, plt = plot_cell_data(g, poro[actnum])
 fig
+```
+
+## Other parsers
+
+### OBSH
+
+There is an experimental parser for the observed well data format. This is unexported and subject to change:
+
+```@docs
+GeoEnergyIO.IXParser.read_obsh_file
+```
+
+To make use of it, it must be explicitly imported:
+
+```julia
+import GeoEnergyIO.IXParser: read_obsh_file
+obsh = read_obsh_file("path/to/FILE.OBSH")
 ```

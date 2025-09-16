@@ -2,6 +2,7 @@ function convert_ix_record(x::IXStandardRecord, unit_systems, meta, ::Val{:WellD
     @assert x.keyword == "WellDef"
     wname = x.value
     well = Dict{String, Any}(
+        "WellName" => wname,
         "WellToCellConnections" => Dict{String, Any}(),
         "Functions" => Any[]
     )

@@ -119,3 +119,51 @@ function reformat_obsh_file(x::AbstractDict)
     end
     return Dict("wells" => out, "keys" => remainder)
 end
+
+function find_records(d::AbstractDict, keyword, arg...; kwarg...)
+    return find_records(AFIInputFile(d), keyword, arg...; kwarg...)
+end
+
+function find_records(d::AFIInputFile, keyword, t = "IX";
+        steps = true,
+        model = true,
+        once = false
+    )
+    out = []
+    src = d.setup[t]
+    if model
+        find_records!(out, src["MODEL_DEFINITION"], keyword; once = once)
+    end
+    if steps && !(once && length(out) > 0)
+        for (k, step) in pairs(src["STEPS"])
+            find_records!(out, step, keyword; once = once)
+            if once && length(out) > 0
+                break
+            end
+        end
+    end
+    if once
+        out = only(out)
+    end
+    return out
+end
+
+function find_records(d::AbstractVector, keyword; once = false)
+    out = find_records!([], d, keyword; once = once)
+    if once
+        out = only(out)
+    end
+    return out
+end
+
+function find_records!(dest::AbstractVector, recs::AbstractVector, keyword; once = false)
+    for rec in recs
+        if rec.keyword == keyword
+            push!(dest, rec)
+            if once
+                break
+            end
+        end
+    end
+    return dest
+end

@@ -81,3 +81,50 @@ function convert_region_mapping(x::IXEqualRecord)
     )
     return out
 end
+
+function convert_ix_record(x::IXStandardRecord, unit_systems, meta, ::Val{:StraightPillarGrid})
+    bdy = x.body
+
+    to_vec(x) = [i for i in filter(y -> y isa Number, x)]
+    get_mat(k) = to_vec(find_records(bdy, k, once = true).value)
+
+    dx = get_mat("DeltaX")
+    dy = get_mat("DeltaY")
+    dz = get_mat("DeltaZ")
+    tops = get_mat("PillarTops")
+
+    swap_unit_system!(dx, unit_systems, :length)
+    swap_unit_system!(dy, unit_systems, :length)
+    swap_unit_system!(dz, unit_systems, :length)
+    swap_unit_system!(tops, unit_systems, :length)
+
+    props = find_records(bdy, "CellDoubleProperty", once = false)
+
+    out_props = Dict{String, Any}()
+    for p in props
+        pname = p.value
+        @assert length(p.body) == 1
+        v = to_vec(p.body[1].value)
+        if pname == "POROSITY" || pname == "NET_TO_GROSS_RATIO"
+            # Already identity
+            u = :id
+        elseif startswith(pname, "PERM")
+            u = :permeability
+        elseif pname == "PORE_VOLUME"
+            u = :volume
+        else
+            println("Unhandled property $pname in StraightPillarGrid, assuming unitless.")
+            u = :id
+        end
+        swap_unit_system!(v, unit_systems, u)
+        out_props[pname] = v
+    end
+    return Dict(
+        "name" => x.value,
+        "DeltaX" => dx,
+        "DeltaY" => dy,
+        "DeltaZ" => dz,
+        "PillarTops" => tops,
+        "CellDoubleProperty" => out_props,
+    )
+end

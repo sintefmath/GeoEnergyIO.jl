@@ -142,7 +142,7 @@ function find_records(d::AFIInputFile, keyword, t = "IX";
             end
         end
     end
-    if once
+    if once && length(out) > 0
         out = only(out)
     end
     return out
@@ -150,7 +150,7 @@ end
 
 function find_records(d::AbstractVector, keyword; once = false)
     out = find_records!([], d, keyword; once = once)
-    if once
+    if once && length(out) > 0
         out = only(out)
     end
     return out

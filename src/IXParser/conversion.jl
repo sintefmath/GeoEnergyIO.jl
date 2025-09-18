@@ -409,15 +409,17 @@ function convert_ix_records(vals::AbstractVector, name, unit_systems; verbose = 
         strict = strict
     )
     if verbose && length(vals) > 0
-        println("Converting entry $name")
+        println("Converting section $name:")
     end
+    prev = ""
     for v in vals
         kw = v.keyword
-        if verbose
-            println("> $kw")
+        if verbose && kw != prev
+            println("   $kw")
         end
         v_new = convert_ix_record(v, unit_systems, meta, kw)
         push!(out, (keyword = kw, value = v_new))
+        prev = kw
     end
     num_unhandled = length(keys(unhandled))
     if num_unhandled > 0 && verbose > -1

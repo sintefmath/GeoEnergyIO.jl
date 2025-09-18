@@ -57,3 +57,6 @@ function convert_ix_record(x::IXEqualRecord, unit_systems, meta, ::Val{:WaterCom
     return table
 end
 
+function convert_ix_record(x::IXSimulationRecord, unit_systems, meta, ::Val{:PhasesPresent})
+    return map(String, x.arg)
+end

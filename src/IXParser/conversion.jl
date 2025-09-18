@@ -412,14 +412,21 @@ function convert_ix_records(vals::AbstractVector, name, unit_systems; verbose = 
         println("Converting section $name:")
     end
     prev = ""
-    for v in vals
+    count = 0
+    count_unique = 0
+    t = @elapsed for v in vals
         kw = v.keyword
         if verbose && kw != prev
-            println("   $kw")
+            println(" | $kw")
+            count_unique += 1
         end
+        count += 1
         v_new = convert_ix_record(v, unit_systems, meta, kw)
         push!(out, (keyword = kw, value = v_new))
         prev = kw
+    end
+    if verbose && count > 0
+        println(" | Converted $count records ($count_unique unique keywords) in $(round(t, sigdigits=2)) seconds.")
     end
     num_unhandled = length(keys(unhandled))
     if num_unhandled > 0 && verbose > -1

@@ -443,7 +443,14 @@ function convert_ix_record_and_subrecords(x::IXStandardRecord, unit_systems, met
         x.body = [x.body]
     end
     for rec in x.body
-        out[rec.keyword] = convert_ix_record(rec, unit_systems, meta, Val(Symbol(rec.keyword)))
+        inner_kw = rec.keyword
+        kw_val = Val(Symbol(inner_kw))
+        next = convert_ix_record(rec, unit_systems, meta, kw_val)
+        if haskey(out, inner_kw)
+            merge_records!(out[inner_kw], next, kw_val)
+        else
+            out[rec.keyword] = next
+        end
     end
     return out
 end

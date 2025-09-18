@@ -142,7 +142,7 @@ function find_records(d::AFIInputFile, keyword, t = "IX";
             end
         end
     end
-    if once && length(out) > 0
+    if once
         if length(out) == 0
             out = nothing
         else

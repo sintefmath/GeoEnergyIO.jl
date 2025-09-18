@@ -54,7 +54,11 @@ function restructure_and_convert_units_afi(afi;
         end
         for d in keys(afi[s]["STEPS"])
             dt = time_from_record(d, start_time, input_units)
-            self_steps[dt] = convert_ix_records(afi[s]["STEPS"][d], "$s TIME $dt", unit_systems; parse_arg...)
+            if !haskey(self_steps, dt)
+                self_steps[dt] = []
+            end
+            vals = convert_ix_records(afi[s]["STEPS"][d], "$s TIME $dt", unit_systems; parse_arg...)
+            append!(self_steps[dt], vals)
         end
         self["STEPS"] = self_steps
         out[s] = self

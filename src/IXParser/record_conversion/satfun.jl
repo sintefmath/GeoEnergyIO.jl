@@ -1,12 +1,14 @@
 function convert_ix_record(x, unit_systems, meta, ::Val{:SaturationFunction})
     to_convert = []
-    out = Dict{String, Any}()
+    out = Dict{String, Any}(
+        "region" => x.value
+    )
     for rec in x.body
+        kw = rec.keyword
         if rec isa IXEqualRecord
-            out[rec.keyword] = rec.value
+            out[kw] = rec.value
         else
             rec::IXStandardRecord
-            kw = rec.keyword
             if !haskey(out, kw)
                 out[kw] = Dict{String, Any}()
             end

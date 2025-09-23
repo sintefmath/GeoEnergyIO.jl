@@ -81,7 +81,20 @@ function convert_resqml(resqml, unit_systems; verbose = false, strict = false)
         if i == 1
             t = "GRID"
             actnum = get(out, "ACTIVE_CELL_FLAG", missing)
+            # A bit hacky, get the handedness-tag
+            is_right_handed = false
+            for v in values(g.epc)
+                if v isa Dict
+                    continue
+                end
+                rh_tag = find_string_by_tag(v, "resqml2:GridIsRighthanded")
+                if !ismissing(rh_tag)
+                    is_right_handed = rh_tag == "true"
+                    break
+                end
+            end
             v = convert_to_grid_section(read(g.h5), actnum)
+            v["IsRightHanded"] = is_right_handed
         else
             # No idea if this actually happens in practice...
             t = "geom_and_props_$i"

@@ -46,6 +46,9 @@ function mesh_from_grid_section(f; actnum = missing, repair_zcorn = true, proces
     # Handle faults
     faults = get(grid, "FAULTS", missing)
     mesh_add_fault_tags!(G, faults)
+    if get(grid, "IsRightHanded", false)
+        reverse_face_orientations!(G)
+    end
     return G
 end
 
@@ -206,4 +209,14 @@ function cell_centers_from_deltas(dx, x0 = 0.0)
         x[i] = x[i-1] + dx[i]
     end
     return (x, nx)
+end
+
+function reverse_face_orientations!(G::UnstructuredMesh)
+    for f in 1:number_of_faces(G)
+        reverse!(G.faces.faces_to_nodes[f])
+    end
+    for f in 1:number_of_boundary_faces(G)
+        reverse!(G.boundary_faces.faces_to_nodes[f])
+    end
+    return G
 end

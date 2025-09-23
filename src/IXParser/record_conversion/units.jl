@@ -23,6 +23,12 @@ function conversion_ix_dict()
         "TargetFractionToDestination",
         "Destination",
         "StageOutlet",
+        "MaximumSaturation",
+        "EndPointRelPerm",
+        "ConnateSaturation",
+        "RelPermAtAssociatedCriticalSaturation",
+        "ResidualSaturation",
+        "Exponent"
     ]
         u[k] = :id
     end

@@ -60,19 +60,17 @@ function convert_ix_record(x::IXStandardRecord, unit_systems, meta, ::Val{:Well}
         "name" => x.value,
     )
     for rec in x.body
+        kw = rec.keyword
         if rec isa IXEqualRecord
-            kw = rec.keyword
             val = rec.value
             if val isa IXKeyword
                 val = String(val)
-            elseif val isa AbstractIXRecord
+            elseif val isa AbstractIXRecord || val isa AbstractArray
                 val = convert_ix_record(rec, unit_systems, meta, kw)
             end
         elseif rec isa IXFunctionCall
-            kw = rec.keyword
             val = convert_function_call(rec, unit_systems, "Well")
         elseif rec isa IXStandardRecord
-            kw = rec.keyword
             val = convert_ix_record(rec, unit_systems, meta, kw)
         else
             error("Expected IXEqualRecord in Well record body, got $(typeof(rec))")

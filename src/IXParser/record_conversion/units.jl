@@ -75,10 +75,15 @@ function conversion_ix_dict()
     u["ConstantSolutionGOR"] = :u_rs
     u["SolutionGOR"] = :u_rs
 
-    for k in ["OIL_PRODUCTION_RATE", "WATER_PRODUCTION_RATE", "LIQUID_PRODUCTION_RATE"]
+    for k in [
+        "OIL_PRODUCTION_RATE",
+        "WATER_PRODUCTION_RATE",
+        "LIQUID_PRODUCTION_RATE",
+        "WATER_INJECTION_RATE"
+    ]
         u[k] = :liquid_rate_surface
     end
-    for k in ["GAS_PRODUCTION_RATE"]
+    for k in ["GAS_PRODUCTION_RATE", "GAS_INJECTION_RATE"]
         u[k] = :gas_rate_surface
     end
     return u

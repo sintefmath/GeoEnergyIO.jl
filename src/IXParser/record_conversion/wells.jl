@@ -66,7 +66,7 @@ function convert_ix_record(x::IXStandardRecord, unit_systems, meta, ::Val{:Well}
             if val isa IXKeyword
                 val = String(val)
             elseif val isa AbstractIXRecord || val isa AbstractArray
-                val = convert_ix_record(rec, unit_systems, meta, kw)
+                val = convert_ix_record(val, unit_systems, meta, kw)
             end
         elseif rec isa IXFunctionCall
             val = convert_function_call(rec, unit_systems, "Well")
@@ -80,15 +80,52 @@ function convert_ix_record(x::IXStandardRecord, unit_systems, meta, ::Val{:Well}
     return out
 end
 
-function convert_ix_record(x::Union{IXEqualRecord, AbstractArray}, unit_systems, meta, ::Union{Val{:Constraints}, Val{:HistoricalData}})
+# function convert_ix_record(x::IXEqualRecord, unit_systems, meta, ::Union{Val{:Constraints}, Val{:HistoricalData}})
+#     constraints = Dict{String, Any}()
+#     # @info "???" x.value
+#     return x
+#     if length(x.value) > 0
+#         verb = String(x.value[1])
+#         for k in x.value[2:end]
+#             constraint_value, constraint_name = k
+#             constraint_name = String(constraint_name)
+#             u = get_unit_type_ix_keyword(unit_systems, constraint_name; throw = false)
+#             constraints[constraint_name] = swap_unit_system(constraint_value, unit_systems, u)
+#         end
+#         out = (verb = verb, constraints = constraints)
+#     else
+#         out = missing
+#     end
+#     return out
+# end
+
+function convert_ix_record(x::AbstractArray, unit_systems, meta, ::Union{Val{:Constraints}, Val{:HistoricalData}})
     constraints = Dict{String, Any}()
-    if length(x.value) > 0
-        verb = String(x.value[1])
-        for k in x.value[2:end]
-            constraint_value, constraint_name = k
-            constraint_name = String(constraint_name)
-            u = get_unit_type_ix_keyword(unit_systems, constraint_name; throw = false)
-            constraints[constraint_name] = swap_unit_system(constraint_value, unit_systems, u)
+    function set_constraint!(constraint_name, constraint_value)
+        u = get_unit_type_ix_keyword(unit_systems, constraint_name; throw = false)
+        constraints[constraint_name] = swap_unit_system(constraint_value, unit_systems, u)
+    end
+    if length(x) > 0
+        if any(x -> x isa IXArrayEndline, x)
+            verb  = "ADD"
+            header, data = reshape_ix_matrix(x)
+            is_data = findfirst(x -> isequal("data", lowercase(x)), header)
+            is_prop = findfirst(x -> isequal("property", lowercase(x)), header)
+            if isnothing(is_data) || isnothing(is_prop)
+                error("Expected 'data' and 'property' columns in Constraints/HistoricalData record, found: $(header)")
+            end
+            for row in axes(data, 1)
+                constraint_value = data[row, is_data]
+                constraint_name = String(data[row, is_prop])
+                set_constraint!(constraint_name, constraint_value)
+            end
+        else
+            verb = String(x[1])
+            for k in x[2:end]
+                constraint_value, constraint_name = k
+                constraint_name = String(constraint_name)
+                set_constraint!(constraint_name, constraint_value)
+            end
         end
         out = (verb = verb, constraints = constraints)
     else

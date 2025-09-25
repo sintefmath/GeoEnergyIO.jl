@@ -120,8 +120,14 @@ function convert_ix_record(x::AbstractArray, unit_systems, meta, ::Union{Val{:Co
                 set_constraint!(constraint_name, constraint_value)
             end
         else
-            verb = String(x[1])
-            for k in x[2:end]
+            if x[1] isa IXKeyword
+                verb = String(x[1])
+                remainder = x[2:end]
+            else
+                verb = "ADD"
+                remainder = x
+            end
+            for k in remainder
                 constraint_value, constraint_name = k
                 constraint_name = String(constraint_name)
                 set_constraint!(constraint_name, constraint_value)

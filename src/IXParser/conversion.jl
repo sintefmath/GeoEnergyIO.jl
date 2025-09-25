@@ -130,12 +130,19 @@ function ix_units(afi)
 end
 
 function reshape_ix_matrix(m)
+    m = strip_ix_endlines(m)
     ncols = findfirst(x -> x isa IXArrayEndline, m)
     !isnothing(ncols) || error("No IXKeyword found in matrix, cannot reshape.")
     m = filter(x -> !(x isa IXArrayEndline), m)
     tmp = permutedims(reshape(m, ncols - 1, :))
     header = map(x -> x.keyword, tmp[1, :])
     return (header = header, M = tmp[2:end, :])
+end
+
+function strip_ix_endlines(m)
+    start = findfirst(x -> !(x isa IXArrayEndline), m)
+    stop = findlast(x -> !(x isa IXArrayEndline), m)
+    return m[start:stop]
 end
 
 function set_ix_array_values!(dest, v::Vector; T = missing)

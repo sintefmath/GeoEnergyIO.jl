@@ -80,6 +80,37 @@ function convert_ix_record(x::IXStandardRecord, unit_systems, meta, ::Val{:Well}
     return out
 end
 
+function convert_ix_record(x::IXEqualRecord, unit_systems, meta, ::Val{:Well})
+    header, mat = reshape_ix_matrix(x.value)
+    name_ix = findfirst(x -> isequal("name", lowercase(x)), header)
+    if isnothing(name_ix)
+        error("Expected 'Name' column in Well record, got: $(header)")
+    end
+    eachunit = Symbol[]
+    for h in header
+        u = get_unit_type_ix_keyword(unit_systems, h; throw = false)
+        push!(eachunit, u)
+    end
+    swap_unit_system_axes!(mat, unit_systems, eachunit)
+    out = Dict{String, Any}()
+    for rowno in axes(mat, 1)
+        name = mat[rowno, name_ix]
+        if !haskey(out, name)
+            out[name] = Dict{String, Any}()
+        end
+        for (colno, colname) in enumerate(header)
+            if colno == name_ix
+                continue
+            end
+            if haskey(out[name], colname)
+                println("Duplicate entry for well '$name' column '$colname' in Well record, overwriting previous value: $(out[name][colname]) with $(mat[rowno, colno])")
+            end
+            out[name][colname] = mat[rowno, colno]
+        end
+    end
+    return out
+end
+
 # function convert_ix_record(x::IXEqualRecord, unit_systems, meta, ::Union{Val{:Constraints}, Val{:HistoricalData}})
 #     constraints = Dict{String, Any}()
 #     # @info "???" x.value

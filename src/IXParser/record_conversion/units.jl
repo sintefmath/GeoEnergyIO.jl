@@ -28,7 +28,8 @@ function conversion_ix_dict()
         "ConnateSaturation",
         "RelPermAtAssociatedCriticalSaturation",
         "ResidualSaturation",
-        "Exponent"
+        "Exponent",
+        "Name"
     ]
         u[k] = :id
     end
@@ -63,7 +64,8 @@ function conversion_ix_dict()
             "GOCDepth",
             "Depth",
             "PressureEquivalentRadius",
-            "PermeabilityThickness"
+            "PermeabilityThickness",
+            "BottomHoleRefDepth"
         ]
         u[k] = :length
     end

@@ -103,7 +103,7 @@ function convert_ix_record(x::IXEqualRecord, unit_systems, meta, ::Val{:Well})
                 continue
             end
             if haskey(out[name], colname)
-                println("Duplicate entry for well '$name' column '$colname' in Well record, overwriting previous value: $(out[name][colname]) with $(mat[rowno, colno])")
+                println("Well '$name' column '$colname':\n   Duplicate entry in Well record, overwriting previous value: $(out[name][colname]) with $(mat[rowno, colno])")
             end
             out[name][colname] = mat[rowno, colno]
         end

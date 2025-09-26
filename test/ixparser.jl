@@ -2,6 +2,7 @@ using Test
 using GeoEnergyIO
 using Dates
 using Jutul
+using LinearAlgebra
 
 import GeoEnergyIO.IXParser:
     IXStandardRecord,

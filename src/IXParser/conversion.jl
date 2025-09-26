@@ -129,10 +129,12 @@ function ix_units(afi)
     return :metric
 end
 
-function reshape_ix_matrix(m)
-    m = strip_ix_endlines(m)
+function reshape_ix_matrix(m0)
+    m = strip_ix_endlines(m0)
     ncols = findfirst(x -> x isa IXArrayEndline, m)
-    !isnothing(ncols) || error("No IXKeyword found in matrix, cannot reshape.")
+    if isnothing(ncols)
+        ncols = length(m) + 1
+    end
     m = filter(x -> !(x isa IXArrayEndline), m)
     tmp = permutedims(reshape(m, ncols - 1, :))
     header = map(x -> x.keyword, tmp[1, :])

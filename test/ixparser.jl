@@ -561,6 +561,13 @@ import GeoEnergyIO.IXParser:
         @test all(geo.volumes .> 0.0)
         @test all(geo.areas .> 0.0)
         @test all(geo.boundary_areas .> 0.0)
+        # Check orientation of face normals (left/right-handedness)
+        for face in 1:number_of_faces(gj)
+            c1, c2 = geo.neighbors[:, face]
+            n = geo.normals[:, face]
+            vec = geo.cell_centroids[:, c2] - geo.cell_centroids[:, c1]
+            @test dot(n, vec) > 0.0
+        end
     end
 end
 

@@ -304,7 +304,6 @@ function restructure_pvt_table(tab)
     keys = map(first, tab)
     current = 1
     for tab_ix in eachindex(tab)
-        rec = tab[tab_ix]
         interpolate_missing_usat!(tab, tab_ix, record_length, nvals_per_rec)
     end
     # Generate final table

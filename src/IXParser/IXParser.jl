@@ -9,6 +9,7 @@ module IXParser
     import Dates: DateTime
     import Jutul: si_unit
     import GeoEnergyIO.RESQML: convert_to_grid_section
+    import GeoEnergyIO: AbstractInputFile
     using GeoEnergyIO
 
     # Well completion flags

@@ -54,7 +54,11 @@ function restructure_and_convert_units_afi(afi;
         end
         for d in keys(afi[s]["STEPS"])
             dt = time_from_record(d, start_time, input_units)
-            self_steps[dt] = convert_ix_records(afi[s]["STEPS"][d], "$s TIME $dt", unit_systems; parse_arg...)
+            if !haskey(self_steps, dt)
+                self_steps[dt] = []
+            end
+            vals = convert_ix_records(afi[s]["STEPS"][d], "$s TIME $dt", unit_systems; parse_arg...)
+            append!(self_steps[dt], vals)
         end
         self["STEPS"] = self_steps
         out[s] = self
@@ -77,7 +81,20 @@ function convert_resqml(resqml, unit_systems; verbose = false, strict = false)
         if i == 1
             t = "GRID"
             actnum = get(out, "ACTIVE_CELL_FLAG", missing)
+            # A bit hacky, get the handedness-tag
+            is_right_handed = false
+            for v in values(g.epc)
+                if v isa Dict
+                    continue
+                end
+                rh_tag = find_string_by_tag(v, "resqml2:GridIsRighthanded")
+                if !ismissing(rh_tag)
+                    is_right_handed = rh_tag == "true"
+                    break
+                end
+            end
             v = convert_to_grid_section(read(g.h5), actnum)
+            v["IsRightHanded"] = is_right_handed
         else
             # No idea if this actually happens in practice...
             t = "geom_and_props_$i"
@@ -113,12 +130,19 @@ function ix_units(afi)
 end
 
 function reshape_ix_matrix(m)
+    m = strip_ix_endlines(m)
     ncols = findfirst(x -> x isa IXArrayEndline, m)
     !isnothing(ncols) || error("No IXKeyword found in matrix, cannot reshape.")
     m = filter(x -> !(x isa IXArrayEndline), m)
     tmp = permutedims(reshape(m, ncols - 1, :))
     header = map(x -> x.keyword, tmp[1, :])
     return (header = header, M = tmp[2:end, :])
+end
+
+function strip_ix_endlines(m)
+    start = findfirst(x -> !(x isa IXArrayEndline), m)
+    stop = findlast(x -> !(x isa IXArrayEndline), m)
+    return m[start:stop]
 end
 
 function set_ix_array_values!(dest, v::Vector; T = missing)
@@ -275,7 +299,6 @@ function convert_ix_record(val, unit_systems, meta, ::Val{kw}) where kw
     )
     single_equals_list = (
         :Completion,
-        :HistoricalControlModes,
         :GuideRateBalanceAction,
         :FluidFlowGrid,
         :CustomControl,
@@ -405,15 +428,24 @@ function convert_ix_records(vals::AbstractVector, name, unit_systems; verbose = 
         strict = strict
     )
     if verbose && length(vals) > 0
-        println("Converting entry $name")
+        println("Converting section $name:")
     end
-    for v in vals
+    prev = ""
+    count = 0
+    count_unique = 0
+    t = @elapsed for v in vals
         kw = v.keyword
-        if verbose
-            println("> $kw")
+        if verbose && kw != prev
+            println(" | $kw")
+            count_unique += 1
         end
+        count += 1
         v_new = convert_ix_record(v, unit_systems, meta, kw)
         push!(out, (keyword = kw, value = v_new))
+        prev = kw
+    end
+    if verbose && count > 0
+        println(" | Converted $count records ($count_unique unique keywords) in $(round(t, sigdigits=2)) seconds.")
     end
     num_unhandled = length(keys(unhandled))
     if num_unhandled > 0 && verbose > -1
@@ -439,7 +471,14 @@ function convert_ix_record_and_subrecords(x::IXStandardRecord, unit_systems, met
         x.body = [x.body]
     end
     for rec in x.body
-        out[rec.keyword] = convert_ix_record(rec, unit_systems, meta, Val(Symbol(rec.keyword)))
+        inner_kw = rec.keyword
+        kw_val = Val(Symbol(inner_kw))
+        next = convert_ix_record(rec, unit_systems, meta, kw_val)
+        if haskey(out, inner_kw)
+            merge_records!(out[inner_kw], next, kw_val)
+        else
+            out[rec.keyword] = next
+        end
     end
     return out
 end

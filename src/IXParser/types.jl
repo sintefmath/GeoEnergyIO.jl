@@ -59,3 +59,17 @@ struct IXRepeatRecord <: AbstractIXRecord
     count::Int
     value::Union{Float64, Int}
 end
+
+struct AFIInputFile <: AbstractInputFile
+    setup::AbstractDict
+end
+
+Base.getindex(f::AFIInputFile, k::String) = f.setup[k]
+Base.haskey(f::AFIInputFile, k::String) = haskey(f.setup, k)
+Base.keys(f::AFIInputFile) = keys(f.setup)
+Base.length(f::AFIInputFile) = length(f.setup)
+
+function Base.show(io::IO, ::MIME"text/plain", f::AFIInputFile)
+    k = join(keys(f.setup), ", ")
+    print(io, "AFIInputFile with sections $k\n")
+end

@@ -8,6 +8,8 @@ module GeoEnergyIO
     export get_data_file_cell_region
     export number_of_tables
 
+    include("types.jl")
+
     include("InputParser/InputParser.jl")
     import .InputParser: parse_data_file, parse_grdecl_file, get_data_file_cell_region, number_of_tables
 

@@ -2,15 +2,16 @@ function convert_ix_record(x::IXEqualRecord, unit_systems, meta, ::Union{Val{:Ga
     return swap_unit_system(x.value, unit_systems, :density)
 end
 
-function convert_ix_record(
-        x::IXStandardRecord,
-        unit_systems,
-        meta,
-            ::Union{
+IXGasOilTable = Union{
                 Val{:OilTable},
                 Val{:UndersaturatedGasTable},
                 Val{:DeadOilTable}
             }
+function convert_ix_record(
+        x::IXStandardRecord,
+        unit_systems,
+        meta,
+        ::IXGasOilTable
     )
     table = Dict{String, Any}()
     out = Dict{String, Any}(
@@ -37,6 +38,10 @@ function convert_ix_record(
     return out
 end
 
+function merge_records!(a, b, ::IXGasOilTable)
+    return merge!(a["table"], b["table"])
+end
+
 function convert_ix_record(x::IXEqualRecord, unit_systems, meta, ::Val{:WaterCompressibilities})
     kw = x.keyword
     @assert kw == "WaterCompressibilities"
@@ -57,3 +62,6 @@ function convert_ix_record(x::IXEqualRecord, unit_systems, meta, ::Val{:WaterCom
     return table
 end
 
+function convert_ix_record(x::IXSimulationRecord, unit_systems, meta, ::Val{:PhasesPresent})
+    return map(String, x.arg)
+end

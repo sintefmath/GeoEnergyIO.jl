@@ -415,7 +415,10 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:AQUCON})
             ok = false
         else
             d1, d2 = dir
+            d1 = uppercase(d1)
+            d2 = uppercase(d2)
             ok = d1 in ('I', 'J', 'K') && d2 in ('+', '-')
+            l[8] = d1 * d2
         end
         if !ok
             throw(ArgumentError("Direction for AQUCON was $dir, must be on the format I/J/K and +-, i.e. I+"))

@@ -48,7 +48,7 @@ function interp_coord(p0::SVector{3, T}, p1::SVector{3, T}, z::V) where {T<:Real
     else
         weight = (z - z0)/(z1 - z0)
         interp_pt = p0 .+ weight.*(p1 .- p0)
-        @assert interp_pt[3] ≈ z "expected $z was $(interp_pt[3]) != $z"
+        @assert isapprox(interp_pt[3], z, atol = 1e-8) "expected $z was $(interp_pt[3]) != $z"
     end
     return interp_pt
 end

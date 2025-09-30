@@ -556,3 +556,8 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:ACTIONX})
     parser_message(cfg, outer_data, "ACTIONX", PARSER_MISSING_SUPPORT)
 end
 
+function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:GTMULT})
+    skip_record(f)
+    parser_message(cfg, outer_data, "ACTIONX", PARSER_MISSING_SUPPORT)
+end
+

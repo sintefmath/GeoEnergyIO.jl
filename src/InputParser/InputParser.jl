@@ -26,6 +26,7 @@ module InputParser
         # Keywords without data (i.e. just the name)
         skip_kw!(:MULTOUT, 0)
         skip_kw!(:NOSIM, 0)
+        skip_kw!(:ENDACTIO, 0)
         skip_kw!(:NOINSPEC, 0)
         skip_kw!(:NORSSPEC, 0)
         skip_kw!(:NOWARN, 0)

@@ -241,7 +241,10 @@ function parse_and_handle_repeats(::Val{T}, el::String, opts) where T
         # and the second will be parsable as type T
         wildcard = findfirst(isequal('*'), el)
         n_rep = Parsers.parse(Int, el, opts, 1, wildcard-1)
-        val = Parsers.parse(T, el, opts, wildcard+1)
+        val = Parsers.tryparse(T, el, opts, wildcard+1)
+        if isnothing(val)
+            val = NaN
+        end
     else
         n_rep = 1
     end

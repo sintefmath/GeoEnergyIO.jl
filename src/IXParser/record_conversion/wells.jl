@@ -21,7 +21,7 @@ function convert_ix_record(x::IXStandardRecord, unit_systems, meta, ::Val{:WellD
     end
     for (k, v) in pairs(well)
         if k == "WellToCellConnections"
-            well[k] = convert_ix_values!(v, k, unit_systems; throw = true)
+            well[k] = convert_ix_values!(v, k, unit_systems; throw = false)
         elseif k in ("WellName", "Undefined", "ResVolConditions", "Functions", "PseudoPressureModel", "AllowCrossFlow", "HeadDensityCalculation")
             # Do nothing
         else

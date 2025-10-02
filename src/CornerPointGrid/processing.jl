@@ -62,7 +62,8 @@ function cpgrid_primitives(coord, zcorn, cartdims; actnum = missing)
     end
 
     linear_line_ix(i, j) = ij_to_linear(i, j, (nlinex, nliney))
-    lines = Matrix{typeof(line0)}(undef, nlinex, nliney)
+    L_t = typeof(line0)
+    lines = Matrix{Union{L_t, Missing}}(undef, nlinex, nliney)
     for i in 1:nlinex
         for j in 1:nliney
             p1, p2 = get_line(coord, i, j, nlinex, nliney)
@@ -95,7 +96,6 @@ function cpgrid_primitives(coord, zcorn, cartdims; actnum = missing)
             L = lines[i, j]
             z_top = minimum(L.z)
             z_bottom = maximum(L.z)
-
             for i_offset in (-1, 0)
                 for j_offset in (-1, 0)
                     I = i+i_offset
@@ -117,6 +117,14 @@ function cpgrid_primitives(coord, zcorn, cartdims; actnum = missing)
 
     # Process lines and merge similar nodes
     nodes, lines_active = process_lines!(lines)
+    if true
+        for i in eachindex(lines)
+            if !lines_active[i]
+                lines[i] = missing
+            end
+        end
+    end
+    GC.gc()
 
     # The four lines making up each column
     column_lines = Vector{NTuple{4, Int64}}()

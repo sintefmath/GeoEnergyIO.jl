@@ -21,8 +21,8 @@ end
 function get_line(coord, i, j, nx, ny)
     ix = ijk_to_linear(i, j, 1, (nx, ny, 1))
     T = SVector{3, eltype(coord)}
-    x1 = T(coord[ix, 1:3])
-    x2 = T(coord[ix, 4:end])
+    x1 = T(coord[ix, 1], coord[ix, 2], coord[ix, 3])
+    x2 = T(coord[ix, 4], coord[ix, 5], coord[ix, 6])
 
     return (x1, x2)
 end

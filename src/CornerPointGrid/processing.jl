@@ -22,7 +22,7 @@ function cpgrid_primitives(coord, zcorn, cartdims; actnum = missing)
 
     function generate_line(p1, p2)
         T_coord = promote_type(eltype(p1), eltype(p2), typeof(z_mean))
-        line_length_hint = 4*nz
+        line_length_hint = 4*(nz + 1)
         z = sizehint!(Vector{T_coord}(), line_length_hint)
         cells = sizehint!(Vector{Int}(), line_length_hint)
         cellpos = sizehint!(Vector{Int}(), nz + 1)
@@ -354,10 +354,13 @@ function grid_from_primitives(primitives; nnc = missing, pinch = missing)
     boundary_face_pos = [1]
     boundary_faceno = 1
 
+    nactive = length(active)
     # Mapping from cell to faces
     cell_faces = Vector{Vector{Int}}()
+    sizehint!(cell_faces, nactive)
     # Mapping from cell to boundary faces
     cell_boundary_faces = Vector{Vector{Int}}()
+    sizehint!(cell_boundary_faces, nactive)
 
     for c in eachindex(active)
         push!(cell_faces, Vector{Int}())

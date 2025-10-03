@@ -34,14 +34,15 @@ function set_cell_bounds!(line, cell)
     end
     @assert stop > 0 "$cell end point not found in line $line"
     line.cell_bounds[cell] = (start, stop)
-    return line
+    return (start, stop)
 end
 
 function find_cell_bounds(cell, line)
-    if !haskey(line.cell_bounds, cell)
-        set_cell_bounds!(line, cell)
+    if haskey(line.cell_bounds, cell)
+        return line.cell_bounds[cell]
+    else
+        return set_cell_bounds!(line, cell)
     end
-    return line.cell_bounds[cell]
 end
 
 function cell_top_bottom(cells, line1, line2; check = true)
@@ -112,9 +113,6 @@ function add_vertical_cells_from_overlaps!(extra_node_lookup, F, nodes, cell_pai
 
         @assert n1 == 0 || maximum(edge1) <= length(l1.nodes)
         @assert n2 == 0 || maximum(edge2) <= length(l2.nodes)
-
-        line1_distinct = cat1 == DISTINCT_A_ABOVE || cat1 == DISTINCT_B_ABOVE
-        line2_distinct = cat2 == DISTINCT_A_ABOVE || cat2 == DISTINCT_B_ABOVE
 
         empty!(node_pos)
         if cat1 == cat2 == AB_RANGES_MATCH

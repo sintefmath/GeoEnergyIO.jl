@@ -304,7 +304,7 @@ function cpgrid_primitives(coord, zcorn, cartdims; actnum = missing)
     )
 end
 
-function process_lines!(lines)
+function process_lines!(lines; sort_alg = QuickSort)
     if length(lines) > 0
         T = eltype(lines[1].z)
     else
@@ -316,13 +316,14 @@ function process_lines!(lines)
     p = Vector{Int}()
     for (line_ix, line) in enumerate(lines)
         z = line.z
-        active = length(z) > 0 && !all(x -> x <= 0, line.cells)
+        cells = line.cells
+        active = length(z) > 0 && !all(x -> x <= 0, cells)
         active_lines[line_ix] = active
         if active
             resize!(p, length(z))
-            sortperm!(p, z, alg = QuickSort)
-            @. line.z = z[p]
-            @. line.cells = line.cells[p]
+            sortperm!(p, z, alg = sort_alg)
+            @inbounds permute!(z, p)
+            @inbounds permute!(cells, p)
             pos = line.cellpos
             push!(pos, 1)
 
@@ -339,7 +340,7 @@ function process_lines!(lines)
             # Sort each set of cells
             for i in 1:(length(pos)-1)
                 ci = view(line.cells, pos[i]:(pos[i+1]-1))
-                sort!(ci)
+                sort!(ci, alg = sort_alg)
             end
             ix = pos[1:end-1]
             unique_z = line.z[ix]

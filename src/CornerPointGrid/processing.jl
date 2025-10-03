@@ -555,7 +555,7 @@ function grid_from_primitives(primitives; nnc = missing, pinch = missing)
                 # Then find the global node indices
                 node_indices = map((line, i) -> line.nodes[i], current_column_lines, node_in_pillar_indices)
                 # faceno index maps to the next face inserted
-                push!(pinched_faces, faceno)
+                push!(pinched_faces, length(I_faces.face_pos))
                 insert_face!(I_faces, B_faces, top_cell, bottom_cell, node_indices, is_vertical = false, is_boundary = false, is_idir = false, face_type = :bottom)
                 pinch_count += 1
             end
@@ -629,12 +629,12 @@ function grid_from_primitives(primitives; nnc = missing, pinch = missing)
             c1 = cell_index(nnc_entry[1], nnc_entry[2], nnc_entry[3])
             c2 = cell_index(nnc_entry[4], nnc_entry[5], nnc_entry[6])
             if c1 > 0 && c2 > 0
+                faceno = length(I_faces.face_pos)
                 @assert c1 != c2 "NNC cell pair must be distinct."
-                push!(face_pos, face_pos[end])
-                push!(face_neighbors, (c1, c2))
-                push!(cell_faces[c1], faceno)
-                push!(cell_faces[c2], faceno)
-                faceno += 1
+                push!(I_faces.face_pos, face_pos[end])
+                push!(I_faces.neighbors, (c1, c2))
+                push!(I_faces.cell_faces[c1], faceno)
+                push!(I_faces.cell_faces[c2], faceno)
             else
                 error("NNC connects inactive cells, cannot proceed: $(Tuple(nnc_entry[1:3])) -> $(Tuple(nnc_entry[4:6]))")
             end
@@ -676,29 +676,15 @@ function grid_from_primitives(primitives; nnc = missing, pinch = missing)
     if length(pinched_faces) > 0
         set_mesh_entity_tag!(g, Faces(), :cpgrid_connection_type, :pinched, pinched_faces)
     end
-    # Orientation
-    if length(I_faces.horizontal_tag) > 0
-        set_mesh_entity_tag!(g, Faces(), :orientation, :horizontal, I_faces.horizontal_tag)
-    end
-    if length(I_faces.vertical_tag) > 0
-        set_mesh_entity_tag!(g, Faces(), :orientation, :vertical, I_faces.vertical_tag)
-    end
+    set_face_tags!(g, I_faces, is_bnd = false)
+
     if length(horizontal_bnd_face_tag) > 0
         set_mesh_entity_tag!(g, BoundaryFaces(), :orientation, :horizontal, horizontal_bnd_face_tag)
     end
     if length(vertical_bnd_face_tag) > 0
         set_mesh_entity_tag!(g, BoundaryFaces(), :orientation, :vertical, vertical_bnd_face_tag)
     end
-    # Interior IJK
-    if length(I_faces.i_tag) > 0
-        set_mesh_entity_tag!(g, Faces(), :ijk_orientation, :i, I_faces.i_tag)
-    end
-    if length(I_faces.j_tag) > 0
-        set_mesh_entity_tag!(g, Faces(), :ijk_orientation, :j, I_faces.j_tag)
-    end
-    if length(I_faces.k_tag) > 0
-        set_mesh_entity_tag!(g, Faces(), :ijk_orientation, :k, I_faces.k_tag)
-    end
+
     # Boundary IJK
     if length(i_bnd_face_tag) > 0
         set_mesh_entity_tag!(g, BoundaryFaces(), :ijk_orientation, :i, i_bnd_face_tag)
@@ -719,6 +705,31 @@ function grid_from_primitives(primitives; nnc = missing, pinch = missing)
         set_mesh_entity_tag!(g, BoundaryFaces(), :direction, k, bnd_ix)
     end
     return g
+end
+
+function set_face_tags!(g, I_faces; is_bnd::Bool)
+    if is_bnd
+        e = BoundaryFaces()
+    else
+        e = Faces()
+    end
+    # Orientation
+    if length(I_faces.horizontal_tag) > 0
+        set_mesh_entity_tag!(g, e, :orientation, :horizontal, I_faces.horizontal_tag)
+    end
+    if length(I_faces.vertical_tag) > 0
+        set_mesh_entity_tag!(g, e, :orientation, :vertical, I_faces.vertical_tag)
+    end
+    # IJK
+    if length(I_faces.i_tag) > 0
+        set_mesh_entity_tag!(g, e, :ijk_orientation, :i, I_faces.i_tag)
+    end
+    if length(I_faces.j_tag) > 0
+        set_mesh_entity_tag!(g, e, :ijk_orientation, :j, I_faces.j_tag)
+    end
+    if length(I_faces.k_tag) > 0
+        set_mesh_entity_tag!(g, e, :ijk_orientation, :k, I_faces.k_tag)
+    end
 end
 
 function setup_face_helper(ncells, flipped)

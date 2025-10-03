@@ -584,6 +584,8 @@ function grid_from_primitives(primitives; nnc = missing, pinch = missing)
         for (cl, col) in zip(column_lines, columns)
             number_of_cells_in_column = length(col.cells)
             current_column_lines = map(l -> lines[l], cl)
+            cl::Tuple{Int, Int, Int, Int}
+            @assert length(current_column_lines) == 4
             for top_cell in col.cells
                 cell_bnds = map(l -> find_cell_bounds(top_cell, l), current_column_lines)
                 bottom_cell = get(pinch_top_to_bottom, top_cell, nothing)
@@ -602,8 +604,8 @@ function grid_from_primitives(primitives; nnc = missing, pinch = missing)
         @assert num_pinched == pinch_count
     end
     # Vertical faces
-    for is_bnd in [true, false]
-        if is_bnd
+    for col_is_bnd in [true, false]
+        if col_is_bnd
             col_neighbors = primitives.column_boundary
         else
             col_neighbors = primitives.column_neighbors
@@ -623,18 +625,46 @@ function grid_from_primitives(primitives; nnc = missing, pinch = missing)
             col_a = columns[a]
             col_b = columns[b]
 
-            cell_pairs, overlaps = traverse_column_pair(col_a, col_b, l1, l2)
-            int_pairs, int_overlaps, bnd_pairs, bnd_overlaps = split_overlaps_into_interior_and_boundary(cell_pairs, overlaps)
+
+            # cell_pairs, overlaps = traverse_column_pair(col_a, col_b, l1, l2)
+            # int_pairs, int_overlaps, bnd_pairs, bnd_overlaps = split_overlaps_into_interior_and_boundary(cell_pairs, overlaps)
 
             F_interior = (l, r, node_indices) -> insert_face!(l, r, node_indices, is_boundary = false, is_vertical = true, is_idir = is_idir, face_type = conn_type)
             F_bnd = (l, r, node_indices) -> insert_face!(l, r, node_indices, is_boundary = true, is_vertical = true, is_idir = is_idir, face_type = conn_type)
 
-            if is_bnd
-                # We are dealing with a boundary column, everything is boundary
-                add_vertical_cells_from_overlaps!(extra_node_lookup, F_bnd, nodes, int_pairs, int_overlaps, l1, l2)
-            else
-                add_vertical_cells_from_overlaps!(extra_node_lookup, F_interior, nodes, int_pairs, int_overlaps, l1, l2)
-                add_vertical_cells_from_overlaps!(extra_node_lookup, F_bnd, nodes, bnd_pairs, bnd_overlaps, l1, l2)
+            ord_a = cell_top_bottom(col_a.cells, l1, l2)
+            ord_b = cell_top_bottom(col_b.cells, l1, l2)
+            for pos_a in ord_a
+                for pos_b in ord_b
+                    overlap = find_linepair_overlap(pos_a, pos_b)
+                    if isnothing(overlap)
+                        continue
+                    end
+                    cat1, cat2 = overlap
+                    l = pos_a.cell
+                    r = pos_b.cell
+                    l_bnd = cell_is_boundary(l)
+                    r_bnd = cell_is_boundary(r)
+                    if l_bnd && r_bnd
+                        # Two inactive cells, can be skipped.
+                        continue
+                    end
+                    # is_bnd = l_bnd || r_bnd
+                    cell_pair = (l, r)
+                    if col_is_bnd || l_bnd || r_bnd
+                        # We are dealing with a boundary column, everything is boundary
+                        add_vertical_face_from_overlap!(extra_node_lookup, F_bnd, nodes, cell_pair, overlap, l1, l2)
+                    else
+                        add_vertical_face_from_overlap!(extra_node_lookup, F_interior, nodes, cell_pair, overlap, l1, l2)
+                    end
+                # if is_bnd
+                #     # We are dealing with a boundary column, everything is boundary
+                #     add_vertical_cells_from_overlaps!(extra_node_lookup, F_bnd, nodes, int_pairs, int_overlaps, l1, l2)
+                # else
+                #     add_vertical_cells_from_overlaps!(extra_node_lookup, F_interior, nodes, int_pairs, int_overlaps, l1, l2)
+                #     add_vertical_cells_from_overlaps!(extra_node_lookup, F_bnd, nodes, bnd_pairs, bnd_overlaps, l1, l2)
+                # end
+                end
             end
         end
     end

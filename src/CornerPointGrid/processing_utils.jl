@@ -82,8 +82,7 @@ function cell_top_bottom(cells, line1, line2; check = true)
     return out
 end
 
-function add_vertical_cells_from_overlaps!(extra_node_lookup, F, nodes, cell_pairs, overlaps, l1, l2)
-    complicated_overlap_categories = (DISTINCT_A_ABOVE, DISTINCT_B_ABOVE)
+function add_vertical_face_from_overlap!(extra_node_lookup, F, nodes, cell_pair, overlap, l1, l2)
     node_pos = Int[]
     function global_node_index(l, local_node)
         return l.nodes[local_node]
@@ -98,36 +97,34 @@ function add_vertical_cells_from_overlaps!(extra_node_lookup, F, nodes, cell_pai
     end
 
     sizehint!(node_pos, 6)
-    for (overlap, cell_pair) in zip(overlaps, cell_pairs)
-        cell_a, cell_b = cell_pair
+    cell_a, cell_b = cell_pair
 
-        # @info "Starting" overlap cell_pair
-        cat1 = overlap.line1.category
-        cat2 = overlap.line2.category
+    # @info "Starting" overlap cell_pair
+    cat1 = overlap.line1.category
+    cat2 = overlap.line2.category
 
-        # TODO: Figure out sign
-        edge1 = overlap.line1.overlap
-        edge2 = overlap.line2.overlap
-        n1 = length(edge1)
-        n2 = length(edge2)
+    # TODO: Figure out sign
+    edge1 = overlap.line1.overlap
+    edge2 = overlap.line2.overlap
+    n1 = length(edge1)
+    n2 = length(edge2)
 
-        @assert n1 == 0 || maximum(edge1) <= length(l1.nodes)
-        @assert n2 == 0 || maximum(edge2) <= length(l2.nodes)
+    @assert n1 == 0 || maximum(edge1) <= length(l1.nodes)
+    @assert n2 == 0 || maximum(edge2) <= length(l2.nodes)
 
-        empty!(node_pos)
-        if cat1 == cat2 == AB_RANGES_MATCH
-            handle_matching_overlap!(node_pos, edge1, edge2, l1, l2)
-        else
-            handle_generic_intersections!(node_pos, extra_node_lookup, nodes, cell_a, cell_b, l1, l2, overlap, global_node_point)
-        end
-        if cell_a == cell_b
-            # If both cells are the same, we are dealing with a mirrored
-            # column pair at the boundary.
-            cell_a = 0
-        end
-        if length(node_pos) > 2
-            F(cell_a, cell_b, node_pos)
-        end
+    empty!(node_pos)
+    if cat1 == cat2 == AB_RANGES_MATCH
+        handle_matching_overlap!(node_pos, edge1, edge2, l1, l2)
+    else
+        handle_generic_intersections!(node_pos, extra_node_lookup, nodes, cell_a, cell_b, l1, l2, overlap, global_node_point)
+    end
+    if cell_a == cell_b
+        # If both cells are the same, we are dealing with a mirrored
+        # column pair at the boundary.
+        cell_a = 0
+    end
+    if length(node_pos) > 2
+        F(cell_a, cell_b, node_pos)
     end
     return nothing
 end
@@ -392,10 +389,9 @@ function cpgrid_get_or_add_crossing_node!(extra_node_lookup, nodes, pt)
     return ix
 end
 
+
 function traverse_column_pair(col_a, col_b, l1, l2)
     # TODO: Deal with horrible type. We could just compute this on the fly.
-    overlaps = @NamedTuple{line1::@NamedTuple{category::CPGRID_PILLAR_AB_INTERSECTION, overlap::UnitRange{Int64}, range_a::UnitRange{Int64}, range_b::UnitRange{Int64}}, line2::@NamedTuple{category::CPGRID_PILLAR_AB_INTERSECTION, overlap::UnitRange{Int64}, range_a::UnitRange{Int64}, range_b::UnitRange{Int64}}}[]
-
     function find_end(a, b, s::Symbol)
         end_a = a[s][2]
         end_b = b[s][2]
@@ -437,6 +433,7 @@ function traverse_column_pair(col_a, col_b, l1, l2)
         b_start, b_stop = get_local_line(pos_b, is_line1)
         return determine_cell_overlap_inside_line(a_start, a_stop, b_start, b_stop)
     end
+    overlaps = @NamedTuple{line1::@NamedTuple{category::CPGRID_PILLAR_AB_INTERSECTION, overlap::UnitRange{Int64}, range_a::UnitRange{Int64}, range_b::UnitRange{Int64}}, line2::@NamedTuple{category::CPGRID_PILLAR_AB_INTERSECTION, overlap::UnitRange{Int64}, range_a::UnitRange{Int64}, range_b::UnitRange{Int64}}}[]
     cell_pairs = Tuple{Int, Int}[]
     cellhint = 4*max(length(ord_a), length(ord_b))
     sizehint!(cell_pairs, cellhint)
@@ -466,6 +463,86 @@ function traverse_column_pair(col_a, col_b, l1, l2)
     end
     return (cell_pairs, overlaps)
 end
+
+function find_linepair_overlap(pos_a, pos_b)
+    function find_end(a, b, s::Symbol)
+        end_a = a[s][2]
+        end_b = b[s][2]
+        if end_a == end_b
+            # Reached end of both.
+            return (end_a, true, true)
+        elseif end_a < end_b
+            # Reached end of a but not b
+            return (end_a, true, false)
+        else
+            # Reached end of b but not a
+            return (end_b, false, true)
+        end
+    end
+
+    # ord_a = cell_top_bottom(col_a.cells, l1, l2)
+    # ord_b = cell_top_bottom(col_b.cells, l1, l2)
+    function get_local_line(pos, is_line1::Bool)
+        if is_line1
+            d = pos.line1
+        else
+            d = pos.line2
+        end
+        start, stop = d
+        return (start, stop)
+    end
+
+    function gen_category(t::CPGRID_PILLAR_AB_INTERSECTION, rng, range_a, range_b)
+        return (
+            category = t,
+            overlap = rng,
+            range_a = range_a,
+            range_b = range_b
+        )
+    end
+
+    function determine_overlap(pos_a, pos_b, is_line1)
+        a_start, a_stop = get_local_line(pos_a, is_line1)
+        b_start, b_stop = get_local_line(pos_b, is_line1)
+        return determine_cell_overlap_inside_line(a_start, a_stop, b_start, b_stop)
+    end
+    # overlaps = @NamedTuple{line1::@NamedTuple{category::CPGRID_PILLAR_AB_INTERSECTION, overlap::UnitRange{Int64}, range_a::UnitRange{Int64}, range_b::UnitRange{Int64}}, line2::@NamedTuple{category::CPGRID_PILLAR_AB_INTERSECTION, overlap::UnitRange{Int64}, range_a::UnitRange{Int64}, range_b::UnitRange{Int64}}}[]
+    # cell_pairs = Tuple{Int, Int}[]
+    # cellhint = 4*max(length(ord_a), length(ord_b))
+    # sizehint!(cell_pairs, cellhint)
+    # sizehint!(overlaps, cellhint)
+
+    
+    # for pos_a in ord_a
+    #     for pos_b in ord_b
+            # @info "Cell pair: $((pos_a.cell, pos_b.cell))"
+
+    t1, overlap_1, range_1a, range_1b = determine_overlap(pos_a, pos_b, true)
+    t2, overlap_2, range_2a, range_2b = determine_overlap(pos_a, pos_b, false)
+
+    t_equal = t1 == t2
+    if t_equal && t1 in (DISTINCT_A_ABOVE, DISTINCT_B_ABOVE)
+        out = nothing
+    else
+        line1 = gen_category(t1, overlap_1, range_1a, range_1b)
+        line2 = gen_category(t2, overlap_2, range_2a, range_2b)
+        out = (line1 = line1, line2 = line2)
+    end
+    return out
+            # Unless A > B for both pillars, or B > A for both pillars,
+            # we have found a face.
+    #         push!(overlaps,
+    #             (
+    #             line1 = gen_category(t1, overlap_1, range_1a, range_1b),
+    #             line2 = gen_category(t2, overlap_2, range_2a, range_2b)
+    #             )
+    #         )
+    #         push!(cell_pairs, (pos_a.cell, pos_b.cell))
+    # #     end
+    # # end
+    # return (cell_pairs, overlaps)
+end
+
 
 function split_overlaps_into_interior_and_boundary(cell_pairs, overlaps)
     cell_is_boundary(x) = x < 1

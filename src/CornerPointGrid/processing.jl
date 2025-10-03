@@ -20,12 +20,49 @@ function cpgrid_primitives(coord, zcorn, cartdims; actnum = missing)
     nliney = ny+1
     @assert nliney*nlinex == size(coord, 1)
 
-    function generate_line(p1, p2)
+    # Tag columns as active or inactive
+    active_columns = Matrix{Bool}(undef, nx, ny)
+    for i in 1:nx
+        for j in 1:ny
+            is_active = false
+            for k in 1:nz
+                is_active = is_active || actnum[i, j, k]
+            end
+            active_columns[i, j] = is_active
+        end
+    end
+    active_lines = BitArray(undef, nlinex, nliney)
+    for i in 1:nlinex
+        for j in 1:nliney
+            is_active = false
+            for j_offset in (-1, 0)
+                for i_offset in (-1, 0)
+                    I = i + i_offset
+                    J = j + j_offset
+                    if I <= nx && J <= ny && I > 0 && J > 0 && active_columns[I, J]
+                        is_active = true
+                        break
+                    end
+                end
+                if is_active
+                    break
+                end
+            end
+            active_lines[i, j] = is_active
+        end
+    end
+
+    function generate_line(p1, p2, is_active)
         T_coord = promote_type(eltype(p1), eltype(p2), typeof(z_mean))
-        line_length_hint = 4*(nz + 1)
+        if is_active
+            line_length_hint = 4*(nz + 1)
+            cell_hint = 4*nz
+        else
+            line_length_hint = cell_hint = 0
+        end
         z = sizehint!(Vector{T_coord}(), line_length_hint)
         cells = sizehint!(Vector{Int}(), line_length_hint)
-        cellpos = sizehint!(Vector{Int}(), nz + 1)
+        cellpos = sizehint!(Vector{Int}(), cell_hint)
         nodes = sizehint!(Vector{Int}(), line_length_hint)
 
         return (
@@ -41,7 +78,7 @@ function cpgrid_primitives(coord, zcorn, cartdims; actnum = missing)
     end
     # active_lines = BitArray(undef, nlinex, nliney)
     x1, x2 = get_line(coord, 1, 1, nlinex, nliney)
-    line0 = generate_line(x1, x2)
+    line0 = generate_line(x1, x2, false)
     function boundary_index(i, j, is_top)
         if is_top
             layer_offset = -(2*nx*ny*nz)
@@ -68,17 +105,17 @@ function cpgrid_primitives(coord, zcorn, cartdims; actnum = missing)
     for i in 1:nlinex
         for j in 1:nliney
             p1, p2 = get_line(coord, i, j, nlinex, nliney)
-            lines[i, j] = generate_line(p1, p2)
+            lines[i, j] = generate_line(p1, p2, active_lines[i, j])
         end
     end
     for i = 1:nx
         for j = 1:ny
-            for k = 1:nz
-                ix = ijk_to_linear(i, j, k, cartdims)
-                active_cell_index = cell_index(i, j, k, actnum)
-                for I1 in (0, 1)
-                    for I2 in (0, 1)
-                        L = lines[i + I2, j + I1]
+            for I1 in (0, 1)
+                for I2 in (0, 1)
+                    @inbounds L = lines[i + I2, j + I1]
+                    for k = 1:nz
+                        ix = ijk_to_linear(i, j, k, cartdims)
+                        active_cell_index = cell_index(i, j, k, actnum)
                         for I3 in (0, 1)
                             zcorn_ix = corner_index(ix, (I1, I2, I3), cartdims)
                             c = zcorn[zcorn_ix]
@@ -130,17 +167,6 @@ function cpgrid_primitives(coord, zcorn, cartdims; actnum = missing)
     # The four lines making up each column
     column_lines = Vector{NTuple{4, Int64}}()
 
-    # Tag columns as active or inactive
-    active_columns = Matrix{Bool}(undef, nx, ny)
-    for i in 1:nx
-        for j in 1:ny
-            is_active = false
-            for k in 1:nz
-                is_active = is_active || actnum[i, j, k]
-            end
-            active_columns[i, j] = is_active
-        end
-    end
     # Generate the columns with cell lists
     make_column(i, j) = (cells = Int[], i = i, j = j)
     cT = typeof(make_column(1, 1))

@@ -19,7 +19,7 @@ function set_cell_bounds!(line, cell)
     n = length(line.cellpos)-1
     start = 0
     for i in 1:n
-        if cell in get_cells(i)
+        if insorted(cell, get_cells(i))
             start = i
             break
         end
@@ -27,7 +27,7 @@ function set_cell_bounds!(line, cell)
     @assert start > 0 "$cell start point not found in line $line"
     stop = 0
     for i in (n:-1:start)
-        if cell in get_cells(i)
+        if insorted(cell, get_cells(i))
             stop = i
             break
         end

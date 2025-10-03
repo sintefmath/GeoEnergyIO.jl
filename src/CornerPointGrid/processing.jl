@@ -379,57 +379,63 @@ function grid_from_primitives(primitives; nnc = missing, pinch = missing)
     # A not very rigorous test for flipped coordinate systems.
     # The normal situation is Nx < 0, Ny > 0 and Nz > 0
     flipped = Nx < 0 && Ny > 0 && Nz < 0
-    # Faces mapping to nodes
-    faces = Vector{Int}()
-    face_pos = [1]
-    faceno = 1
+    # # Faces mapping to nodes
+    # faces = Vector{Int}()
+    # face_pos = [1]
 
     cell_is_boundary(x) = x < 1
+    ncells = length(active)
+    I_faces = setup_face_helper(ncells, flipped)
+    # # boundary_faceno = 1
+
+    # nactive = length(active)
+    # # Mapping from cell to faces
+    # cell_faces = Vector{Vector{Int}}()
+    # sizehint!(cell_faces, nactive)
+
+    # for c in eachindex(active)
+    #     cf = Vector{Int}()
+    #     sizehint!(cf, 6)
+    #     push!(cell_faces, cf)
+    #     push!(cell_boundary_faces, Vector{Int}())
+    # end
+    # face_neighbors = Vector{Tuple{Int, Int}}()
+
+    # vertical_face_tag = Vector{Int}()
+    # horizontal_face_tag = Vector{Int}()
+    # i_face_tag = Vector{Int}()
+    # j_face_tag = Vector{Int}()
+    # k_face_tag = Vector{Int}()
+
+    # I_faces = (
+    #     faces = faces,
+    #     face_pos = face_pos,
+    #     cell_faces = cell_faces,
+    #     neighbors = face_neighbors,
+    #     vertical_tag = vertical_face_tag,
+    #     horizontal_tag = horizontal_face_tag,
+    #     i_tag = i_face_tag,
+    #     j_tag = j_face_tag,
+    #     k_tag = k_face_tag,
+    #     flipped = flipped
+    # )
+
+    # nf_est = 3 * length(active)
+    # for ft in [vertical_face_tag, horizontal_face_tag, i_face_tag, j_face_tag, k_face_tag]
+    #     sizehint!(ft, nf_est)
+    # end
     # Boundary faces mapping to nodes
     boundary_faces = Vector{Int}()
     boundary_face_pos = [1]
-    # boundary_faceno = 1
-
-    nactive = length(active)
-    # Mapping from cell to faces
-    cell_faces = Vector{Vector{Int}}()
-    sizehint!(cell_faces, nactive)
     # Mapping from cell to boundary faces
     cell_boundary_faces = Vector{Vector{Int}}()
-    sizehint!(cell_boundary_faces, nactive)
-
-    for c in eachindex(active)
+    sizehint!(cell_boundary_faces, ncells)
+    for c in 1:ncells
         cf = Vector{Int}()
         sizehint!(cf, 6)
-        push!(cell_faces, cf)
-        push!(cell_boundary_faces, Vector{Int}())
+        push!(cell_boundary_faces, cf)
     end
-    face_neighbors = Vector{Tuple{Int, Int}}()
     boundary_cells = Vector{Int}()
-
-    vertical_face_tag = Vector{Int}()
-    horizontal_face_tag = Vector{Int}()
-    i_face_tag = Vector{Int}()
-    j_face_tag = Vector{Int}()
-    k_face_tag = Vector{Int}()
-
-    I_faces = (
-        faces = faces,
-        face_pos = face_pos,
-        cell_faces = cell_faces,
-        neighbors = face_neighbors,
-        vertical_tag = vertical_face_tag,
-        horizontal_tag = horizontal_face_tag,
-        i_tag = i_face_tag,
-        j_tag = j_face_tag,
-        k_tag = k_face_tag,
-        flipped = flipped
-    )
-
-    nf_est = 3 * length(active)
-    for ft in [vertical_face_tag, horizontal_face_tag, i_face_tag, j_face_tag, k_face_tag]
-        sizehint!(ft, nf_est)
-    end
 
     vertical_bnd_face_tag = Vector{Int}()
     horizontal_bnd_face_tag = Vector{Int}()
@@ -647,7 +653,7 @@ function grid_from_primitives(primitives; nnc = missing, pinch = missing)
         return (flat_vals, flat_pos)
     end
 
-    c2f, c2f_pos = convert_to_flat(cell_faces)
+    c2f, c2f_pos = convert_to_flat(I_faces.cell_faces)
     b2f, b2f_pos = convert_to_flat(cell_boundary_faces)
 
     g = UnstructuredMesh(
@@ -655,12 +661,12 @@ function grid_from_primitives(primitives; nnc = missing, pinch = missing)
         c2f_pos,
         b2f,
         b2f_pos,
-        faces,
-        face_pos,
+        I_faces.faces,
+        I_faces.face_pos,
         boundary_faces,
         boundary_face_pos,
         primitives.nodes,
-        face_neighbors,
+        I_faces.neighbors,
         boundary_cells;
         structure = CartesianIndex(cartdims[1], cartdims[2], cartdims[3]),
         cell_map = primitives.active,
@@ -671,11 +677,11 @@ function grid_from_primitives(primitives; nnc = missing, pinch = missing)
         set_mesh_entity_tag!(g, Faces(), :cpgrid_connection_type, :pinched, pinched_faces)
     end
     # Orientation
-    if length(horizontal_face_tag) > 0
-        set_mesh_entity_tag!(g, Faces(), :orientation, :horizontal, horizontal_face_tag)
+    if length(I_faces.horizontal_tag) > 0
+        set_mesh_entity_tag!(g, Faces(), :orientation, :horizontal, I_faces.horizontal_tag)
     end
-    if length(vertical_face_tag) > 0
-        set_mesh_entity_tag!(g, Faces(), :orientation, :vertical, vertical_face_tag)
+    if length(I_faces.vertical_tag) > 0
+        set_mesh_entity_tag!(g, Faces(), :orientation, :vertical, I_faces.vertical_tag)
     end
     if length(horizontal_bnd_face_tag) > 0
         set_mesh_entity_tag!(g, BoundaryFaces(), :orientation, :horizontal, horizontal_bnd_face_tag)
@@ -684,14 +690,14 @@ function grid_from_primitives(primitives; nnc = missing, pinch = missing)
         set_mesh_entity_tag!(g, BoundaryFaces(), :orientation, :vertical, vertical_bnd_face_tag)
     end
     # Interior IJK
-    if length(i_face_tag) > 0
-        set_mesh_entity_tag!(g, Faces(), :ijk_orientation, :i, i_face_tag)
+    if length(I_faces.i_tag) > 0
+        set_mesh_entity_tag!(g, Faces(), :ijk_orientation, :i, I_faces.i_tag)
     end
-    if length(j_face_tag) > 0
-        set_mesh_entity_tag!(g, Faces(), :ijk_orientation, :j, j_face_tag)
+    if length(I_faces.j_tag) > 0
+        set_mesh_entity_tag!(g, Faces(), :ijk_orientation, :j, I_faces.j_tag)
     end
-    if length(k_face_tag) > 0
-        set_mesh_entity_tag!(g, Faces(), :ijk_orientation, :k, k_face_tag)
+    if length(I_faces.k_tag) > 0
+        set_mesh_entity_tag!(g, Faces(), :ijk_orientation, :k, I_faces.k_tag)
     end
     # Boundary IJK
     if length(i_bnd_face_tag) > 0
@@ -713,6 +719,49 @@ function grid_from_primitives(primitives; nnc = missing, pinch = missing)
         set_mesh_entity_tag!(g, BoundaryFaces(), :direction, k, bnd_ix)
     end
     return g
+end
+
+function setup_face_helper(ncells, flipped)
+    # Faces mapping to nodes
+    faces = Vector{Int}()
+    face_pos = [1]
+
+    # Mapping from cell to faces
+    cell_faces = Vector{Vector{Int}}()
+    sizehint!(cell_faces, ncells)
+
+    for c in 1:ncells
+        cf = Vector{Int}()
+        sizehint!(cf, 6)
+        push!(cell_faces, cf)
+    end
+    face_neighbors = Vector{Tuple{Int, Int}}()
+    boundary_cells = Vector{Int}()
+
+    vertical_face_tag = Vector{Int}()
+    horizontal_face_tag = Vector{Int}()
+    i_face_tag = Vector{Int}()
+    j_face_tag = Vector{Int}()
+    k_face_tag = Vector{Int}()
+
+    nf_est = 3 * ncells
+    for ft in [vertical_face_tag, horizontal_face_tag, i_face_tag, j_face_tag, k_face_tag]
+        sizehint!(ft, nf_est)
+    end
+
+    I_faces = (
+        faces = faces,
+        face_pos = face_pos,
+        cell_faces = cell_faces,
+        neighbors = face_neighbors,
+        vertical_tag = vertical_face_tag,
+        horizontal_tag = horizontal_face_tag,
+        i_tag = i_face_tag,
+        j_tag = j_face_tag,
+        k_tag = k_face_tag,
+        flipped = flipped
+    )
+    return I_faces
 end
 
 function add_face_from_nodes!(V, Vpos, nodes, flipped)

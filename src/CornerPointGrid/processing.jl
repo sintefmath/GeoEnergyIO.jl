@@ -306,12 +306,14 @@ function process_lines!(lines)
     nodes = Vector{SVector{3, T}}()
     active_lines = BitVector(undef, length(lines))
     node_counter = 1
+    p = Vector{Int}()
     for (line_ix, line) in enumerate(lines)
         z = line.z
         active = length(z) > 0 && !all(x -> x <= 0, line.cells)
         active_lines[line_ix] = active
         if active
-            p = sortperm(z)
+            resize!(p, length(z))
+            sortperm!(p, z)
             @. line.z = z[p]
             @. line.cells = line.cells[p]
             pos = line.cellpos

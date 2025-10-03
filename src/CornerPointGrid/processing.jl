@@ -36,7 +36,7 @@ function cpgrid_primitives(coord, zcorn, cartdims; actnum = missing)
             x1 = SVector{3, T_coord}(p1),
             x2 = SVector{3, T_coord}(p2),
             equal_points = p1 ≈ p2
-            )
+        )
     end
     # active_lines = BitArray(undef, nlinex, nliney)
     x1, x2 = get_line(coord, 1, 1, nlinex, nliney)
@@ -63,7 +63,7 @@ function cpgrid_primitives(coord, zcorn, cartdims; actnum = missing)
 
     linear_line_ix(i, j) = ij_to_linear(i, j, (nlinex, nliney))
     L_t = typeof(line0)
-    lines = Matrix{Union{L_t, Missing}}(undef, nlinex, nliney)
+    lines = Matrix{L_t}(undef, nlinex, nliney)
     for i in 1:nlinex
         for j in 1:nliney
             p1, p2 = get_line(coord, i, j, nlinex, nliney)
@@ -117,14 +117,14 @@ function cpgrid_primitives(coord, zcorn, cartdims; actnum = missing)
 
     # Process lines and merge similar nodes
     nodes, lines_active = process_lines!(lines)
-    if true
-        for i in eachindex(lines)
-            if !lines_active[i]
-                lines[i] = missing
-            end
-        end
-    end
-    GC.gc()
+    # if true
+    #     for i in eachindex(lines)
+    #         if !lines_active[i]
+    #             lines[i] = missing
+    #         end
+    #     end
+    # end
+    # GC.gc()
 
     # The four lines making up each column
     column_lines = Vector{NTuple{4, Int64}}()
@@ -376,6 +376,12 @@ function grid_from_primitives(primitives; nnc = missing, pinch = missing)
     i_bnd_face_tag = Vector{Int}()
     j_bnd_face_tag = Vector{Int}()
     k_bnd_face_tag = Vector{Int}()
+
+    nf_est = 3 * length(active)
+    for ft in [vertical_face_tag, horizontal_face_tag, i_face_tag, j_face_tag, k_face_tag]
+        sizehint!(ft, nf_est)
+    end
+
     boundary_type = Dict{Int, Symbol}()
 
     nx, ny, nz = cartdims

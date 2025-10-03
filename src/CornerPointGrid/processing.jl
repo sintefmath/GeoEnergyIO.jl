@@ -625,10 +625,6 @@ function grid_from_primitives(primitives; nnc = missing, pinch = missing)
             col_a = columns[a]
             col_b = columns[b]
 
-
-            # cell_pairs, overlaps = traverse_column_pair(col_a, col_b, l1, l2)
-            # int_pairs, int_overlaps, bnd_pairs, bnd_overlaps = split_overlaps_into_interior_and_boundary(cell_pairs, overlaps)
-
             F_interior = (l, r, node_indices) -> insert_face!(l, r, node_indices, is_boundary = false, is_vertical = true, is_idir = is_idir, face_type = conn_type)
             F_bnd = (l, r, node_indices) -> insert_face!(l, r, node_indices, is_boundary = true, is_vertical = true, is_idir = is_idir, face_type = conn_type)
 
@@ -649,21 +645,13 @@ function grid_from_primitives(primitives; nnc = missing, pinch = missing)
                         # Two inactive cells, can be skipped.
                         continue
                     end
-                    # is_bnd = l_bnd || r_bnd
                     cell_pair = (l, r)
                     if col_is_bnd || l_bnd || r_bnd
-                        # We are dealing with a boundary column, everything is boundary
+                        # Boundary if we are on a boundary column or one of the cells connected to the face is a boundary
                         add_vertical_face_from_overlap!(extra_node_lookup, F_bnd, nodes, cell_pair, overlap, l1, l2)
                     else
                         add_vertical_face_from_overlap!(extra_node_lookup, F_interior, nodes, cell_pair, overlap, l1, l2)
                     end
-                # if is_bnd
-                #     # We are dealing with a boundary column, everything is boundary
-                #     add_vertical_cells_from_overlaps!(extra_node_lookup, F_bnd, nodes, int_pairs, int_overlaps, l1, l2)
-                # else
-                #     add_vertical_cells_from_overlaps!(extra_node_lookup, F_interior, nodes, int_pairs, int_overlaps, l1, l2)
-                #     add_vertical_cells_from_overlaps!(extra_node_lookup, F_bnd, nodes, bnd_pairs, bnd_overlaps, l1, l2)
-                # end
                 end
             end
         end

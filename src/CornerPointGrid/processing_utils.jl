@@ -12,7 +12,7 @@
     DISTINCT_B_ABOVE
 end
 
-function find_cell_bounds(cell, line)
+function set_cell_bounds!(line, cell)
     get_pos(i) = line.cellpos[i]:(line.cellpos[i+1]-1)
     get_cells(i) = @view line.cells[get_pos(i)]
 
@@ -33,7 +33,15 @@ function find_cell_bounds(cell, line)
         end
     end
     @assert stop > 0 "$cell end point not found in line $line"
-    return (start, stop)
+    line.cell_bounds[cell] = (start, stop)
+    return line
+end
+
+function find_cell_bounds(cell, line)
+    if !haskey(line.cell_bounds, cell)
+        set_cell_bounds!(line, cell)
+    end
+    return line.cell_bounds[cell]
 end
 
 function cell_top_bottom(cells, line1, line2; check = true)

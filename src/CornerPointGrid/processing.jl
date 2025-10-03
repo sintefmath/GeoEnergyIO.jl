@@ -35,6 +35,7 @@ function cpgrid_primitives(coord, zcorn, cartdims; actnum = missing)
             nodes = nodes,
             x1 = SVector{3, T_coord}(p1),
             x2 = SVector{3, T_coord}(p2),
+            cell_bounds = Dict{Int, Tuple{Int, Int}}(),
             equal_points = p1 ≈ p2
         )
     end

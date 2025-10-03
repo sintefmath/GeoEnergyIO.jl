@@ -73,7 +73,8 @@ function cpgrid_primitives(coord, zcorn, cartdims; actnum = missing)
             x1 = SVector{3, T_coord}(p1),
             x2 = SVector{3, T_coord}(p2),
             cell_bounds = Dict{Int, Tuple{Int, Int}}(),
-            equal_points = p1 ≈ p2
+            equal_points = p1 ≈ p2,
+            is_active = is_active
         )
     end
     # active_lines = BitArray(undef, nlinex, nliney)
@@ -113,6 +114,9 @@ function cpgrid_primitives(coord, zcorn, cartdims; actnum = missing)
             for I1 in (0, 1)
                 for I2 in (0, 1)
                     @inbounds L = lines[i + I2, j + I1]
+                    if !L.is_active
+                        continue
+                    end
                     for k = 1:nz
                         ix = ijk_to_linear(i, j, k, cartdims)
                         active_cell_index = cell_index(i, j, k, actnum)
@@ -132,6 +136,9 @@ function cpgrid_primitives(coord, zcorn, cartdims; actnum = missing)
     for i in 1:(nx+1)
         for j in 1:(ny+1)
             L = lines[i, j]
+            if !L.is_active
+                continue
+            end
             z_top = minimum(L.z)
             z_bottom = maximum(L.z)
             for i_offset in (-1, 0)

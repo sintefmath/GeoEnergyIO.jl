@@ -55,7 +55,7 @@ function cpgrid_primitives(coord, zcorn, cartdims; actnum = missing)
     function generate_line(p1, p2, is_active)
         T_coord = promote_type(eltype(p1), eltype(p2), typeof(z_mean))
         if is_active
-            line_length_hint = 4*(nz + 1)
+            line_length_hint = 6*(nz + 1)
             cell_hint = 4*nz
         else
             line_length_hint = cell_hint = 0
@@ -313,7 +313,7 @@ function process_lines!(lines)
         active_lines[line_ix] = active
         if active
             resize!(p, length(z))
-            sortperm!(p, z)
+            sortperm!(p, z, alg = QuickSort)
             @. line.z = z[p]
             @. line.cells = line.cells[p]
             pos = line.cellpos

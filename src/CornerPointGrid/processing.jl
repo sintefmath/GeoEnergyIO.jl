@@ -25,7 +25,7 @@ function cpgrid_primitives(coord, zcorn, cartdims; actnum = missing)
         line_length_hint = 4*nz
         z = sizehint!(Vector{T_coord}(), line_length_hint)
         cells = sizehint!(Vector{Int}(), line_length_hint)
-        cellpos = sizehint!(Vector{Int}(), line_length_hint)
+        cellpos = sizehint!(Vector{Int}(), nz + 1)
         nodes = sizehint!(Vector{Int}(), line_length_hint)
 
         return (

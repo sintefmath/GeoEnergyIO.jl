@@ -82,8 +82,8 @@ function cell_top_bottom(cells, line1, line2; check = true)
     return out
 end
 
-function add_vertical_face_from_overlap!(extra_node_lookup, F, nodes, cell_pair, overlap, l1, l2)
-    node_pos = Int[]
+function add_vertical_face_from_overlap!(extra_node_lookup, F, nodes, cell_pair, overlap, l1, l2, node_pos)
+    resize!(node_pos, 0)
     function global_node_index(l, local_node)
         return l.nodes[local_node]
     end

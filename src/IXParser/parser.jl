@@ -139,24 +139,39 @@ function read_afi_file(fpath;
         "IX" => IX
     )
     for r in parsed.children
-        r::IXSimulationRecord
-        cid = r.keyword
-        if cid == "FM"
-            dest = FM
-            msg("Found field management model.")
-        elseif cid == "IX"
-            dest = IX
-            out["name"] = r.casename
-            msg("Found reservoir model.")
+        if r isa IXSimulationRecord
+            dest, cid = get_simulation_section(out, r.keyword, verbose = verbose)
+            if cid == "IX"
+                out["name"] = r.casename
+            end
+            process_records!(dest, r.arg, basepath, verbose = verbose, strict = strict)
+        elseif r isa IXIncludeRecord
+            dest, cid = get_simulation_section(out, r.options["simulation"], verbose = verbose)
+            recs = [r]
+            process_records!(dest, recs, basepath; verbose = verbose, strict = strict)
         else
-            error("Unknown simulation component $(cid) in file $fname, expected FM or IX")
+            continue
         end
-        process_records!(dest, r.arg, basepath, verbose = verbose, strict = strict)
     end
     if convert
         out = restructure_and_convert_units_afi(out; verbose = verbose, strict = strict)
     end
     return out
+end
+
+function get_simulation_section(out, cid; verbose = false)
+    msg(x) = verbose && println(x)
+    cid = uppercase(cid)
+    if cid == "FM"
+        dest = out["FM"]
+        msg("Found field management model.")
+    elseif cid == "IX"
+        dest = out["IX"]
+        msg("Found reservoir model.")
+    else
+        error("Unknown simulation component $(cid) in file $fname, expected FM or IX")
+    end
+    return (dest, cid)
 end
 
 function process_records!(dest, recs::Vector, basepath; verbose = true, strict = false)

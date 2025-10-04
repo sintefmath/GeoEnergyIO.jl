@@ -80,6 +80,12 @@ struct IXLookupRecord <: AbstractIXRecord
     key::String
 end
 
+function IXLookupRecord(a)
+    name = to_string(a[1])
+    key = to_string(a[2])
+    return IXLookupRecord(name, key)
+end
+
 Base.getindex(f::AFIInputFile, k::String) = f.setup[k]
 Base.haskey(f::AFIInputFile, k::String) = haskey(f.setup, k)
 Base.keys(f::AFIInputFile) = keys(f.setup)

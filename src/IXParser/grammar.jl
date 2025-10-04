@@ -305,6 +305,7 @@ end
 @rule script(t::IXTransformer, a) = parse_ix_script(a)
 
 @rule double_property(t::IXTransformer, a) = IXDoubleProperty(a)
+@rule lookup(t::IXTransformer, a) = IXLookupRecord(a)
 
 @rule repeat_float(t::IXTransformer, a) = parse_repeat(a; T = Float64)
 @rule repeat_int(t::IXTransformer, a) = parse_repeat(a; T = Int)

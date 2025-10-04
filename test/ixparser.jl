@@ -460,6 +460,34 @@ import GeoEnergyIO.IXParser:
             @test s.body[2].value == true
         end
 
+        teststr = """
+        FluidSourceExternal "FluidSource1" {
+            Phase=WATER
+            AvailableRate=DoubleProperty(0 WATER_FLOW_RATE)
+            Enthalpy=FluidEnthalpy("EH1")
+        }
+        """
+        t = parse_ix_record(teststr)
+        @test t isa GeoEnergyIO.IXParser.IXStandardRecord
+        @test t.keyword == "FluidSourceExternal"
+        @test t.value == "FluidSource1"
+        @test length(t.body) == 3
+        @test t.body[1] isa GeoEnergyIO.IXParser.IXEqualRecord
+        @test t.body[1].keyword == "Phase"
+        @test t.body[1].value == IXKeyword("WATER")
+
+        @test t.body[2] isa GeoEnergyIO.IXParser.IXEqualRecord
+        @test t.body[2].keyword == "AvailableRate"
+        @test t.body[2].value isa GeoEnergyIO.IXParser.IXDoubleProperty
+        @test t.body[2].value.value == 0.0
+        @test t.body[2].value.name == "WATER_FLOW_RATE"
+
+        @test t.body[3] isa GeoEnergyIO.IXParser.IXEqualRecord
+        @test t.body[3].keyword == "Enthalpy"
+        @test t.body[3].value isa GeoEnergyIO.IXParser.IXLookupRecord
+        @test t.body[3].value.name == "FluidEnthalpy"
+        @test t.body[3].value.key == "EH1"
+
         @testset "repeats" begin
             teststr = """
             StraightPillarGrid "CoarseGrid" {

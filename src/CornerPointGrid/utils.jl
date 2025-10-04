@@ -104,16 +104,13 @@ function handle_zero_effective_porosity!(actnum, g)
 end
 
 function handle_zero_effective_porosity!(actnum, g, minpv, minpv_for_cell)
-    added = 0
     changed = fill(false, size(actnum))
-
     if haskey(g, "PORV")
         porv = G["PORV"]
         for i in eachindex(actnum)
             if actnum[i]
                 pv = porv[i]
                 if pv < minpv_for_cell(i)
-                    added += 1
                     actnum[i] = false
                     changed[i] = true
                 end
@@ -134,19 +131,18 @@ function handle_zero_effective_porosity!(actnum, g, minpv, minpv_for_cell)
             ntg = ones(size(actnum))
         end
         poro = g["PORO"]
-        deactivate_minpv!(actnum, g, poro, ntg, zcorn, coord, cartdims, minpv)
+        deactivate_minpv!(actnum, changed, g, poro, ntg, zcorn, coord, cartdims, minpv)
     end
-    @debug "$added disabled cells out of $(length(actnum)) due to low effective pore-volume."
     return (actnum, changed)
 end
 
-function deactivate_minpv!(actnum, g, poro, ntg, zcorn, coord, cartdims, minpv)
+function deactivate_minpv!(actnum, changed, g, poro, ntg, zcorn, coord, cartdims, minpv)
     for i in eachindex(actnum)
         if actnum[i]
             vol = zcorn_volume(g, zcorn, coord, cartdims, i)
             pv = poro[i]*ntg[i]*vol
             if pv < minpv
-                added += 1
+                changed[i] = true
                 actnum[i] = false
             end
         end

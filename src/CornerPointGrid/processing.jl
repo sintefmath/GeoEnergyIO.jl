@@ -58,7 +58,7 @@ function cpgrid_primitives(coord, zcorn, cartdims; actnum = missing)
     function generate_line(p1, p2, is_active)
         T_coord = promote_type(eltype(p1), eltype(p2), typeof(z_mean))
         if is_active
-            line_length_hint = 6*(nz + 1)
+            line_length_hint = 8*(nz + 1)
             cell_hint = 4*nz
         else
             line_length_hint = cell_hint = 0
@@ -580,6 +580,8 @@ function grid_from_primitives(primitives; nnc = missing, pinch = missing)
     function convert_to_flat(v)
         flat_vals = Int[]
         flat_pos = Int[1]
+        sizehint!(flat_pos, length(v)+1)
+        sizehint!(flat_vals, sum(length, v))
         for cf in v
             for face in cf
                 push!(flat_vals, face)
@@ -660,6 +662,7 @@ function setup_face_helper(ncells, flipped; is_bnd::Bool)
     # Faces mapping to nodes
     faces = Vector{Int}()
     face_pos = [1]
+    nf_est = 3 * ncells
 
     # Mapping from cell to faces
     cell_faces = Vector{Vector{Int}}()
@@ -676,6 +679,7 @@ function setup_face_helper(ncells, flipped; is_bnd::Bool)
         face_neighbors = Vector{Int}()
     else
         face_neighbors = Vector{Tuple{Int, Int}}()
+        sizehint!(face_neighbors, nf_est)
     end
     boundary_cells = Vector{Int}()
 
@@ -686,7 +690,6 @@ function setup_face_helper(ncells, flipped; is_bnd::Bool)
     k_face_tag = Vector{Int}()
 
     if !is_bnd
-        nf_est = 3 * ncells
         for ft in [vertical_face_tag, horizontal_face_tag, i_face_tag, j_face_tag, k_face_tag]
             sizehint!(ft, nf_est)
         end

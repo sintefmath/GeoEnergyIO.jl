@@ -126,6 +126,26 @@ import Jutul: number_of_cells, number_of_boundary_faces, number_of_faces, conver
             @test nf == nf_ref
         end
     end
+    @testset "NNC processing" begin
+        pth = test_input_file_path("grdecl", "1col.txt")
+        grdecl = parse_grdecl_file(pth)
+        g0 = mesh_from_grid_section(grdecl)
+        nc0 = number_of_cells(g0)
+        nf0 = number_of_faces(g0)
+        nbf0 = number_of_boundary_faces(g0)
+        grdecl["NNC"] = [
+            [1 1 1 1 1 3],
+            [3 1 1 1 1 2]
+        ]
+
+        g = mesh_from_grid_section(grdecl)
+        @test g.faces.neighbors[1:2] == g0.faces.neighbors
+        @test g.faces.neighbors[3] == (1, 3)
+        @test g.faces.neighbors[4] == (3, 2)
+        @test number_of_cells(g) == nc0
+        @test number_of_faces(g) == nf0 + 2
+        @test number_of_boundary_faces(g) == nbf0
+    end
     import GeoEnergyIO.CornerPointGrid: determine_cell_overlap_inside_line
     @testset "corner point pillar point overlap" begin
         for start in -10:25

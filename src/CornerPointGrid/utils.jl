@@ -21,8 +21,8 @@ end
 function get_line(coord, i, j, nx, ny)
     ix = ijk_to_linear(i, j, 1, (nx, ny, 1))
     T = SVector{3, eltype(coord)}
-    x1 = T(coord[ix, 1:3])
-    x2 = T(coord[ix, 4:end])
+    x1 = T(coord[ix, 1], coord[ix, 2], coord[ix, 3])
+    x2 = T(coord[ix, 4], coord[ix, 5], coord[ix, 6])
 
     return (x1, x2)
 end
@@ -48,7 +48,7 @@ function interp_coord(p0::SVector{3, T}, p1::SVector{3, T}, z::V) where {T<:Real
     else
         weight = (z - z0)/(z1 - z0)
         interp_pt = p0 .+ weight.*(p1 .- p0)
-        @assert interp_pt[3] ≈ z "expected $z was $(interp_pt[3]) != $z"
+        @assert isapprox(interp_pt[3], z, atol = 1e-8) "expected $z was $(interp_pt[3]) != $z"
     end
     return interp_pt
 end
@@ -104,18 +104,13 @@ function handle_zero_effective_porosity!(actnum, g)
 end
 
 function handle_zero_effective_porosity!(actnum, g, minpv, minpv_for_cell)
-    added = 0
-    active = 0
     changed = fill(false, size(actnum))
-
     if haskey(g, "PORV")
         porv = G["PORV"]
         for i in eachindex(actnum)
             if actnum[i]
                 pv = porv[i]
-                active += active
                 if pv < minpv_for_cell(i)
-                    added += 1
                     actnum[i] = false
                     changed[i] = true
                 end
@@ -136,63 +131,67 @@ function handle_zero_effective_porosity!(actnum, g, minpv, minpv_for_cell)
             ntg = ones(size(actnum))
         end
         poro = g["PORO"]
-        for i in eachindex(actnum)
-            if actnum[i]
-                vol = zcorn_volume(g, zcorn, coord, cartdims, i)
-                pv = poro[i]*ntg[i]*vol
-                active += active
-                if pv < minpv
-                    added += 1
-                    actnum[i] = false
-                end
+        deactivate_minpv!(actnum, changed, g, poro, ntg, zcorn, coord, cartdims, minpv)
+    end
+    return (actnum, changed)
+end
+
+function deactivate_minpv!(actnum, changed, g, poro, ntg, zcorn, coord, cartdims, minpv)
+    for i in eachindex(actnum)
+        if actnum[i]
+            vol = zcorn_volume(g, zcorn, coord, cartdims, i)
+            pv = poro[i]*ntg[i]*vol
+            if pv < minpv
+                changed[i] = true
+                actnum[i] = false
             end
         end
     end
-    @debug "$added disabled cells out of $(length(actnum)) due to low effective pore-volume."
-    return (actnum, changed)
+    return actnum
 end
 
 function zcorn_volume(g, zcorn, coord, dims, linear_ix)
     if ismissing(zcorn)
-        return 1.0
+        vol = 1.0
+    else
+        nx, ny, = dims
+        i, j, = linear_to_ijk(linear_ix, dims)
+
+        get_zcorn(I1, I2, I3) = zcorn[corner_index(linear_ix, (I1, I2, I3), dims)]
+        get_pair(I, J) = (get_zcorn(I, J, 0), get_zcorn(I, J, 1))
+        function pillar_line(I, J)
+            x1, x2 = get_line(coord, i+I, j+J, nx+1, ny+1)
+            return (x1 = x1, x2 = x2, equal_points = false)
+        end
+
+        function interpolate_line(I, J, L)
+            pl = pillar_line(I, J)
+            return interp_coord(pl, L)
+        end
+
+        l_11, t_11 = get_pair(0, 0)
+        l_12, t_12 = get_pair(0, 1)
+        l_21, t_21 = get_pair(1, 0)
+        l_22, t_22 = get_pair(1, 1)
+
+        pt_11 = interpolate_line(0, 0, l_11)
+        pt_12 = interpolate_line(0, 1, l_12)
+        pt_21 = interpolate_line(1, 0, l_21)
+        pt_22 = interpolate_line(1, 1, l_22)
+
+        A_1 = norm(cross(pt_21 - pt_11, pt_12 - pt_11), 2)
+        A_2 = norm(cross(pt_21 - pt_22, pt_12 - pt_22), 2)
+        area = (A_1 + A_2)/2.0
+
+        d_11 = t_11 - l_11
+        d_12 = t_12 - l_12
+        d_21 = t_21 - l_21
+        d_22 = t_22 - l_22
+
+        d_avg = 0.25*(d_11 + d_12 + d_21 + d_22)
+        vol = d_avg*area
     end
-    nx, ny, nz = dims
-    i, j, k = linear_to_ijk(linear_ix, dims)
-
-    get_zcorn(I1, I2, I3) = zcorn[corner_index(linear_ix, (I1, I2, I3), dims)]
-    get_pair(I, J) = (get_zcorn(I, J, 0), get_zcorn(I, J, 1))
-    function pillar_line(I, J)
-        x1, x2 = get_line(coord, i+I, j+J, nx+1, ny+1)
-        return (x1 = x1, x2 = x2, equal_points = false)
-    end
-
-    function interpolate_line(I, J, L)
-        pl = pillar_line(I, J)
-        return interp_coord(pl, L)
-    end
-
-    l_11, t_11 = get_pair(0, 0)
-    l_12, t_12 = get_pair(0, 1)
-    l_21, t_21 = get_pair(1, 0)
-    l_22, t_22 = get_pair(1, 1)
-
-    pt_11 = interpolate_line(0, 0, l_11)
-    pt_12 = interpolate_line(0, 1, l_12)
-    pt_21 = interpolate_line(1, 0, l_21)
-    pt_22 = interpolate_line(1, 1, l_22)
-
-
-    A_1 = norm(cross(pt_21 - pt_11, pt_12 - pt_11), 2)
-    A_2 = norm(cross(pt_21 - pt_22, pt_12 - pt_22), 2)
-    area = (A_1 + A_2)/2.0
-
-    d_11 = t_11 - l_11
-    d_12 = t_12 - l_12
-    d_21 = t_21 - l_21
-    d_22 = t_22 - l_22
-
-    d_avg = 0.25*(d_11 + d_12 + d_21 + d_22)
-    return d_avg*area
+    return vol
 end
 
 function repair_zcorn!(zcorn, cartdims)

@@ -20,12 +20,53 @@ function cpgrid_primitives(coord, zcorn, cartdims; actnum = missing)
     nliney = ny+1
     @assert nliney*nlinex == size(coord, 1)
 
-    function generate_line(p1, p2)
+    # Tag columns as active or inactive
+    active_columns = Matrix{Bool}(undef, nx, ny)
+    for i in 1:nx
+        for j in 1:ny
+            is_active = false
+            for k in 1:nz
+                is_active = is_active || actnum[i, j, k]
+                if is_active
+                    break
+                end
+            end
+            active_columns[i, j] = is_active
+        end
+    end
+    active_lines = BitArray(undef, nlinex, nliney)
+    for i in 1:nlinex
+        for j in 1:nliney
+            is_active = false
+            for j_offset in (-1, 0)
+                for i_offset in (-1, 0)
+                    I = i + i_offset
+                    J = j + j_offset
+                    if I <= nx && J <= ny && I > 0 && J > 0 && active_columns[I, J]
+                        is_active = true
+                        break
+                    end
+                end
+                if is_active
+                    break
+                end
+            end
+            active_lines[i, j] = is_active
+        end
+    end
+
+    function generate_line(p1, p2, is_active)
         T_coord = promote_type(eltype(p1), eltype(p2), typeof(z_mean))
-        line_length_hint = 4*nz
+        if is_active
+            line_length_hint = 2*8*(nz + 1)
+            cell_hint = 4*nz
+        else
+            line_length_hint = cell_hint = 0
+        end
+        cell_bounds = sizehint!(Dict{Int, Tuple{Int, Int}}(), cell_hint)
         z = sizehint!(Vector{T_coord}(), line_length_hint)
         cells = sizehint!(Vector{Int}(), line_length_hint)
-        cellpos = sizehint!(Vector{Int}(), line_length_hint)
+        cellpos = sizehint!(Vector{Int}(), cell_hint)
         nodes = sizehint!(Vector{Int}(), line_length_hint)
 
         return (
@@ -35,12 +76,14 @@ function cpgrid_primitives(coord, zcorn, cartdims; actnum = missing)
             nodes = nodes,
             x1 = SVector{3, T_coord}(p1),
             x2 = SVector{3, T_coord}(p2),
-            equal_points = p1 ≈ p2
-            )
+            cell_bounds = cell_bounds,
+            equal_points = p1 ≈ p2,
+            is_active = is_active
+        )
     end
     # active_lines = BitArray(undef, nlinex, nliney)
     x1, x2 = get_line(coord, 1, 1, nlinex, nliney)
-    line0 = generate_line(x1, x2)
+    line0 = generate_line(x1, x2, false)
     function boundary_index(i, j, is_top)
         if is_top
             layer_offset = -(2*nx*ny*nz)
@@ -62,21 +105,25 @@ function cpgrid_primitives(coord, zcorn, cartdims; actnum = missing)
     end
 
     linear_line_ix(i, j) = ij_to_linear(i, j, (nlinex, nliney))
-    lines = Matrix{typeof(line0)}(undef, nlinex, nliney)
+    L_t = typeof(line0)
+    lines = Matrix{L_t}(undef, nlinex, nliney)
     for i in 1:nlinex
         for j in 1:nliney
             p1, p2 = get_line(coord, i, j, nlinex, nliney)
-            lines[i, j] = generate_line(p1, p2)
+            lines[i, j] = generate_line(p1, p2, active_lines[i, j])
         end
     end
     for i = 1:nx
         for j = 1:ny
-            for k = 1:nz
-                ix = ijk_to_linear(i, j, k, cartdims)
-                active_cell_index = cell_index(i, j, k, actnum)
-                for I1 in (0, 1)
-                    for I2 in (0, 1)
-                        L = lines[i + I2, j + I1]
+            for I1 in (0, 1)
+                for I2 in (0, 1)
+                    @inbounds L = lines[i + I2, j + I1]
+                    if !L.is_active
+                        continue
+                    end
+                    for k = 1:nz
+                        ix = ijk_to_linear(i, j, k, cartdims)
+                        active_cell_index = cell_index(i, j, k, actnum)
                         for I3 in (0, 1)
                             zcorn_ix = corner_index(ix, (I1, I2, I3), cartdims)
                             c = zcorn[zcorn_ix]
@@ -93,9 +140,11 @@ function cpgrid_primitives(coord, zcorn, cartdims; actnum = missing)
     for i in 1:(nx+1)
         for j in 1:(ny+1)
             L = lines[i, j]
+            if !L.is_active
+                continue
+            end
             z_top = minimum(L.z)
             z_bottom = maximum(L.z)
-
             for i_offset in (-1, 0)
                 for j_offset in (-1, 0)
                     I = i+i_offset
@@ -117,21 +166,18 @@ function cpgrid_primitives(coord, zcorn, cartdims; actnum = missing)
 
     # Process lines and merge similar nodes
     nodes, lines_active = process_lines!(lines)
+    # if true
+    #     for i in eachindex(lines)
+    #         if !lines_active[i]
+    #             lines[i] = missing
+    #         end
+    #     end
+    # end
+    # GC.gc()
 
     # The four lines making up each column
     column_lines = Vector{NTuple{4, Int64}}()
 
-    # Tag columns as active or inactive
-    active_columns = Matrix{Bool}(undef, nx, ny)
-    for i in 1:nx
-        for j in 1:ny
-            is_active = false
-            for k in 1:nz
-                is_active = is_active || actnum[i, j, k]
-            end
-            active_columns[i, j] = is_active
-        end
-    end
     # Generate the columns with cell lists
     make_column(i, j) = (cells = Int[], i = i, j = j)
     cT = typeof(make_column(1, 1))
@@ -262,7 +308,7 @@ function cpgrid_primitives(coord, zcorn, cartdims; actnum = missing)
     )
 end
 
-function process_lines!(lines)
+function process_lines!(lines; sort_alg = QuickSort)
     if length(lines) > 0
         T = eltype(lines[1].z)
     else
@@ -271,14 +317,29 @@ function process_lines!(lines)
     nodes = Vector{SVector{3, T}}()
     active_lines = BitVector(undef, length(lines))
     node_counter = 1
+    pbuf_int = Int[]
+    pbuf_float = Float64[]
+    function mypermute!(x, p, buf)
+        resize!(buf, length(x))
+        @inbounds for i in eachindex(x)
+            buf[i] = x[p[i]]
+        end
+        @inbounds for i in eachindex(x)
+            x[i] = buf[i]
+        end
+        return x
+    end
+    p = Vector{Int}()
     for (line_ix, line) in enumerate(lines)
         z = line.z
-        active = length(z) > 0 && !all(x -> x <= 0, line.cells)
+        cells = line.cells
+        active = length(z) > 0 && !all(x -> x <= 0, cells)
         active_lines[line_ix] = active
         if active
-            p = sortperm(z)
-            @. line.z = z[p]
-            @. line.cells = line.cells[p]
+            resize!(p, length(z))
+            sortperm!(p, z, alg = sort_alg)
+            mypermute!(z, p, pbuf_float)
+            mypermute!(cells, p, pbuf_int)
             pos = line.cellpos
             push!(pos, 1)
 
@@ -295,7 +356,7 @@ function process_lines!(lines)
             # Sort each set of cells
             for i in 1:(length(pos)-1)
                 ci = view(line.cells, pos[i]:(pos[i+1]-1))
-                sort!(ci)
+                sort!(ci, alg = sort_alg)
             end
             ix = pos[1:end-1]
             unique_z = line.z[ix]
@@ -334,41 +395,11 @@ function grid_from_primitives(primitives; nnc = missing, pinch = missing)
     # A not very rigorous test for flipped coordinate systems.
     # The normal situation is Nx < 0, Ny > 0 and Nz > 0
     flipped = Nx < 0 && Ny > 0 && Nz < 0
-    # Faces mapping to nodes
-    faces = Vector{Int}()
-    face_pos = [1]
-    faceno = 1
 
     cell_is_boundary(x) = x < 1
-    # Boundary faces mapping to nodes
-    boundary_faces = Vector{Int}()
-    boundary_face_pos = [1]
-    boundary_faceno = 1
-
-    # Mapping from cell to faces
-    cell_faces = Vector{Vector{Int}}()
-    # Mapping from cell to boundary faces
-    cell_boundary_faces = Vector{Vector{Int}}()
-
-    for c in eachindex(active)
-        push!(cell_faces, Vector{Int}())
-        push!(cell_boundary_faces, Vector{Int}())
-    end
-    face_neighbors = Vector{Tuple{Int, Int}}()
-    boundary_cells = Vector{Int}()
-
-    vertical_face_tag = Vector{Int}()
-    horizontal_face_tag = Vector{Int}()
-    i_face_tag = Vector{Int}()
-    j_face_tag = Vector{Int}()
-    k_face_tag = Vector{Int}()
-
-    vertical_bnd_face_tag = Vector{Int}()
-    horizontal_bnd_face_tag = Vector{Int}()
-    i_bnd_face_tag = Vector{Int}()
-    j_bnd_face_tag = Vector{Int}()
-    k_bnd_face_tag = Vector{Int}()
-    boundary_type = Dict{Int, Symbol}()
+    ncells = length(active)
+    I_faces = setup_face_helper(ncells, flipped, is_bnd = false)
+    B_faces = setup_face_helper(ncells, flipped, is_bnd = true)
 
     nx, ny, nz = cartdims
 
@@ -379,83 +410,6 @@ function grid_from_primitives(primitives; nnc = missing, pinch = missing)
     # The Float64 type is intentional.
     extra_node_lookup = Dict{SVector{3, Float64}, Int}()
 
-    function add_face_from_nodes!(V, Vpos, nodes)
-        n_global_nodes = length(primitives.nodes)
-        n_local_nodes = length(nodes)
-        @assert n_local_nodes > 2
-        if flipped
-            nodes = Base.Iterators.Reverse(nodes)
-        end
-        for n in nodes
-            @assert n <= n_global_nodes
-            @assert n > 0
-            push!(V, n)
-        end
-        push!(Vpos, length(nodes) + Vpos[end])
-    end
-
-    function insert_boundary_face!(prev_cell, cell, nodes, is_vertical, is_idir, face_type)
-        orient = cell_is_boundary(prev_cell) && !cell_is_boundary(cell)
-        @assert orient || (cell_is_boundary(cell) && !cell_is_boundary(prev_cell)) "cell pair $((cell, prev_cell)) is not on boundary"
-        if orient
-            self = cell
-        else
-            self = prev_cell
-            nodes = reverse(nodes)
-        end
-        add_face_from_nodes!(boundary_faces, boundary_face_pos, nodes)
-        push!(cell_boundary_faces[self], boundary_faceno)
-        push!(boundary_cells, self)
-        if is_vertical
-            push!(vertical_bnd_face_tag, boundary_faceno)
-        else
-            push!(horizontal_bnd_face_tag, boundary_faceno)
-        end
-        boundary_type[boundary_faceno] = face_type
-        if is_idir
-            push!(i_bnd_face_tag, boundary_faceno)
-            @assert face_type in (:left, :right)
-        elseif is_vertical
-            @assert face_type in (:upper, :lower)
-            push!(j_bnd_face_tag, boundary_faceno)
-        else
-            @assert face_type in (:top, :bottom)
-            push!(k_bnd_face_tag, boundary_faceno)
-        end
-        boundary_faceno += 1
-    end
-
-    function insert_interior_face!(prev_cell, cell, nodes, is_vertical, is_idir, face_type)
-        @assert cell > 0
-        @assert prev_cell > 0
-        @assert prev_cell != cell
-        add_face_from_nodes!(faces, face_pos, nodes)
-        # Note order here.
-        push!(face_neighbors, (prev_cell, cell))
-        push!(cell_faces[cell], faceno)
-        push!(cell_faces[prev_cell], faceno)
-        if is_vertical
-            push!(vertical_face_tag, faceno)
-        else
-            push!(horizontal_face_tag, faceno)
-        end
-        if is_idir
-            push!(i_face_tag, faceno)
-        elseif is_vertical
-            push!(j_face_tag, faceno)
-        else
-            push!(k_face_tag, faceno)
-        end
-        faceno += 1
-    end
-
-    function insert_face!(prev_cell, cell, nodes; is_boundary, is_vertical, is_idir, face_type)
-        if is_boundary
-            insert_boundary_face!(prev_cell, cell, nodes, is_vertical, is_idir, face_type)
-        else
-            insert_interior_face!(prev_cell, cell, nodes, is_vertical, is_idir, face_type)
-        end
-    end
     # Create pinch maps
     pinch_top_to_bottom, pinch_bottom_to_top = generate_pinch_map(pinch, primitives, lines, column_lines, columns)
 
@@ -517,7 +471,7 @@ function grid_from_primitives(primitives; nnc = missing, pinch = missing)
                 node_in_pillar_indices = map(F, cell_bnds)
                 # Then find the global node indices
                 node_indices = map((line, i) -> line.nodes[i], current_column_lines, node_in_pillar_indices)
-                insert_face!(c1, c2, node_indices, is_vertical = false, is_boundary = is_bnd, is_idir = false, face_type = ft)
+                insert_face!(I_faces, B_faces, c1, c2, node_indices, is_vertical = false, is_boundary = is_bnd, is_idir = false, face_type = ft)
             end
         end
     end
@@ -530,6 +484,8 @@ function grid_from_primitives(primitives; nnc = missing, pinch = missing)
         for (cl, col) in zip(column_lines, columns)
             number_of_cells_in_column = length(col.cells)
             current_column_lines = map(l -> lines[l], cl)
+            cl::Tuple{Int, Int, Int, Int}
+            @assert length(current_column_lines) == 4
             for top_cell in col.cells
                 cell_bnds = map(l -> find_cell_bounds(top_cell, l), current_column_lines)
                 bottom_cell = get(pinch_top_to_bottom, top_cell, nothing)
@@ -540,16 +496,19 @@ function grid_from_primitives(primitives; nnc = missing, pinch = missing)
                 # Then find the global node indices
                 node_indices = map((line, i) -> line.nodes[i], current_column_lines, node_in_pillar_indices)
                 # faceno index maps to the next face inserted
-                push!(pinched_faces, faceno)
-                insert_face!(top_cell, bottom_cell, node_indices, is_vertical = false, is_boundary = false, is_idir = false, face_type = :bottom)
+                push!(pinched_faces, length(I_faces.face_pos))
+                insert_face!(I_faces, B_faces, top_cell, bottom_cell, node_indices, is_vertical = false, is_boundary = false, is_idir = false, face_type = :bottom)
                 pinch_count += 1
             end
         end
         @assert num_pinched == pinch_count
     end
     # Vertical faces
-    for is_bnd in [true, false]
-        if is_bnd
+    T = @NamedTuple{cell::Int, line1::Tuple{Int, Int}, line2::Tuple{Int, Int}}
+    ord_a = T[]
+    ord_b = T[]
+    for col_is_bnd in [true, false]
+        if col_is_bnd
             col_neighbors = primitives.column_boundary
         else
             col_neighbors = primitives.column_neighbors
@@ -569,18 +528,39 @@ function grid_from_primitives(primitives; nnc = missing, pinch = missing)
             col_a = columns[a]
             col_b = columns[b]
 
-            cell_pairs, overlaps = traverse_column_pair(col_a, col_b, l1, l2)
-            int_pairs, int_overlaps, bnd_pairs, bnd_overlaps = split_overlaps_into_interior_and_boundary(cell_pairs, overlaps)
+            F_interior = (l, r, node_indices) -> insert_face!(I_faces, B_faces, l, r, node_indices, is_boundary = false, is_vertical = true, is_idir = is_idir, face_type = conn_type)
+            F_bnd = (l, r, node_indices) -> insert_face!(I_faces, B_faces, l, r, node_indices, is_boundary = true, is_vertical = true, is_idir = is_idir, face_type = conn_type)
 
-            F_interior = (l, r, node_indices) -> insert_face!(l, r, node_indices, is_boundary = false, is_vertical = true, is_idir = is_idir, face_type = conn_type)
-            F_bnd = (l, r, node_indices) -> insert_face!(l, r, node_indices, is_boundary = true, is_vertical = true, is_idir = is_idir, face_type = conn_type)
-
-            if is_bnd
-                # We are dealing with a boundary column, everything is boundary
-                add_vertical_cells_from_overlaps!(extra_node_lookup, F_bnd, nodes, int_pairs, int_overlaps, l1, l2)
-            else
-                add_vertical_cells_from_overlaps!(extra_node_lookup, F_interior, nodes, int_pairs, int_overlaps, l1, l2)
-                add_vertical_cells_from_overlaps!(extra_node_lookup, F_bnd, nodes, bnd_pairs, bnd_overlaps, l1, l2)
+            cell_top_bottom!(ord_a, col_a.cells, l1, l2)
+            cell_top_bottom!(ord_b, col_b.cells, l1, l2)
+            for pos_a in ord_a
+                for pos_b in ord_b
+                    overlap = find_linepair_overlap(pos_a, pos_b)
+                    if isnothing(overlap)
+                        continue
+                    end
+                    cat1, cat2 = overlap
+                    l = pos_a.cell
+                    r = pos_b.cell
+                    l_bnd = cell_is_boundary(l)
+                    r_bnd = cell_is_boundary(r)
+                    if l_bnd && r_bnd
+                        # Two inactive cells, can be skipped.
+                        continue
+                    end
+                    cell_pair = (l, r)
+                    pair_is_bnd = l_bnd || r_bnd
+                    if col_is_bnd && pair_is_bnd
+                        # Skip boundary faces that are already added as part of the horizontal processing
+                        continue
+                    end
+                    if col_is_bnd || pair_is_bnd
+                        # Boundary if we are on a boundary column or one of the cells connected to the face is a boundary
+                        add_vertical_face_from_overlap!(extra_node_lookup, F_bnd, nodes, cell_pair, overlap, l1, l2, node_buffer)
+                    else
+                        add_vertical_face_from_overlap!(extra_node_lookup, F_interior, nodes, cell_pair, overlap, l1, l2, node_buffer)
+                    end
+                end
             end
         end
     end
@@ -594,16 +574,18 @@ function grid_from_primitives(primitives; nnc = missing, pinch = missing)
             return aix
         end
 
+        fp = I_faces.face_pos
         for nnc_entry in nnc
             c1 = cell_index(nnc_entry[1], nnc_entry[2], nnc_entry[3])
             c2 = cell_index(nnc_entry[4], nnc_entry[5], nnc_entry[6])
             if c1 > 0 && c2 > 0
-                @assert c1 != c2 "NNC cell pair must be distinct."
-                push!(face_pos, face_pos[end])
-                push!(face_neighbors, (c1, c2))
-                push!(cell_faces[c1], faceno)
-                push!(cell_faces[c2], faceno)
-                faceno += 1
+                faceno = length(fp)
+                c1 != c2 || error("NNC cell pair must be distinct.")
+                # NNC connections have no nodes
+                push!(fp, fp[end])
+                push!(I_faces.neighbors, (c1, c2))
+                push!(I_faces.cell_faces[c1], faceno)
+                push!(I_faces.cell_faces[c2], faceno)
             else
                 error("NNC connects inactive cells, cannot proceed: $(Tuple(nnc_entry[1:3])) -> $(Tuple(nnc_entry[4:6]))")
             end
@@ -613,6 +595,8 @@ function grid_from_primitives(primitives; nnc = missing, pinch = missing)
     function convert_to_flat(v)
         flat_vals = Int[]
         flat_pos = Int[1]
+        sizehint!(flat_pos, length(v)+1)
+        sizehint!(flat_vals, sum(length, v))
         for cf in v
             for face in cf
                 push!(flat_vals, face)
@@ -622,21 +606,21 @@ function grid_from_primitives(primitives; nnc = missing, pinch = missing)
         return (flat_vals, flat_pos)
     end
 
-    c2f, c2f_pos = convert_to_flat(cell_faces)
-    b2f, b2f_pos = convert_to_flat(cell_boundary_faces)
+    c2f, c2f_pos = convert_to_flat(I_faces.cell_faces)
+    b2f, b2f_pos = convert_to_flat(B_faces.cell_faces)
 
     g = UnstructuredMesh(
         c2f,
         c2f_pos,
         b2f,
         b2f_pos,
-        faces,
-        face_pos,
-        boundary_faces,
-        boundary_face_pos,
+        I_faces.faces,
+        I_faces.face_pos,
+        B_faces.faces,
+        B_faces.face_pos,
         primitives.nodes,
-        face_neighbors,
-        boundary_cells;
+        I_faces.neighbors,
+        B_faces.neighbors,;
         structure = CartesianIndex(cartdims[1], cartdims[2], cartdims[3]),
         cell_map = primitives.active,
         z_is_depth = true
@@ -645,49 +629,180 @@ function grid_from_primitives(primitives; nnc = missing, pinch = missing)
     if length(pinched_faces) > 0
         set_mesh_entity_tag!(g, Faces(), :cpgrid_connection_type, :pinched, pinched_faces)
     end
+    set_face_tags!(g, I_faces, is_bnd = false)
+    set_face_tags!(g, B_faces, is_bnd = true)
+
+    return g
+end
+
+function set_face_tags!(g, I_faces; is_bnd::Bool)
+    if is_bnd
+        e = BoundaryFaces()
+    else
+        e = Faces()
+    end
     # Orientation
-    if length(horizontal_face_tag) > 0
-        set_mesh_entity_tag!(g, Faces(), :orientation, :horizontal, horizontal_face_tag)
+    if length(I_faces.horizontal_tag) > 0
+        set_mesh_entity_tag!(g, e, :orientation, :horizontal, I_faces.horizontal_tag)
     end
-    if length(vertical_face_tag) > 0
-        set_mesh_entity_tag!(g, Faces(), :orientation, :vertical, vertical_face_tag)
+    if length(I_faces.vertical_tag) > 0
+        set_mesh_entity_tag!(g, e, :orientation, :vertical, I_faces.vertical_tag)
     end
-    if length(horizontal_bnd_face_tag) > 0
-        set_mesh_entity_tag!(g, BoundaryFaces(), :orientation, :horizontal, horizontal_bnd_face_tag)
+    # IJK
+    if length(I_faces.i_tag) > 0
+        set_mesh_entity_tag!(g, e, :ijk_orientation, :i, I_faces.i_tag)
     end
-    if length(vertical_bnd_face_tag) > 0
-        set_mesh_entity_tag!(g, BoundaryFaces(), :orientation, :vertical, vertical_bnd_face_tag)
+    if length(I_faces.j_tag) > 0
+        set_mesh_entity_tag!(g, e, :ijk_orientation, :j, I_faces.j_tag)
     end
-    # Interior IJK
-    if length(i_face_tag) > 0
-        set_mesh_entity_tag!(g, Faces(), :ijk_orientation, :i, i_face_tag)
+    if length(I_faces.k_tag) > 0
+        set_mesh_entity_tag!(g, e, :ijk_orientation, :k, I_faces.k_tag)
     end
-    if length(j_face_tag) > 0
-        set_mesh_entity_tag!(g, Faces(), :ijk_orientation, :j, j_face_tag)
-    end
-    if length(k_face_tag) > 0
-        set_mesh_entity_tag!(g, Faces(), :ijk_orientation, :k, k_face_tag)
-    end
-    # Boundary IJK
-    if length(i_bnd_face_tag) > 0
-        set_mesh_entity_tag!(g, BoundaryFaces(), :ijk_orientation, :i, i_bnd_face_tag)
-    end
-    if length(j_bnd_face_tag) > 0
-        set_mesh_entity_tag!(g, BoundaryFaces(), :ijk_orientation, :j, j_bnd_face_tag)
-    end
-    if length(k_bnd_face_tag) > 0
-        set_mesh_entity_tag!(g, BoundaryFaces(), :ijk_orientation, :k, k_bnd_face_tag)
-    end
-    for k in (:left, :right, :upper, :lower, :top, :bottom)
-        bnd_ix = Vector{Int}()
-        for (f, btype) in pairs(boundary_type)
-            if btype == k
-                push!(bnd_ix, f)
+    if is_bnd
+        # Extra tag for boundary orientation
+        for k in (:left, :right, :upper, :lower, :top, :bottom)
+            orientation_ix = Vector{Int}()
+            for (f, btype) in pairs(I_faces.type)
+                if btype == k
+                    push!(orientation_ix, f)
+                end
             end
+            set_mesh_entity_tag!(g, e, :direction, k, orientation_ix)
         end
-        set_mesh_entity_tag!(g, BoundaryFaces(), :direction, k, bnd_ix)
     end
     return g
+end
+
+function setup_face_helper(ncells, flipped; is_bnd::Bool)
+    # Faces mapping to nodes
+    faces = Vector{Int}()
+    face_pos = [1]
+    nf_est = 3 * ncells
+
+    # Mapping from cell to faces
+    cell_faces = Vector{Vector{Int}}()
+    sizehint!(cell_faces, ncells)
+
+    for c in 1:ncells
+        cf = Vector{Int}()
+        if !is_bnd
+            sizehint!(cf, 6)
+        end
+        push!(cell_faces, cf)
+    end
+    if is_bnd
+        face_neighbors = Vector{Int}()
+    else
+        face_neighbors = Vector{Tuple{Int, Int}}()
+        sizehint!(face_neighbors, nf_est)
+    end
+    boundary_cells = Vector{Int}()
+
+    vertical_face_tag = Vector{Int}()
+    horizontal_face_tag = Vector{Int}()
+    i_face_tag = Vector{Int}()
+    j_face_tag = Vector{Int}()
+    k_face_tag = Vector{Int}()
+
+    if !is_bnd
+        for ft in [vertical_face_tag, horizontal_face_tag, i_face_tag, j_face_tag, k_face_tag]
+            sizehint!(ft, nf_est)
+        end
+    end
+
+    I_faces = (
+        faces = faces,
+        face_pos = face_pos,
+        cell_faces = cell_faces,
+        neighbors = face_neighbors,
+        vertical_tag = vertical_face_tag,
+        horizontal_tag = horizontal_face_tag,
+        i_tag = i_face_tag,
+        j_tag = j_face_tag,
+        k_tag = k_face_tag,
+        type = Dict{Int, Symbol}(),
+        flipped = flipped
+    )
+    return I_faces
+end
+
+function add_face_from_nodes!(V, Vpos, nodes, flipped)
+    n_local_nodes = length(nodes)
+    @assert n_local_nodes > 2
+    if flipped
+        nodes = Base.Iterators.Reverse(nodes)
+    end
+    for n in nodes
+        @assert n > 0
+        push!(V, n)
+    end
+    push!(Vpos, length(nodes) + Vpos[end])
+end
+
+function insert_boundary_face!(B_faces, prev_cell, cell, nodes, is_vertical, is_idir, face_type)
+    cell_is_boundary(x) = x < 1
+    orient = cell_is_boundary(prev_cell) && !cell_is_boundary(cell)
+    @assert orient || (cell_is_boundary(cell) && !cell_is_boundary(prev_cell)) "cell pair $((cell, prev_cell)) is not on boundary"
+    if orient
+        self = cell
+    else
+        self = prev_cell
+        nodes = reverse(nodes)
+    end
+    boundary_faceno = length(B_faces.face_pos)
+    add_face_from_nodes!(B_faces.faces, B_faces.face_pos, nodes, B_faces.flipped)
+    push!(B_faces.cell_faces[self], boundary_faceno)
+    push!(B_faces.neighbors, self)
+    if is_vertical
+        push!(B_faces.vertical_tag, boundary_faceno)
+    else
+        push!(B_faces.horizontal_tag, boundary_faceno)
+    end
+    B_faces.type[boundary_faceno] = face_type
+    if is_idir
+        push!(B_faces.i_tag, boundary_faceno)
+        @assert face_type in (:left, :right)
+    elseif is_vertical
+        @assert face_type in (:upper, :lower)
+        push!(B_faces.j_tag, boundary_faceno)
+    else
+        @assert face_type in (:top, :bottom)
+        push!(B_faces.k_tag, boundary_faceno)
+    end
+    return B_faces
+end
+
+function insert_interior_face!(I_faces, prev_cell, cell, nodes, is_vertical, is_idir, face_type)
+    @assert cell > 0
+    @assert prev_cell > 0
+    @assert prev_cell != cell
+    faceno = length(I_faces.face_pos)
+    add_face_from_nodes!(I_faces.faces, I_faces.face_pos, nodes, I_faces.flipped)
+    # Note order here.
+    push!(I_faces.neighbors, (prev_cell, cell))
+    push!(I_faces.cell_faces[cell], faceno)
+    push!(I_faces.cell_faces[prev_cell], faceno)
+    if is_vertical
+        push!(I_faces.vertical_tag, faceno)
+    else
+        push!(I_faces.horizontal_tag, faceno)
+    end
+    if is_idir
+        push!(I_faces.i_tag, faceno)
+    elseif is_vertical
+        push!(I_faces.j_tag, faceno)
+    else
+        push!(I_faces.k_tag, faceno)
+    end
+    return I_faces
+end
+
+function insert_face!(I_faces, B_faces, prev_cell, cell, nodes; is_boundary, is_vertical, is_idir, face_type)
+    if is_boundary
+        insert_boundary_face!(B_faces, prev_cell, cell, nodes, is_vertical, is_idir, face_type)
+    else
+        insert_interior_face!(I_faces, prev_cell, cell, nodes, is_vertical, is_idir, face_type)
+    end
 end
 
 function generate_pinch_map(pinch, primitives, lines, column_lines, columns)

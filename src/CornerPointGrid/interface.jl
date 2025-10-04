@@ -32,6 +32,8 @@ function mesh_from_grid_section(f; actnum = missing, repair_zcorn = true, proces
     end
     if ismissing(actnum)
         actnum, minpv_removed = get_effective_actnum(grid)
+    else
+        minpv_removed = fill(false, size(actnum))
     end
     if haskey(grid, "COORD")
         G = mesh_from_zcorn_and_coord(grid,

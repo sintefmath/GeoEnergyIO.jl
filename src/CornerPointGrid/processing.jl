@@ -533,8 +533,14 @@ function grid_from_primitives(primitives; nnc = missing, pinch = missing)
                         continue
                     end
                     cell_pair = (l, r)
-                    if col_is_bnd || l_bnd || r_bnd
-                        # Boundary if we are on a boundary column or one of the cells connected to the face is a boundary
+                    pair_is_bnd = l_bnd || r_bnd
+                    if col_is_bnd
+                        if !pair_is_bnd
+                            # Boundary if we are on a boundary column or one of the cells connected to the face is a boundary
+                            add_vertical_face_from_overlap!(extra_node_lookup, F_bnd, nodes, cell_pair, overlap, l1, l2, node_buffer)
+                        end
+                    elseif pair_is_bnd
+                        # Interior if we are on an interior column and both cells are active
                         add_vertical_face_from_overlap!(extra_node_lookup, F_bnd, nodes, cell_pair, overlap, l1, l2, node_buffer)
                     else
                         add_vertical_face_from_overlap!(extra_node_lookup, F_interior, nodes, cell_pair, overlap, l1, l2, node_buffer)

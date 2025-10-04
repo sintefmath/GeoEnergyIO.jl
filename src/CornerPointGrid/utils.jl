@@ -105,7 +105,6 @@ end
 
 function handle_zero_effective_porosity!(actnum, g, minpv, minpv_for_cell)
     added = 0
-    active = 0
     changed = fill(false, size(actnum))
 
     if haskey(g, "PORV")
@@ -113,7 +112,6 @@ function handle_zero_effective_porosity!(actnum, g, minpv, minpv_for_cell)
         for i in eachindex(actnum)
             if actnum[i]
                 pv = porv[i]
-                active += active
                 if pv < minpv_for_cell(i)
                     added += 1
                     actnum[i] = false
@@ -136,63 +134,68 @@ function handle_zero_effective_porosity!(actnum, g, minpv, minpv_for_cell)
             ntg = ones(size(actnum))
         end
         poro = g["PORO"]
-        for i in eachindex(actnum)
-            if actnum[i]
-                vol = zcorn_volume(g, zcorn, coord, cartdims, i)
-                pv = poro[i]*ntg[i]*vol
-                active += active
-                if pv < minpv
-                    added += 1
-                    actnum[i] = false
-                end
-            end
-        end
+        deactivate_minpv!(actnum, g, poro, ntg, zcorn, coord, cartdims, minpv)
     end
     @debug "$added disabled cells out of $(length(actnum)) due to low effective pore-volume."
     return (actnum, changed)
 end
 
+function deactivate_minpv!(actnum, g, poro, ntg, zcorn, coord, cartdims, minpv)
+    for i in eachindex(actnum)
+        if actnum[i]
+            vol = zcorn_volume(g, zcorn, coord, cartdims, i)
+            pv = poro[i]*ntg[i]*vol
+            if pv < minpv
+                added += 1
+                actnum[i] = false
+            end
+        end
+    end
+    return actnum
+end
+
 function zcorn_volume(g, zcorn, coord, dims, linear_ix)
     if ismissing(zcorn)
-        return 1.0
+        vol = 1.0
+    else
+        nx, ny, = dims
+        i, j, = linear_to_ijk(linear_ix, dims)
+
+        get_zcorn(I1, I2, I3) = zcorn[corner_index(linear_ix, (I1, I2, I3), dims)]
+        get_pair(I, J) = (get_zcorn(I, J, 0), get_zcorn(I, J, 1))
+        function pillar_line(I, J)
+            x1, x2 = get_line(coord, i+I, j+J, nx+1, ny+1)
+            return (x1 = x1, x2 = x2, equal_points = false)
+        end
+
+        function interpolate_line(I, J, L)
+            pl = pillar_line(I, J)
+            return interp_coord(pl, L)
+        end
+
+        l_11, t_11 = get_pair(0, 0)
+        l_12, t_12 = get_pair(0, 1)
+        l_21, t_21 = get_pair(1, 0)
+        l_22, t_22 = get_pair(1, 1)
+
+        pt_11 = interpolate_line(0, 0, l_11)
+        pt_12 = interpolate_line(0, 1, l_12)
+        pt_21 = interpolate_line(1, 0, l_21)
+        pt_22 = interpolate_line(1, 1, l_22)
+
+        A_1 = norm(cross(pt_21 - pt_11, pt_12 - pt_11), 2)
+        A_2 = norm(cross(pt_21 - pt_22, pt_12 - pt_22), 2)
+        area = (A_1 + A_2)/2.0
+
+        d_11 = t_11 - l_11
+        d_12 = t_12 - l_12
+        d_21 = t_21 - l_21
+        d_22 = t_22 - l_22
+
+        d_avg = 0.25*(d_11 + d_12 + d_21 + d_22)
+        vol = d_avg*area
     end
-    nx, ny, nz = dims
-    i, j, k = linear_to_ijk(linear_ix, dims)
-
-    get_zcorn(I1, I2, I3) = zcorn[corner_index(linear_ix, (I1, I2, I3), dims)]
-    get_pair(I, J) = (get_zcorn(I, J, 0), get_zcorn(I, J, 1))
-    function pillar_line(I, J)
-        x1, x2 = get_line(coord, i+I, j+J, nx+1, ny+1)
-        return (x1 = x1, x2 = x2, equal_points = false)
-    end
-
-    function interpolate_line(I, J, L)
-        pl = pillar_line(I, J)
-        return interp_coord(pl, L)
-    end
-
-    l_11, t_11 = get_pair(0, 0)
-    l_12, t_12 = get_pair(0, 1)
-    l_21, t_21 = get_pair(1, 0)
-    l_22, t_22 = get_pair(1, 1)
-
-    pt_11 = interpolate_line(0, 0, l_11)
-    pt_12 = interpolate_line(0, 1, l_12)
-    pt_21 = interpolate_line(1, 0, l_21)
-    pt_22 = interpolate_line(1, 1, l_22)
-
-
-    A_1 = norm(cross(pt_21 - pt_11, pt_12 - pt_11), 2)
-    A_2 = norm(cross(pt_21 - pt_22, pt_12 - pt_22), 2)
-    area = (A_1 + A_2)/2.0
-
-    d_11 = t_11 - l_11
-    d_12 = t_12 - l_12
-    d_21 = t_21 - l_21
-    d_22 = t_22 - l_22
-
-    d_avg = 0.25*(d_11 + d_12 + d_21 + d_22)
-    return d_avg*area
+    return vol
 end
 
 function repair_zcorn!(zcorn, cartdims)

@@ -317,6 +317,18 @@ function process_lines!(lines; sort_alg = QuickSort)
     nodes = Vector{SVector{3, T}}()
     active_lines = BitVector(undef, length(lines))
     node_counter = 1
+    pbuf_int = Int[]
+    pbuf_float = Float64[]
+    function mypermute!(x, p, buf)
+        resize!(buf, length(x))
+        @inbounds for i in eachindex(x)
+            buf[i] = x[p[i]]
+        end
+        @inbounds for i in eachindex(x)
+            x[i] = buf[i]
+        end
+        return x
+    end
     p = Vector{Int}()
     for (line_ix, line) in enumerate(lines)
         z = line.z
@@ -326,8 +338,8 @@ function process_lines!(lines; sort_alg = QuickSort)
         if active
             resize!(p, length(z))
             sortperm!(p, z, alg = sort_alg)
-            @inbounds permute!(z, p)
-            @inbounds permute!(cells, p)
+            mypermute!(z, p, pbuf_float)
+            mypermute!(cells, p, pbuf_int)
             pos = line.cellpos
             push!(pos, 1)
 

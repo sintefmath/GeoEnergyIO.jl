@@ -57,7 +57,7 @@ function setup_ix_grammar()
     bare_array: "[" array_type (array_type)* "]"
     string_record: NAME string+
     full_record: string_record "{"  (inner_record)* "}"
-    equal_record: NAME bare_array? "=" (value | function_call | double_property)
+    equal_record: NAME bare_array? "=" (value | function_call | double_property | lookup)
     anon_record: NAME "{" (inner_record)* "}"
     include_record: "INCLUDE" string include_param*
     extension_record: "EXTENSION" string include_param*
@@ -66,7 +66,8 @@ function setup_ix_grammar()
     tuple.10: "(" tuple_type (tuple_type)* ")"
     empty_array: "[" "]"
     function_call: NAME "(" [inner_record (inner_record)*] ")"
-    double_property: NAME "(" (float | integer) any_string ")"
+    double_property: "DoubleProperty" "(" (float | integer) any_string ")"
+    lookup: NAME "(" string ")"
 
     COMMENT: /#+.*/
     NAME: /[A-Za-z_][A-Za-z0-9_\.\-]*/
@@ -303,7 +304,7 @@ end
 @rule tuple(t::IXTransformer, a) = convert_ix_tuple(a)
 @rule script(t::IXTransformer, a) = parse_ix_script(a)
 
-@rule double_property(t::IXTransformer, a) = a
+@rule double_property(t::IXTransformer, a) = IXDoubleProperty(a)
 
 @rule repeat_float(t::IXTransformer, a) = parse_repeat(a; T = Float64)
 @rule repeat_int(t::IXTransformer, a) = parse_repeat(a; T = Int)

@@ -64,6 +64,22 @@ struct AFIInputFile <: AbstractInputFile
     setup::AbstractDict
 end
 
+struct IXDoubleProperty <: AbstractIXRecord
+    name::String
+    value::Float64
+end
+
+function IXDoubleProperty(a)
+    value = convert(Float64, a[1])
+    name = to_string(only(a[2].children))
+    return IXDoubleProperty(name, value)
+end
+
+struct IXLookupRecord <: AbstractIXRecord
+    name::String
+    key::String
+end
+
 Base.getindex(f::AFIInputFile, k::String) = f.setup[k]
 Base.haskey(f::AFIInputFile, k::String) = haskey(f.setup, k)
 Base.keys(f::AFIInputFile) = keys(f.setup)

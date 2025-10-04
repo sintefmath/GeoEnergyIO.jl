@@ -58,7 +58,7 @@ function cpgrid_primitives(coord, zcorn, cartdims; actnum = missing)
     function generate_line(p1, p2, is_active)
         T_coord = promote_type(eltype(p1), eltype(p2), typeof(z_mean))
         if is_active
-            line_length_hint = 8*(nz + 1)
+            line_length_hint = 2*8*(nz + 1)
             cell_hint = 4*nz
         else
             line_length_hint = cell_hint = 0
@@ -544,11 +544,10 @@ function grid_from_primitives(primitives; nnc = missing, pinch = missing)
                     end
                     if col_is_bnd || pair_is_bnd
                         # Boundary if we are on a boundary column or one of the cells connected to the face is a boundary
-                        add_function = F_bnd
+                        add_vertical_face_from_overlap!(extra_node_lookup, F_bnd, nodes, cell_pair, overlap, l1, l2, node_buffer)
                     else
-                        add_function = F_interior
+                        add_vertical_face_from_overlap!(extra_node_lookup, F_interior, nodes, cell_pair, overlap, l1, l2, node_buffer)
                     end
-                    add_vertical_face_from_overlap!(extra_node_lookup, add_function, nodes, cell_pair, overlap, l1, l2, node_buffer)
                 end
             end
         end

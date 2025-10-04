@@ -45,11 +45,9 @@ function find_cell_bounds(cell, line)
     end
 end
 
-function cell_top_bottom(cells, line1, line2; check = true)
-    # out = Vector{Tuple{Tuple{Int, Int}, Tuple{Int, Int}}}()
-    T = @NamedTuple{cell::Int64, line1::Tuple{Int64, Int64}, line2::Tuple{Int64, Int64}}
+function cell_top_bottom!(out, cells, line1, line2; check = false)
     prev1 = prev2 = 1
-    out = T[]
+    empty!(out)
     for cell in cells
         pos1 = find_cell_bounds(cell, line1)
         pos2 = find_cell_bounds(cell, line2)

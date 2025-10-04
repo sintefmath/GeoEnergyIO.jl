@@ -63,6 +63,7 @@ function cpgrid_primitives(coord, zcorn, cartdims; actnum = missing)
         else
             line_length_hint = cell_hint = 0
         end
+        cell_bounds = sizehint!(Dict{Int, Tuple{Int, Int}}(), cell_hint)
         z = sizehint!(Vector{T_coord}(), line_length_hint)
         cells = sizehint!(Vector{Int}(), line_length_hint)
         cellpos = sizehint!(Vector{Int}(), cell_hint)
@@ -75,7 +76,7 @@ function cpgrid_primitives(coord, zcorn, cartdims; actnum = missing)
             nodes = nodes,
             x1 = SVector{3, T_coord}(p1),
             x2 = SVector{3, T_coord}(p2),
-            cell_bounds = Dict{Int, Tuple{Int, Int}}(),
+            cell_bounds = cell_bounds,
             equal_points = p1 ≈ p2,
             is_active = is_active
         )
@@ -491,6 +492,9 @@ function grid_from_primitives(primitives; nnc = missing, pinch = missing)
         @assert num_pinched == pinch_count
     end
     # Vertical faces
+    T = @NamedTuple{cell::Int, line1::Tuple{Int, Int}, line2::Tuple{Int, Int}}
+    ord_a = T[]
+    ord_b = T[]
     for col_is_bnd in [true, false]
         if col_is_bnd
             col_neighbors = primitives.column_boundary
@@ -515,8 +519,8 @@ function grid_from_primitives(primitives; nnc = missing, pinch = missing)
             F_interior = (l, r, node_indices) -> insert_face!(I_faces, B_faces, l, r, node_indices, is_boundary = false, is_vertical = true, is_idir = is_idir, face_type = conn_type)
             F_bnd = (l, r, node_indices) -> insert_face!(I_faces, B_faces, l, r, node_indices, is_boundary = true, is_vertical = true, is_idir = is_idir, face_type = conn_type)
 
-            ord_a = cell_top_bottom(col_a.cells, l1, l2)
-            ord_b = cell_top_bottom(col_b.cells, l1, l2)
+            cell_top_bottom!(ord_a, col_a.cells, l1, l2)
+            cell_top_bottom!(ord_b, col_b.cells, l1, l2)
             for pos_a in ord_a
                 for pos_b in ord_b
                     overlap = find_linepair_overlap(pos_a, pos_b)

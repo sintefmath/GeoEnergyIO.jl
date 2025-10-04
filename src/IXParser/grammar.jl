@@ -18,6 +18,8 @@ function setup_ix_grammar()
             | tuple
             | simulation_record
             | script
+            | include_record
+            | extension_record
 
     inner_record: full_record
             | array

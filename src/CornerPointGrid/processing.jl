@@ -27,6 +27,9 @@ function cpgrid_primitives(coord, zcorn, cartdims; actnum = missing)
             is_active = false
             for k in 1:nz
                 is_active = is_active || actnum[i, j, k]
+                if is_active
+                    break
+                end
             end
             active_columns[i, j] = is_active
         end

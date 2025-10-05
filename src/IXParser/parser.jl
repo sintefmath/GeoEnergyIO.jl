@@ -74,7 +74,7 @@ function read_epc_file!(dest, include_pth, options; verbose = false, strict = fa
 
     t = get(options, "type", "epc")
     t == "epc" || error("EPC type must be 'epc', got $t")
-    epc_type = get(options, "epc_type", "props")
+    epc_type = get(options, "resqml_type", "props")
 
     prop_info = parse_epc_info(include_pth)
     basename, ext = splitext(include_pth)

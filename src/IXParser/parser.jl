@@ -66,7 +66,6 @@ function parse_epc_info(epc_pth)
 end
 
 function read_epc_file!(dest, include_pth, options; verbose = false, strict = false)
-        resqml = x["RESQML"]
     t = get(options, "type", "epc")
     t == "epc" || error("EPC type must be 'epc', got $t")
     epc_type = get(options, "resqml_type", "props")

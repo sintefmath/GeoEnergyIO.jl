@@ -488,6 +488,50 @@ import GeoEnergyIO.IXParser:
         @test t.body[3].value.name == "FluidEnthalpy"
         @test t.body[3].value.key == "EH1"
 
+        @testset "DoubleProperty with lookup" begin
+            teststr = """
+            FluidStream "S1" {
+                Enthalpy=FluidEnthalpy("E 1")
+                TracerConcentrations=[DoubleProperty(1 TRACER_CONCENTRATION['WI'])]
+                Sources=[FluidSourceExternal("FSE 1")]
+            }
+            """
+            s = GeoEnergyIO.IXParser.parse_ix_record(teststr)
+            @test s isa GeoEnergyIO.IXParser.IXStandardRecord
+            @test s.keyword == "FluidStream"
+            @test s.value == "S1"
+            @test length(s.body) == 3
+            @test s.body[1] isa GeoEnergyIO.IXParser.IXEqualRecord
+            @test s.body[1].keyword == "Enthalpy"
+            @test s.body[1].value isa GeoEnergyIO.IXParser.IXLookupRecord
+            @test s.body[1].value.name == "FluidEnthalpy"
+            @test s.body[1].value.key == "E 1"
+
+            @test s.body[2] isa GeoEnergyIO.IXParser.IXEqualRecord
+            @test s.body[2].keyword == "TracerConcentrations"
+            @test s.body[2].value isa Vector
+            @test length(s.body[2].value) == 1
+            @test s.body[2].value[1] isa GeoEnergyIO.IXParser.IXDoubleProperty
+            @test s.body[2].value[1].value == 1.0
+            @test s.body[2].value[1].name == GeoEnergyIO.IXParser.IXLookupRecord("TRACER_CONCENTRATION", "WI")
+
+            teststr = """
+            FluidStream "S1" {
+                TracerConcentrations=DoubleProperty(1 TRACER_CONCENTRATION['WI'])
+            }
+            """
+            s = GeoEnergyIO.IXParser.parse_ix_record(teststr)
+            @test s isa GeoEnergyIO.IXParser.IXStandardRecord
+            @test s.keyword == "FluidStream"
+            @test s.value == "S1"
+            @test length(s.body) == 1
+            @test s.body[1] isa GeoEnergyIO.IXParser.IXEqualRecord
+            @test s.body[1].keyword == "TracerConcentrations"
+            @test s.body[1].value isa GeoEnergyIO.IXParser.IXDoubleProperty
+            @test s.body[1].value.value == 1.0
+            @test s.body[1].value.name == GeoEnergyIO.IXParser.IXLookupRecord("TRACER_CONCENTRATION", "WI")
+        end
+
         @testset "repeats" begin
             teststr = """
             StraightPillarGrid "CoarseGrid" {
@@ -599,32 +643,4 @@ import GeoEnergyIO.IXParser:
         end
     end
 end
-
-##
-teststr = """
-FluidStream "S1" {
-    Enthalpy=FluidEnthalpy("E 1")
-    TracerConcentrations=[DoubleProperty(1 TRACER_CONCENTRATION['WI'])]
-    Sources=[FluidSourceExternal("FSE 1")]
-}
-"""
-s = GeoEnergyIO.IXParser.parse_ix_record(teststr)
-##
-teststr = """
-FluidStream "S1" {
-    Enthalpy=FluidEnthalpy("E 1")
-    TracerConcentrations=DoubleProperty(1 TRACER_CONCENTRATION['WI'])
-}
-"""
-s = GeoEnergyIO.IXParser.parse_ix_record(teststr)
-##
-teststr = """
-FluidStream "S1" {
-    Enthalpy=FluidEnthalpy("E 1")
-    TracerConcentrations=TRACER_CONCENTRATION['WI']
-}
-"""
-s = GeoEnergyIO.IXParser.parse_ix_record(teststr)
-#
-# 
 

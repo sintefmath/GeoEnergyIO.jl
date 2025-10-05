@@ -46,10 +46,13 @@ function convert_ix_record(x::IXStandardRecord, unit_systems, meta, ::Union{Val{
     mem_type = "Group"
     for rec in x.body
         mem_type = rec.keyword
-        @assert length(rec.value) == 2
-        group_type, group_members = rec.value
-        for v in group_members
-            push!(members, (group_type, v))
+        length(rec.value) % 2 == 0 || error("Expected even number of elements in Group/StaticList record, got $(length(rec.value))")
+        recvals = reshape(rec.value, 2, :)
+        for i in axes(recvals, 2)
+            group_type, group_members = recvals[:, i]
+            for v in group_members
+                push!(members, (group_type, v))
+            end
         end
     end
     return (group = group_name, members = members, type = mem_type)

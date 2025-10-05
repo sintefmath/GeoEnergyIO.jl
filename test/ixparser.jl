@@ -600,3 +600,31 @@ import GeoEnergyIO.IXParser:
     end
 end
 
+##
+teststr = """
+FluidStream "S1" {
+    Enthalpy=FluidEnthalpy("E 1")
+    TracerConcentrations=[DoubleProperty(1 TRACER_CONCENTRATION['WI'])]
+    Sources=[FluidSourceExternal("FSE 1")]
+}
+"""
+s = GeoEnergyIO.IXParser.parse_ix_record(teststr)
+##
+teststr = """
+FluidStream "S1" {
+    Enthalpy=FluidEnthalpy("E 1")
+    TracerConcentrations=DoubleProperty(1 TRACER_CONCENTRATION['WI'])
+}
+"""
+s = GeoEnergyIO.IXParser.parse_ix_record(teststr)
+##
+teststr = """
+FluidStream "S1" {
+    Enthalpy=FluidEnthalpy("E 1")
+    TracerConcentrations=TRACER_CONCENTRATION['WI']
+}
+"""
+s = GeoEnergyIO.IXParser.parse_ix_record(teststr)
+#
+# 
+

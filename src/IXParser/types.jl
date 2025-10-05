@@ -70,8 +70,9 @@ struct IXDoubleProperty <: AbstractIXRecord
 end
 
 function IXDoubleProperty(a)
+    length(a) == 2 || error("Expected 2 arguments to DoubleProperty, got $(length(a))")
     value = convert(Float64, a[1])
-    name = to_string(only(a[2].children))
+    name = a[2]
     return IXDoubleProperty(name, value)
 end
 

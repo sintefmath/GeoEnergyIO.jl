@@ -43,6 +43,7 @@ function setup_ix_grammar()
     array_type: tuple_type
         | repeat_float
         | repeat_int
+        | double_property
 
     script: "@{" ANYTHING+ "}@"
     float: SIGNED_FLOAT | FLOAT
@@ -66,7 +67,8 @@ function setup_ix_grammar()
     tuple.10: "(" tuple_type (tuple_type)* ")"
     empty_array: "[" "]"
     function_call: NAME "(" [inner_record (inner_record)*] ")"
-    double_property: "DoubleProperty" "(" (float | integer) any_string ")"
+    array_access: bare_string "[" any_string "]"
+    double_property: "DoubleProperty" "(" (float | integer) (array_access | any_string) ")"
     lookup: NAME "(" string ")"
 
     COMMENT: /#+.*/
@@ -294,6 +296,7 @@ end
 
 @rule anon_record(t::IXTransformer, a) = convert_ix_anon_record(a)
 @rule bare_string(t::IXTransformer, a) = convert_ix_bare_string(a)
+@rule any_string(t::IXTransformer, a) = to_string(only(a))
 @rule string(t::IXTransformer, a) = to_string(only(a))
 @rule empty_array(t::IXTransformer, _) = []
 @rule function_call(t::IXTransformer, a) = IXFunctionCall(to_string(a[1]), a[2:end])
@@ -306,6 +309,7 @@ end
 
 @rule double_property(t::IXTransformer, a) = IXDoubleProperty(a)
 @rule lookup(t::IXTransformer, a) = IXLookupRecord(a)
+@rule array_access(t::IXTransformer, a) = a# IXLookupArray(to_string(a[1]), to_string(only(a[2])))
 
 @rule repeat_float(t::IXTransformer, a) = parse_repeat(a; T = Float64)
 @rule repeat_int(t::IXTransformer, a) = parse_repeat(a; T = Int)

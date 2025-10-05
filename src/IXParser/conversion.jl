@@ -65,12 +65,13 @@ function restructure_and_convert_units_afi(afi;
     end
     resqml = get(afi["IX"], "RESQML", missing)
     if !ismissing(resqml)
-        out["IX"]["RESQML"] = convert_resqml(resqml, unit_systems, verbose = verbose, strict = strict)
+        structured_info = find_records(afi, "StructuredInfo", "IX", steps = false, once = true)
+        out["IX"]["RESQML"] = convert_resqml(resqml, unit_systems, verbose = verbose, strict = strict, structured_info = structured_info)
     end
     return out
 end
 
-function convert_resqml(resqml, unit_systems; verbose = false, strict = false)
+function convert_resqml(resqml, unit_systems; verbose = false, strict = false, structured_info = nothing)
     out = Dict{String, Any}()
     for r in get(resqml, "props", [])
         v = convert_resqml_props(r, unit_systems, verbose = verbose, strict = strict)
@@ -93,7 +94,19 @@ function convert_resqml(resqml, unit_systems; verbose = false, strict = false)
                     break
                 end
             end
-            v = convert_to_grid_section(read(g.h5), actnum)
+            if isnothing(structured_info)
+                if length(keys(g.epc)) == 1
+                    println("No StructuredInfo provided in IX file, assuming single grid in EPC file.")
+                else
+                    error("Expected exactly one grid in EPC file, got $(length(keys(g.epc))). Please provide StructuredInfo with UUID record in IX file.")
+                end
+                uuid = first(keys(g.epc))
+            else
+                uuid_pos = findfirst(x -> x.keyword == "UUID", structured_info.body)
+                !isnothing(uuid_pos) || error("No UUID record found in StructuredInfo, cannot identify grid in EPC file.")
+                uuid = structured_info.body[uuid_pos].value
+            end
+            v = convert_to_grid_section(read(g.h5[uuid]), actnum)
             v["IsRightHanded"] = is_right_handed
         else
             # No idea if this actually happens in practice...

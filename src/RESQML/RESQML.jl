@@ -120,6 +120,9 @@ module RESQML
             if eltype(actnum) != Bool
                 actnum = Bool.(actnum)
             end
+            if actnum isa AbstractVector && length(actnum) == prod(cartDims)
+                actnum = reshape(actnum, cartDims)
+            end
             size(actnum) == cartDims || error("Malformed ACTNUM array, expected size $(cartDims), got $(size(actnum))")
             out["ACTNUM"] = actnum
         end

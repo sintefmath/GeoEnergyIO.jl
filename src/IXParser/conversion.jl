@@ -106,7 +106,11 @@ function convert_resqml(resqml, unit_systems; verbose = false, strict = false, s
                 !isnothing(uuid_pos) || error("No UUID record found in StructuredInfo, cannot identify grid in EPC file.")
                 uuid = structured_info.body[uuid_pos].value
             end
-            v = convert_to_grid_section(read(g.h5[uuid]), actnum)
+            v = convert_to_grid_section(g.h5[uuid], actnum)
+            v["extra"] = Dict{String, Any}()
+            for (k, val) in pairs(v)
+                v["extra"][k] = val
+            end
             v["IsRightHanded"] = is_right_handed
         else
             # No idea if this actually happens in practice...

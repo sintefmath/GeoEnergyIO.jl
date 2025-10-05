@@ -86,7 +86,7 @@ function read_epc_file!(dest, include_pth, options; verbose = false, strict = fa
     elseif epc_type == "geom_and_props"
         data = Dict{String, Any}()
         for (k, v) in pairs(resqml)
-            data[k] = v
+            data[k] = read(v)
         end
     else
         error("Unsupported EPC type $epc_type, expected 'props' or 'geom_and_props'")

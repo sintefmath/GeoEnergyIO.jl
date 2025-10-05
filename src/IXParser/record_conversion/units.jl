@@ -65,7 +65,9 @@ function conversion_ix_dict()
             "Depth",
             "PressureEquivalentRadius",
             "PermeabilityThickness",
-            "BottomHoleRefDepth"
+            "BottomHoleRefDepth",
+            "MeasuredDepth",
+            "TrueVerticalDepth"
         ]
         u[k] = :length
     end

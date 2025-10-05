@@ -93,7 +93,7 @@ function convert_resqml_units(data, unit, unit_systems; throw = true)
     unit = lowercase(unit)
     if unit == "md"
         v = si_unit(:milli)*si_unit(:darcy)/sys.permeability
-    elseif unit == "euc"
+    elseif unit == "euc" || unit == "m3/m3"
         v = missing
     else
         msg = "Unit conversion for RESQML unit $unit not implemented."

@@ -66,12 +66,7 @@ function parse_epc_info(epc_pth)
 end
 
 function read_epc_file!(dest, include_pth, options; verbose = false, strict = false)
-    function unpack_resqml(x)
         resqml = x["RESQML"]
-        k = only(keys(resqml))
-        return resqml[k]
-    end
-
     t = get(options, "type", "epc")
     t == "epc" || error("EPC type must be 'epc', got $t")
     epc_type = get(options, "resqml_type", "props")
@@ -80,7 +75,23 @@ function read_epc_file!(dest, include_pth, options; verbose = false, strict = fa
     basename, ext = splitext(include_pth)
 
     h5 = HDF5.h5open("$basename.h5", "r")
-    data = unpack_resqml(h5)
+    resqml = h5["RESQML"]
+    if epc_type == "props"
+        ks = keys(resqml)
+        if length(ks) == 0
+            error("No RESQML groups found in EPC file $include_pth")
+        elseif length(ks) > 1
+            println("Multiple RESQML groups found in EPC file $include_pth, using the first one: $(collect(ks))")
+        end
+        data = resqml[first(ks)]
+    elseif epc_type == "geom_and_props"
+        data = Dict{String, Any}()
+        for (k, v) in pairs(resqml)
+            data[k] = v
+        end
+    else
+        error("Unsupported EPC type $epc_type, expected 'props' or 'geom_and_props'")
+    end
     if !haskey(dest, "RESQML")
         dest["RESQML"] = Dict{String, Any}()
     end

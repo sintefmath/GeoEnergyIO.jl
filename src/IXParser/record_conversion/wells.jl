@@ -134,7 +134,7 @@ end
 # end
 
 function convert_ix_record(x::AbstractArray, unit_systems, meta, ::Union{Val{:Constraints}, Val{:HistoricalData}})
-    constraints = Dict{String, Any}()
+    constraints = OrderedDict{String, Any}()
     function set_constraint!(constraint_name, constraint_value)
         u = get_unit_type_ix_keyword(unit_systems, constraint_name; throw = false)
         constraints[constraint_name] = swap_unit_system(constraint_value, unit_systems, u)

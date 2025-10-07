@@ -14,6 +14,6 @@ function convert_ix_record(x, unit_systems, meta, ::Val{:Equilibrium})
             tab[val.keyword] = eq_tab
         end
     end
-    convert_dict_entries!(tab, unit_systems)
+    convert_dict_entries!(tab, unit_systems, skip = tab_keys)
     return tab
 end

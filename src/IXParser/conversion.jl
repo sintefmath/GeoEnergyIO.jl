@@ -524,9 +524,9 @@ function parse_and_convert_numerical_table(x::IXStandardRecord, unit_systems, k 
     return out
 end
 
-function convert_dict_entries!(table, unit_systems)
+function convert_dict_entries!(table, unit_systems; skip = [])
     for (k, v) in pairs(table)
-        if v isa AbstractString || isnothing(v) || ismissing(v)
+        if v isa AbstractString || isnothing(v) || ismissing(v) || k in skip
             continue
         end
 

@@ -70,6 +70,8 @@ function convert_ix_record(x::IXStandardRecord, unit_systems, meta, ::Val{:Well}
                 val = String(val)
             elseif val isa AbstractIXRecord || val isa AbstractArray
                 val = convert_ix_record(val, unit_systems, meta, kw)
+            elseif val isa Number
+                val = convert_ix_value(val, kw, unit_systems; throw = false)
             end
         elseif rec isa IXFunctionCall
             val = convert_function_call(rec, unit_systems, "Well")

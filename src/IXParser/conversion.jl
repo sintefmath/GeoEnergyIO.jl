@@ -289,6 +289,14 @@ function time_from_record(x, start_time, usys)
     end
 end
 
+function convert_ix_value(x::Number, kw, unit_systems; throw = true)
+    utype = get_unit_type_ix_keyword(unit_systems, kw; throw = throw)
+    if utype != :id
+        x = GeoEnergyIO.InputParser.swap_unit_system(x, unit_systems, utype)
+    end
+    return x
+end
+
 function convert_ix_values!(x::AbstractArray, kw, unit_systems; throw = true)
     utype = get_unit_type_ix_keyword(unit_systems, kw; throw = throw)
     if utype != :id

@@ -48,7 +48,10 @@ function interp_coord(p0::SVector{3, T}, p1::SVector{3, T}, z::V) where {T<:Real
     else
         weight = (z - z0)/(z1 - z0)
         interp_pt = p0 .+ weight.*(p1 .- p0)
-        @assert isapprox(interp_pt[3], z, atol = 1e-8) "expected $z was $(interp_pt[3]) != $z"
+        z_pt = interp_pt[3]
+        if isfinite(z_pt) && !isapprox(z_pt, z, atol = 1e-8) 
+            @warn "Possibly malformed COORD: Expected interpolated value $z, but was $(interp_pt[3]) != $z"
+        end
     end
     return interp_pt
 end

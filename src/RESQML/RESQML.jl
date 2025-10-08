@@ -95,7 +95,7 @@ module RESQML
         return zcorn
     end
 
-    function convert_to_grid_section(gdata::AbstractDict, actnum = missing)
+    function convert_to_grid_section(gdata::AbstractDict; actnum = missing, net_to_gross = missing, porosity = missing)
         out = Dict{String, Any}()
         # Coordinates of pillars
         coord = gdata["ControlPoints"]
@@ -113,19 +113,30 @@ module RESQML
         mm = setup_column_pillar_mapping(gdata, pillar_dims)
         # ZCORN is a vector
         out["ZCORN"] = build_zcorn(mm, cartDims, pillar_depths)
+        @info "Found" typeof(net_to_gross) typeof(porosity) typeof(actnum)
+        if !ismissing(net_to_gross)
+            out["NTG"] = convert_grid_entry(net_to_gross, cartDims, "NET_TO_GROSS_RATIO", Float64)
+        end
+        if !ismissing(porosity)
+            out["PORO"] = convert_grid_entry(porosity, cartDims, "POROSITY", Float64)
+        end
         if !ismissing(actnum)
-            if actnum isa AbstractDict
-                actnum = actnum["values"]
-            end
-            if eltype(actnum) != Bool
-                actnum = Bool.(actnum)
-            end
-            if actnum isa AbstractVector && length(actnum) == prod(cartDims)
-                actnum = reshape(actnum, cartDims)
-            end
-            size(actnum) == cartDims || error("Malformed ACTNUM array, expected size $(cartDims), got $(size(actnum))")
-            out["ACTNUM"] = actnum
+            out["ACTNUM"] = convert_grid_entry(actnum, cartDims, "ACTIVE_CELL_FLAG", Bool)
         end
         return out
+    end
+
+    function convert_grid_entry(x, cartDims, name, T = Float64)
+        if x isa AbstractDict
+            x = x["values"]
+        end
+        if eltype(x) != T
+            x = T.(x)
+        end
+        if x isa AbstractVector && length(x) == prod(cartDims)
+            x = reshape(x, cartDims)
+        end
+        size(x) == cartDims || error("Malformed $name array, expected size $(cartDims), got $(size(actnum))")
+        return x
     end
 end

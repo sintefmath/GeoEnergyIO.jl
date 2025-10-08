@@ -81,7 +81,6 @@ function convert_resqml(resqml, unit_systems; verbose = false, strict = false, s
     for (i, g) in enumerate(geom_and_props)
         if i == 1
             t = "GRID"
-            actnum = get(out, "ACTIVE_CELL_FLAG", missing)
             # A bit hacky, get the handedness-tag
             is_right_handed = false
             for v in values(g.epc)
@@ -106,7 +105,11 @@ function convert_resqml(resqml, unit_systems; verbose = false, strict = false, s
                 !isnothing(uuid_pos) || error("No UUID record found in StructuredInfo, cannot identify grid in EPC file.")
                 uuid = structured_info.body[uuid_pos].value
             end
-            v = convert_to_grid_section(g.h5[uuid], actnum)
+            v = convert_to_grid_section(g.h5[uuid],
+                actnum = get(out, "ACTIVE_CELL_FLAG", missing),
+                porosity = get(out, "POROSITY", missing),
+                net_to_gross = get(out, "NET_TO_GROSS_RATIO", missing)
+            )
             v["extra"] = Dict{String, Any}()
             for (k, val) in pairs(v)
                 v["extra"][k] = val

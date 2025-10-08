@@ -280,11 +280,10 @@ end
 
 function time_from_record(x, start_time, usys)
     if x.keyword == "DATE"
-        d, m, y = split(x.value, '-')
-        d = parse(Int, d)
-        m = month_to_int(m)
-        y = parse(Int, y)
-        return DateTime(y, m, d)
+        val = strip(x.value)
+        # Example str:
+        # "1-Dec-2020 01:10:00.10000"
+        return DateTime(val, dateformat"d-u-y H:M:S.s")
     else
         error("Not implemented")
         @assert x.keyword == "TIME"

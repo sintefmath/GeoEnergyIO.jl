@@ -599,6 +599,27 @@ import GeoEnergyIO.IXParser:
         end
     end
 
+    @testset "DateTime formatting" begin
+        function testdate(s, ref)
+            rec = GeoEnergyIO.IXParser.IXEqualRecord("DATE", s)
+            return GeoEnergyIO.IXParser.time_from_record(rec, missing, missing) == ref
+        end
+        teststr = "1-Dec-2020 "
+        @test testdate(teststr, DateTime(2020, 12, 1))
+        teststr = "1-Dec-2020"
+        @test testdate(teststr, DateTime(2020, 12, 1))
+        teststr = " 1-Dec-2020"
+        @test testdate(teststr, DateTime(2020, 12, 1))
+        teststr = "1-Dec-2020 "
+        @test testdate(teststr, DateTime(2020, 12, 1))
+
+        teststr = "1-Dec-2020 01:10:00.984000"
+        @test testdate(teststr, DateTime(2020, 12, 1, 1, 10, 0, 984))
+
+        teststr = "1-Dec-2020 01:10:00"
+        @test testdate(teststr, DateTime(2020, 12, 1, 1, 10, 0))
+    end
+
     @testset "SPE9" begin
         fn = GeoEnergyIO.test_input_file_path("SPE9_AFI_GSG", "SPE9_clean_split.afi")
         setup = read_afi_file(fn, verbose = false, convert = true)

@@ -46,10 +46,13 @@ function convert_ix_record(x::IXStandardRecord, unit_systems, meta, ::Union{Val{
     mem_type = "Group"
     for rec in x.body
         mem_type = rec.keyword
-        @assert length(rec.value) == 2
-        group_type, group_members = rec.value
-        for v in group_members
-            push!(members, (group_type, v))
+        length(rec.value) % 2 == 0 || error("Expected even number of elements in Group/StaticList record, got $(length(rec.value))")
+        recvals = reshape(rec.value, 2, :)
+        for i in axes(recvals, 2)
+            group_type, group_members = recvals[:, i]
+            for v in group_members
+                push!(members, (group_type, v))
+            end
         end
     end
     return (group = group_name, members = members, type = mem_type)
@@ -67,6 +70,8 @@ function convert_ix_record(x::IXStandardRecord, unit_systems, meta, ::Val{:Well}
                 val = String(val)
             elseif val isa AbstractIXRecord || val isa AbstractArray
                 val = convert_ix_record(val, unit_systems, meta, kw)
+            elseif val isa Number
+                val = convert_ix_value(val, kw, unit_systems; throw = false)
             end
         elseif rec isa IXFunctionCall
             val = convert_function_call(rec, unit_systems, "Well")
@@ -131,7 +136,7 @@ end
 # end
 
 function convert_ix_record(x::AbstractArray, unit_systems, meta, ::Union{Val{:Constraints}, Val{:HistoricalData}})
-    constraints = Dict{String, Any}()
+    constraints = OrderedDict{String, Any}()
     function set_constraint!(constraint_name, constraint_value)
         u = get_unit_type_ix_keyword(unit_systems, constraint_name; throw = false)
         constraints[constraint_name] = swap_unit_system(constraint_value, unit_systems, u)

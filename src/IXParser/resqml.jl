@@ -39,7 +39,12 @@ end
 
 function convert_resqml_props(r, unit_systems = missing; verbose = false, strict = false)
     (haskey(r, :epc) && haskey(r, :h5)) || error("RESQML record must have both :epc and :h5 fields.")
-    namespace_resqml = r.epc["namespace_resqml20"]
+    if haskey(r.epc, "namespace_resqml20")
+        namespace_resqml = r.epc["namespace_resqml20"]
+    else
+        # Bare format?
+        namespace_resqml = r.epc
+    end
     prop = missing
     uuid_obj = missing
     is_discrete = is_continuous = false
@@ -88,11 +93,11 @@ function convert_resqml_units(data, unit, unit_systems; throw = true)
     unit = lowercase(unit)
     if unit == "md"
         v = si_unit(:milli)*si_unit(:darcy)/sys.permeability
-    elseif unit == "euc"
+    elseif unit == "euc" || unit == "m3/m3"
         v = missing
     else
         msg = "Unit conversion for RESQML unit $unit not implemented."
-        if strict
+        if throw
             error(msg)
         else
             @warn msg

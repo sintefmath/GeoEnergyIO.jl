@@ -29,7 +29,9 @@ function conversion_ix_dict()
         "RelPermAtAssociatedCriticalSaturation",
         "ResidualSaturation",
         "Exponent",
-        "Name"
+        "Name",
+        "HonorInjectionStreamAvailability",
+        "UseDefaultBHP"
     ]
         u[k] = :id
     end
@@ -65,7 +67,9 @@ function conversion_ix_dict()
             "Depth",
             "PressureEquivalentRadius",
             "PermeabilityThickness",
-            "BottomHoleRefDepth"
+            "BottomHoleRefDepth",
+            "MeasuredDepth",
+            "TrueVerticalDepth"
         ]
         u[k] = :length
     end

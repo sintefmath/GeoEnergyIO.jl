@@ -18,6 +18,8 @@ function setup_ix_grammar()
             | tuple
             | simulation_record
             | script
+            | include_record
+            | extension_record
 
     inner_record: full_record
             | array
@@ -41,6 +43,7 @@ function setup_ix_grammar()
     array_type: tuple_type
         | repeat_float
         | repeat_int
+        | double_property
 
     script: "@{" ANYTHING+ "}@"
     float: SIGNED_FLOAT | FLOAT
@@ -55,7 +58,7 @@ function setup_ix_grammar()
     bare_array: "[" array_type (array_type)* "]"
     string_record: NAME string+
     full_record: string_record "{"  (inner_record)* "}"
-    equal_record: NAME bare_array? "=" (value | function_call)
+    equal_record: NAME bare_array? "=" (value | function_call | double_property | lookup)
     anon_record: NAME "{" (inner_record)* "}"
     include_record: "INCLUDE" string include_param*
     extension_record: "EXTENSION" string include_param*
@@ -64,6 +67,9 @@ function setup_ix_grammar()
     tuple.10: "(" tuple_type (tuple_type)* ")"
     empty_array: "[" "]"
     function_call: NAME "(" [inner_record (inner_record)*] ")"
+    array_access: bare_string "[" any_string "]"
+    double_property: "DoubleProperty" "(" (float | integer) (array_access | any_string) ")"
+    lookup: NAME "(" string ")"
 
     COMMENT: /#+.*/
     NAME: /[A-Za-z_][A-Za-z0-9_\.\-]*/
@@ -290,6 +296,7 @@ end
 
 @rule anon_record(t::IXTransformer, a) = convert_ix_anon_record(a)
 @rule bare_string(t::IXTransformer, a) = convert_ix_bare_string(a)
+@rule any_string(t::IXTransformer, a) = to_string(only(a))
 @rule string(t::IXTransformer, a) = to_string(only(a))
 @rule empty_array(t::IXTransformer, _) = []
 @rule function_call(t::IXTransformer, a) = IXFunctionCall(to_string(a[1]), a[2:end])
@@ -299,6 +306,10 @@ end
 @rule extension_record(t::IXTransformer, a) = IXExtensionRecord(only(a))
 @rule tuple(t::IXTransformer, a) = convert_ix_tuple(a)
 @rule script(t::IXTransformer, a) = parse_ix_script(a)
+
+@rule double_property(t::IXTransformer, a) = IXDoubleProperty(a)
+@rule lookup(t::IXTransformer, a) = IXLookupRecord(a)
+@rule array_access(t::IXTransformer, a) = a# IXLookupArray(to_string(a[1]), to_string(only(a[2])))
 
 @rule repeat_float(t::IXTransformer, a) = parse_repeat(a; T = Float64)
 @rule repeat_int(t::IXTransformer, a) = parse_repeat(a; T = Int)

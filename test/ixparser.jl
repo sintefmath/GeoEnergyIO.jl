@@ -460,6 +460,78 @@ import GeoEnergyIO.IXParser:
             @test s.body[2].value == true
         end
 
+        teststr = """
+        FluidSourceExternal "FluidSource1" {
+            Phase=WATER
+            AvailableRate=DoubleProperty(0 WATER_FLOW_RATE)
+            Enthalpy=FluidEnthalpy("EH1")
+        }
+        """
+        t = parse_ix_record(teststr)
+        @test t isa GeoEnergyIO.IXParser.IXStandardRecord
+        @test t.keyword == "FluidSourceExternal"
+        @test t.value == "FluidSource1"
+        @test length(t.body) == 3
+        @test t.body[1] isa GeoEnergyIO.IXParser.IXEqualRecord
+        @test t.body[1].keyword == "Phase"
+        @test t.body[1].value == IXKeyword("WATER")
+
+        @test t.body[2] isa GeoEnergyIO.IXParser.IXEqualRecord
+        @test t.body[2].keyword == "AvailableRate"
+        @test t.body[2].value isa GeoEnergyIO.IXParser.IXDoubleProperty
+        @test t.body[2].value.value == 0.0
+        @test t.body[2].value.name == "WATER_FLOW_RATE"
+
+        @test t.body[3] isa GeoEnergyIO.IXParser.IXEqualRecord
+        @test t.body[3].keyword == "Enthalpy"
+        @test t.body[3].value isa GeoEnergyIO.IXParser.IXLookupRecord
+        @test t.body[3].value.name == "FluidEnthalpy"
+        @test t.body[3].value.key == "EH1"
+
+        @testset "DoubleProperty with lookup" begin
+            teststr = """
+            FluidStream "S1" {
+                Enthalpy=FluidEnthalpy("E 1")
+                TracerConcentrations=[DoubleProperty(1 TRACER_CONCENTRATION['WI'])]
+                Sources=[FluidSourceExternal("FSE 1")]
+            }
+            """
+            s = GeoEnergyIO.IXParser.parse_ix_record(teststr)
+            @test s isa GeoEnergyIO.IXParser.IXStandardRecord
+            @test s.keyword == "FluidStream"
+            @test s.value == "S1"
+            @test length(s.body) == 3
+            @test s.body[1] isa GeoEnergyIO.IXParser.IXEqualRecord
+            @test s.body[1].keyword == "Enthalpy"
+            @test s.body[1].value isa GeoEnergyIO.IXParser.IXLookupRecord
+            @test s.body[1].value.name == "FluidEnthalpy"
+            @test s.body[1].value.key == "E 1"
+
+            @test s.body[2] isa GeoEnergyIO.IXParser.IXEqualRecord
+            @test s.body[2].keyword == "TracerConcentrations"
+            @test s.body[2].value isa Vector
+            @test length(s.body[2].value) == 1
+            @test s.body[2].value[1] isa GeoEnergyIO.IXParser.IXDoubleProperty
+            @test s.body[2].value[1].value == 1.0
+            @test s.body[2].value[1].name == GeoEnergyIO.IXParser.IXLookupRecord("TRACER_CONCENTRATION", "WI")
+
+            teststr = """
+            FluidStream "S1" {
+                TracerConcentrations=DoubleProperty(1 TRACER_CONCENTRATION['WI'])
+            }
+            """
+            s = GeoEnergyIO.IXParser.parse_ix_record(teststr)
+            @test s isa GeoEnergyIO.IXParser.IXStandardRecord
+            @test s.keyword == "FluidStream"
+            @test s.value == "S1"
+            @test length(s.body) == 1
+            @test s.body[1] isa GeoEnergyIO.IXParser.IXEqualRecord
+            @test s.body[1].keyword == "TracerConcentrations"
+            @test s.body[1].value isa GeoEnergyIO.IXParser.IXDoubleProperty
+            @test s.body[1].value.value == 1.0
+            @test s.body[1].value.name == GeoEnergyIO.IXParser.IXLookupRecord("TRACER_CONCENTRATION", "WI")
+        end
+
         @testset "repeats" begin
             teststr = """
             StraightPillarGrid "CoarseGrid" {
@@ -525,6 +597,27 @@ import GeoEnergyIO.IXParser:
             s3 = GeoEnergyIO.IXParser.parse_ix_record(teststr)
             test_repeat_kw(s3)
         end
+    end
+
+    @testset "DateTime formatting" begin
+        function testdate(s, ref)
+            rec = GeoEnergyIO.IXParser.IXEqualRecord("DATE", s)
+            return GeoEnergyIO.IXParser.time_from_record(rec, missing, missing) == ref
+        end
+        teststr = "1-Dec-2020 "
+        @test testdate(teststr, DateTime(2020, 12, 1))
+        teststr = "1-Dec-2020"
+        @test testdate(teststr, DateTime(2020, 12, 1))
+        teststr = " 1-Dec-2020"
+        @test testdate(teststr, DateTime(2020, 12, 1))
+        teststr = "1-Dec-2020 "
+        @test testdate(teststr, DateTime(2020, 12, 1))
+
+        teststr = "1-Dec-2020 01:10:00.984000"
+        @test testdate(teststr, DateTime(2020, 12, 1, 1, 10, 0, 984))
+
+        teststr = "1-Dec-2020 01:10:00"
+        @test testdate(teststr, DateTime(2020, 12, 1, 1, 10, 0))
     end
 
     @testset "SPE9" begin

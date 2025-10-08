@@ -66,21 +66,31 @@ function parse_epc_info(epc_pth)
 end
 
 function read_epc_file!(dest, include_pth, options; verbose = false, strict = false)
-    function unpack_resqml(x)
-        resqml = x["RESQML"]
-        k = only(keys(resqml))
-        return resqml[k]
-    end
-
     t = get(options, "type", "epc")
     t == "epc" || error("EPC type must be 'epc', got $t")
-    epc_type = get(options, "epc_type", "props")
+    epc_type = get(options, "resqml_type", "props")
 
     prop_info = parse_epc_info(include_pth)
     basename, ext = splitext(include_pth)
 
     h5 = HDF5.h5open("$basename.h5", "r")
-    data = unpack_resqml(h5)
+    resqml = h5["RESQML"]
+    if epc_type == "props"
+        ks = keys(resqml)
+        if length(ks) == 0
+            error("No RESQML groups found in EPC file $include_pth")
+        elseif length(ks) > 1
+            println("Multiple RESQML groups found in EPC file $include_pth, using the first one: $(collect(ks))")
+        end
+        data = resqml[first(ks)]
+    elseif epc_type == "geom_and_props"
+        data = Dict{String, Any}()
+        for (k, v) in pairs(resqml)
+            data[k] = read(v)
+        end
+    else
+        error("Unsupported EPC type $epc_type, expected 'props' or 'geom_and_props'")
+    end
     if !haskey(dest, "RESQML")
         dest["RESQML"] = Dict{String, Any}()
     end
@@ -139,24 +149,39 @@ function read_afi_file(fpath;
         "IX" => IX
     )
     for r in parsed.children
-        r::IXSimulationRecord
-        cid = r.keyword
-        if cid == "FM"
-            dest = FM
-            msg("Found field management model.")
-        elseif cid == "IX"
-            dest = IX
-            out["name"] = r.casename
-            msg("Found reservoir model.")
+        if r isa IXSimulationRecord
+            dest, cid = get_simulation_section(out, r.keyword, verbose = verbose)
+            if cid == "IX"
+                out["name"] = r.casename
+            end
+            process_records!(dest, r.arg, basepath, verbose = verbose, strict = strict)
+        elseif r isa IXIncludeRecord
+            dest, cid = get_simulation_section(out, r.options["simulation"], verbose = verbose)
+            recs = [r]
+            process_records!(dest, recs, basepath; verbose = verbose, strict = strict)
         else
-            error("Unknown simulation component $(cid) in file $fname, expected FM or IX")
+            continue
         end
-        process_records!(dest, r.arg, basepath, verbose = verbose, strict = strict)
     end
     if convert
         out = restructure_and_convert_units_afi(out; verbose = verbose, strict = strict)
     end
     return out
+end
+
+function get_simulation_section(out, cid; verbose = false)
+    msg(x) = verbose && println(x)
+    cid = uppercase(cid)
+    if cid == "FM"
+        dest = out["FM"]
+        msg("Found field management model.")
+    elseif cid == "IX"
+        dest = out["IX"]
+        msg("Found reservoir model.")
+    else
+        error("Unknown simulation component $(cid) in file $fname, expected FM or IX")
+    end
+    return (dest, cid)
 end
 
 function process_records!(dest, recs::Vector, basepath; verbose = true, strict = false)

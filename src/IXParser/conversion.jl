@@ -65,12 +65,13 @@ function restructure_and_convert_units_afi(afi;
     end
     resqml = get(afi["IX"], "RESQML", missing)
     if !ismissing(resqml)
-        out["IX"]["RESQML"] = convert_resqml(resqml, unit_systems, verbose = verbose, strict = strict)
+        structured_info = find_records(afi, "StructuredInfo", "IX", steps = false, once = true)
+        out["IX"]["RESQML"] = convert_resqml(resqml, unit_systems, verbose = verbose, strict = strict, structured_info = structured_info)
     end
     return out
 end
 
-function convert_resqml(resqml, unit_systems; verbose = false, strict = false)
+function convert_resqml(resqml, unit_systems; verbose = false, strict = false, structured_info = nothing)
     out = Dict{String, Any}()
     for r in get(resqml, "props", [])
         v = convert_resqml_props(r, unit_systems, verbose = verbose, strict = strict)
@@ -80,7 +81,6 @@ function convert_resqml(resqml, unit_systems; verbose = false, strict = false)
     for (i, g) in enumerate(geom_and_props)
         if i == 1
             t = "GRID"
-            actnum = get(out, "ACTIVE_CELL_FLAG", missing)
             # A bit hacky, get the handedness-tag
             is_right_handed = false
             for v in values(g.epc)
@@ -93,7 +93,27 @@ function convert_resqml(resqml, unit_systems; verbose = false, strict = false)
                     break
                 end
             end
-            v = convert_to_grid_section(read(g.h5), actnum)
+            if isnothing(structured_info)
+                if length(keys(g.epc)) == 1
+                    println("No StructuredInfo provided in IX file, assuming single grid in EPC file.")
+                else
+                    error("Expected exactly one grid in EPC file, got $(length(keys(g.epc))). Please provide StructuredInfo with UUID record in IX file.")
+                end
+                uuid = first(keys(g.epc))
+            else
+                uuid_pos = findfirst(x -> x.keyword == "UUID", structured_info.body)
+                !isnothing(uuid_pos) || error("No UUID record found in StructuredInfo, cannot identify grid in EPC file.")
+                uuid = structured_info.body[uuid_pos].value
+            end
+            v = convert_to_grid_section(g.h5[uuid],
+                actnum = get(out, "ACTIVE_CELL_FLAG", missing),
+                porosity = get(out, "POROSITY", missing),
+                net_to_gross = get(out, "NET_TO_GROSS_RATIO", missing)
+            )
+            v["extra"] = Dict{String, Any}()
+            for (k, val) in pairs(v)
+                v["extra"][k] = val
+            end
             v["IsRightHanded"] = is_right_handed
         else
             # No idea if this actually happens in practice...
@@ -260,16 +280,23 @@ end
 
 function time_from_record(x, start_time, usys)
     if x.keyword == "DATE"
-        d, m, y = split(x.value, '-')
-        d = parse(Int, d)
-        m = month_to_int(m)
-        y = parse(Int, y)
-        return DateTime(y, m, d)
+        val = strip(x.value)
+        # Example str:
+        # "1-Dec-2020 01:10:00.10000"
+        return DateTime(val, dateformat"d-u-y H:M:S.s")
     else
         error("Not implemented")
         @assert x.keyword == "TIME"
         delta = x.value
     end
+end
+
+function convert_ix_value(x::Number, kw, unit_systems; throw = true)
+    utype = get_unit_type_ix_keyword(unit_systems, kw; throw = throw)
+    if utype != :id
+        x = GeoEnergyIO.InputParser.swap_unit_system(x, unit_systems, utype)
+    end
+    return x
 end
 
 function convert_ix_values!(x::AbstractArray, kw, unit_systems; throw = true)
@@ -499,9 +526,9 @@ function parse_and_convert_numerical_table(x::IXStandardRecord, unit_systems, k 
     return out
 end
 
-function convert_dict_entries!(table, unit_systems)
+function convert_dict_entries!(table, unit_systems; skip = [])
     for (k, v) in pairs(table)
-        if v isa AbstractString || isnothing(v) || ismissing(v)
+        if v isa AbstractString || isnothing(v) || ismissing(v) || k in skip
             continue
         end
 

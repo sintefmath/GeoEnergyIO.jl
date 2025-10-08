@@ -64,6 +64,34 @@ struct AFIInputFile <: AbstractInputFile
     setup::AbstractDict
 end
 
+struct IXLookupRecord <: AbstractIXRecord
+    name::String
+    key::String
+end
+
+function IXLookupRecord(a)
+    name = to_string(a[1])
+    key = to_string(a[2])
+    return IXLookupRecord(name, key)
+end
+
+struct IXDoubleProperty <: AbstractIXRecord
+    name::Union{String, IXLookupRecord}
+    value::Float64
+end
+
+function IXDoubleProperty(a)
+    length(a) == 2 || error("Expected 2 arguments to DoubleProperty, got $(length(a))")
+    value = convert(Float64, a[1])
+    if a[2] isa Vector
+        name = IXLookupRecord(a[2])
+    else
+        name = a[2]
+    end
+    return IXDoubleProperty(name, value)
+end
+
+
 Base.getindex(f::AFIInputFile, k::String) = f.setup[k]
 Base.haskey(f::AFIInputFile, k::String) = haskey(f.setup, k)
 Base.keys(f::AFIInputFile) = keys(f.setup)

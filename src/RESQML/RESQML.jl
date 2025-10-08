@@ -113,7 +113,6 @@ module RESQML
         mm = setup_column_pillar_mapping(gdata, pillar_dims)
         # ZCORN is a vector
         out["ZCORN"] = build_zcorn(mm, cartDims, pillar_depths)
-        @info "Found" typeof(net_to_gross) typeof(porosity) typeof(actnum)
         if !ismissing(net_to_gross)
             out["NTG"] = convert_grid_entry(net_to_gross, cartDims, "NET_TO_GROSS_RATIO", Float64)
         end

@@ -1,7 +1,6 @@
 module RESQML
     using GeoEnergyIO, HDF5
-    corner_index = GeoEnergyIO.CornerPointGrid.corner_index
-    ijk_to_linear = GeoEnergyIO.CornerPointGrid.ijk_to_linear
+    import GeoEnergyIO.CornerPointGrid: corner_index, ijk_to_linear
 
     function linear_index(i, j, nx, ny)
         return (j - 1) * nx + i

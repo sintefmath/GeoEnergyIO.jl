@@ -109,9 +109,13 @@ function convert_resqml_units(data, unit, unit_systems; throw = true)
         u = unit
     else
         l = GeoEnergyIO.InputParser.deck_unit_system_label(sys)
-        data = map(x -> Float64(x)*v, data)
+        data = resqml_mapconvert(data, v)
         u = "$unit (converted to $l)"
     end
     return (data, u)
+end
+
+function resqml_mapconvert(data, v)
+    return map(x -> Float64(x)*v, data)
 end
 

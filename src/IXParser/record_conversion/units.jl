@@ -48,6 +48,7 @@ function conversion_ix_dict()
         "GOCCapPressure",
         "DatumPressure",
         "BOTTOM_HOLE_PRESSURE",
+        "INJECTION_TUBING_HEAD_PRESSURE",
         "BHP"
     ]
         u[k] = :pressure

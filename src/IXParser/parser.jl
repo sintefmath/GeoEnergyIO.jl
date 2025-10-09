@@ -156,7 +156,7 @@ function read_afi_file(fpath;
             end
             process_records!(dest, r.arg, basepath, verbose = verbose, strict = strict)
         elseif r isa IXIncludeRecord
-            dest, cid = get_simulation_section(out, r.options["simulation"], verbose = verbose)
+            dest, cid = get_simulation_section(out, get(r.options, "simulation", "IX"), verbose = verbose)
             recs = [r]
             process_records!(dest, recs, basepath; verbose = verbose, strict = strict)
         else

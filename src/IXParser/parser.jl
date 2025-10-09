@@ -196,10 +196,16 @@ function process_records!(dest, recs::Vector, basepath; verbose = true, strict =
         if rec isa IXIncludeRecord
             pth = rec.filename
             include_pth = normpath(joinpath(basepath, pth))
-            if !isfile(include_pth)
-                error("Include file $include_pth does not exist, skipping.")
-            end
             msg("Processing include record: $pth")
+            if !isfile(include_pth)
+                msg = "Include file $include_pth does not exist, skipping."
+                if strict
+                    error(msg)
+                else
+                    println(msg)
+                    continue
+                end
+            end
             read_ix_include_file!(dest, include_pth, rec.options, verbose = true, strict = strict)
         elseif rec isa IXExtensionRecord
             ext = rec.value

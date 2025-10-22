@@ -351,6 +351,7 @@ function convert_ix_record(val, unit_systems, meta, ::Val{kw}) where kw
     )
     convert_subrecords_list = (
         :BlackOilFluidModel,
+        :CompositionalFluidModel
     )
     # Main.lastrec[] = val
     kw_as_str = "$kw"

@@ -13,5 +13,17 @@ function convert_ix_record(x::IXStandardRecord, unit_systems, meta, ::Val{:Visco
 end
 
 function merge_records!(a, b, ::Val{:ViscosityTemperatureTable})
-    error("Merging of ViscosityTemperatureTable records is not supported.")
+    keysa = keys(a)
+    keysb = keys(b)
+    out = Dict{String, Any}()
+    for k in intersect(keysa, keysb)
+        out[k] = merge(a[k], b[k])
+    end
+    for ka in setdiff(keysa, keysb)
+        out[ka] = a[ka]
+    end
+    for kb in setdiff(keysb, keysa)
+        out[kb] = b[kb]
+    end
+    return out
 end

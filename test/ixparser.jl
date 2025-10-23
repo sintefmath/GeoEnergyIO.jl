@@ -396,69 +396,69 @@ import GeoEnergyIO.IXParser:
 
         new_text = GeoEnergyIO.IXParser.replace_square_bracketed_newlines(text, "")
         @test new_text == text
+    end
 
-        # Multiple entries in standard record
+    # Multiple entries in standard record
+    teststr = """
+    Well "Well1" "Well1"  "Well2" "Well3" {
+        HistoricalControlModes=[RES_VOLUME_INJECTION_RATE]
+        AutomaticClosureBehavior=ALL_COMPLETIONS_SHUTIN
+        Status=ALL_COMPLETIONS_SHUTIN 
+        Type= WATER_INJECTOR 
+        Status = OPEN
+    }
+    """
+
+    s = GeoEnergyIO.IXParser.parse_ix_record(teststr)
+
+    @test s.value == ["Well1", "Well1", "Well2", "Well3"]
+    @test s.body[1] isa GeoEnergyIO.IXParser.IXEqualRecord
+    @test s.body[1].keyword == "HistoricalControlModes"
+    # Check pathological group with no spaces
+    teststr = """
+    Well "Well1"	"Well1"  "Well2""Well3"	 {
+        HistoricalControlModes=[RES_VOLUME_INJECTION_RATE]
+        AutomaticClosureBehavior=ALL_COMPLETIONS_SHUTIN
+        Status=ALL_COMPLETIONS_SHUTIN 
+        Type= WATER_INJECTOR 
+        Status = OPEN
+    }
+    """
+
+    s = GeoEnergyIO.IXParser.parse_ix_record(teststr)
+
+    @test s.value == ["Well1", "Well1", "Well2", "Well3"]
+    @test s.body[1] isa GeoEnergyIO.IXParser.IXEqualRecord
+    @test s.body[1].keyword == "HistoricalControlModes"
+
+    @testset "assignment" begin
         teststr = """
-        Well "Well1" "Well1"  "Well2" "Well3" {
-            HistoricalControlModes=[RES_VOLUME_INJECTION_RATE]
-            AutomaticClosureBehavior=ALL_COMPLETIONS_SHUTIN
-            Status=ALL_COMPLETIONS_SHUTIN 
-            Type= WATER_INJECTOR 
-            Status = OPEN
-        }
-        """
-
-        s = GeoEnergyIO.IXParser.parse_ix_record(teststr)
-
-        @test s.value == ["Well1", "Well1", "Well2", "Well3"]
-        @test s.body[1] isa GeoEnergyIO.IXParser.IXEqualRecord
-        @test s.body[1].keyword == "HistoricalControlModes"
-        # Check pathological group with no spaces
-        teststr = """
-        Well "Well1"	"Well1"  "Well2""Well3"	 {
-            HistoricalControlModes=[RES_VOLUME_INJECTION_RATE]
-            AutomaticClosureBehavior=ALL_COMPLETIONS_SHUTIN
-            Status=ALL_COMPLETIONS_SHUTIN 
-            Type= WATER_INJECTOR 
-            Status = OPEN
-        }
-        """
-
-        s = GeoEnergyIO.IXParser.parse_ix_record(teststr)
-
-        @test s.value == ["Well1", "Well1", "Well2", "Well3"]
-        @test s.body[1] isa GeoEnergyIO.IXParser.IXEqualRecord
-        @test s.body[1].keyword == "HistoricalControlModes"
-
-        @testset "assignment" begin
-            teststr = """
-            WellDef "WNAME" {         
-                WellToCellConnections { 
-                    Status[1]=OPEN  
-                    PiMultiplier[1]=1.0  
-                    Status[2]=OPEN  
-                    PiMultiplier[2]=1.0  
-                }
-                AllowCrossFlow=TRUE
+        WellDef "WNAME" {         
+            WellToCellConnections { 
+                Status[1]=OPEN  
+                PiMultiplier[1]=1.0  
+                Status[2]=OPEN  
+                PiMultiplier[2]=1.0  
             }
-            """
+            AllowCrossFlow=TRUE
+        }
+        """
 
-            s = GeoEnergyIO.IXParser.parse_ix_record(teststr)
-            @test s isa GeoEnergyIO.IXParser.IXStandardRecord
-            @test s.keyword == "WellDef"
-            @test s.value == "WNAME"
-            @test length(s.body) == 2
-            @test s.body[1] isa GeoEnergyIO.IXParser.IXEqualRecord
-            @test s.body[1].keyword == "WellToCellConnections"
-            @test s.body[1].value[1] == GeoEnergyIO.IXParser.IXAssignmentRecord("Status", 1, GeoEnergyIO.IXParser.IX_OPEN)
-            @test s.body[1].value[2] == GeoEnergyIO.IXParser.IXAssignmentRecord("PiMultiplier", 1, 1.0)
-            @test s.body[1].value[3] == GeoEnergyIO.IXParser.IXAssignmentRecord("Status", 2, GeoEnergyIO.IXParser.IX_OPEN)
-            @test s.body[1].value[4] == GeoEnergyIO.IXParser.IXAssignmentRecord("PiMultiplier", 2, 1.0)
+        s = GeoEnergyIO.IXParser.parse_ix_record(teststr)
+        @test s isa GeoEnergyIO.IXParser.IXStandardRecord
+        @test s.keyword == "WellDef"
+        @test s.value == "WNAME"
+        @test length(s.body) == 2
+        @test s.body[1] isa GeoEnergyIO.IXParser.IXEqualRecord
+        @test s.body[1].keyword == "WellToCellConnections"
+        @test s.body[1].value[1] == GeoEnergyIO.IXParser.IXAssignmentRecord("Status", 1, GeoEnergyIO.IXParser.IX_OPEN)
+        @test s.body[1].value[2] == GeoEnergyIO.IXParser.IXAssignmentRecord("PiMultiplier", 1, 1.0)
+        @test s.body[1].value[3] == GeoEnergyIO.IXParser.IXAssignmentRecord("Status", 2, GeoEnergyIO.IXParser.IX_OPEN)
+        @test s.body[1].value[4] == GeoEnergyIO.IXParser.IXAssignmentRecord("PiMultiplier", 2, 1.0)
 
-            @test s.body[2] isa GeoEnergyIO.IXParser.IXEqualRecord
-            @test s.body[2].keyword == "AllowCrossFlow"
-            @test s.body[2].value == true
-        end
+        @test s.body[2] isa GeoEnergyIO.IXParser.IXEqualRecord
+        @test s.body[2].keyword == "AllowCrossFlow"
+        @test s.body[2].value == true
 
         teststr = """
         FluidSourceExternal "FluidSource1" {

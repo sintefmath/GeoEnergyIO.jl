@@ -118,17 +118,26 @@ function convert_ix_record(x::IXStandardRecord, unit_systems, meta, ::Val{:Strai
     dz = get_entry("DeltaZ", :length, Float64)
     tops = get_entry("PillarTops", :length, Float64)
 
-    props = find_records(bdy, "CellDoubleProperty", once = false)
     out_props = Dict{String, Any}()
-    for p in props
-        pname = p.value
-        @assert length(p.body) == 1
-        v = to_vec(p.body[1])
-        if !(eltype(v)<:Integer)
-            u = get_unit_type_ix_keyword(unit_systems, pname)
-            swap_unit_system!(v, unit_systems, u)
+    for (ptype, is_int) in [("CellIntegerProperty", true), ("CellDoubleProperty", false)]
+        props = find_records(bdy, ptype, once = false)
+        for p in props
+            pname = p.value
+            @assert length(p.body) == 1
+            if is_int
+                T = Int
+            else
+                # Probably Float64 but who knows, some datasets have Ints here
+                # as well.
+                T = missing
+            end
+            v = to_vec(p.body[1], T)
+            if !is_int && !(eltype(v)<:Integer)
+                u = get_unit_type_ix_keyword(unit_systems, pname)
+                swap_unit_system!(v, unit_systems, u)
+            end
+            out_props[pname] = v
         end
-        out_props[pname] = v
     end
     return Dict(
         "name" => x.value,

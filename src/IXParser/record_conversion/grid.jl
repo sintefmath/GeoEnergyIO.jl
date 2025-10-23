@@ -82,6 +82,36 @@ function convert_region_mapping(x::IXEqualRecord)
     return out
 end
 
+function convert_ix_record(x::IXStandardRecord, unit_systems, meta, ::Val{:ConnectionSet})
+    out = Dict{String, Any}(
+        "name" => x.value
+    )
+    if x.body[1] isa IXEqualRecord
+        for subrec in x.body
+            val = subrec.value
+            if val isa IXKeyword
+                val = String(val)
+            end
+            out[subrec.keyword] = val
+        end
+    else
+        table = Dict{String, Any}()
+        set_ix_array_values!(table, x.body)
+        for (k, v) in pairs(table)
+            u = get_unit_type_ix_keyword(unit_systems, k; throw = false)
+            if u != :id
+                if eltype(v)<:Integer
+                    v = Float64.(v)
+                    table[k] = v
+                end
+                swap_unit_system!(v, unit_systems, u)
+            end
+        end
+        out["table"] = table
+    end
+    return out
+end
+
 function convert_ix_record(x::IXStandardRecord, unit_systems, meta, ::Val{:StraightPillarGrid})
     bdy = x.body
     function to_vec(x, T = missing)

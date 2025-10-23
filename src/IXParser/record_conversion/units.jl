@@ -39,7 +39,9 @@ function conversion_ix_dict()
             "UseDefaultBHP",
             "POROSITY",
             "NET_TO_GROSS_RATIO",
-            "PORE_VOLUME_MULTIPLIER"
+            "PORE_VOLUME_MULTIPLIER",
+            "Cell1",
+            "Cell2"
         ]
         u[k] = :id
     end
@@ -60,6 +62,10 @@ function conversion_ix_dict()
             "BHP"
         ]
         u[k] = :pressure
+    end
+
+    for k in ["PORE_VOLUME"]
+        u[k] = :volume
     end
 
     for k in ["OilSurfaceDensity", "GasSurfaceDensity", "WaterSurfaceDensity", "SurfaceDensity"]

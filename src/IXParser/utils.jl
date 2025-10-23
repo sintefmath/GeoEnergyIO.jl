@@ -1,4 +1,39 @@
 function replace_square_bracketed_newlines(s, replacement=" NEWLINE ")
+    lbracket = '['
+    rbracket = ']'
+    str = ""
+    remainder = s
+    while true
+        start = findfirst(isequal(lbracket), remainder)
+        stop = findfirst(isequal(rbracket), remainder)
+        isnothing(start) == isnothing(stop) || error("Missing bracket pair")
+        if isnothing(start)
+            str *= remainder
+            break
+        else
+            str *= remainder[1:(start-1)]
+        end
+        if start > stop
+            print(s)
+            error("Unable to match, closing bracket before starting bracket")
+        end
+        str_in_brackets = remainder[(start+1):(stop-1)]
+        # Strip leading and trailing brackets
+        str_in_brackets = strip(str_in_brackets, '\n')
+        str_in_brackets = replace(str_in_brackets, "\n" => replacement)
+
+        str *= lbracket*str_in_brackets*rbracket
+        if stop == lastindex(remainder)
+            remainder = ""
+        else
+            remainder = remainder[stop+1:end]
+        end
+    end
+
+    return str
+end
+
+function replace_square_bracketed_newlines_old(s, replacement=" NEWLINE ")
     section_regex = r"\[\n*(.*?)\n*\]"s # 's' flag for single-line mode (dot matches newline)
     m = match(section_regex, s)
     if isnothing(m)

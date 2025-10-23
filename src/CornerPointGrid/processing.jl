@@ -565,33 +565,6 @@ function grid_from_primitives(primitives; nnc = missing, pinch = missing)
         end
     end
 
-    if !ismissing(nnc)
-        to_active_ix = zeros(Int, nx*ny*nz)
-        to_active_ix[active] = eachindex(active)
-        function cell_index(i, j, k)
-            ix = ijk_to_linear(i, j, k, cartdims)
-            aix = to_active_ix[ix]
-            return aix
-        end
-
-        fp = I_faces.face_pos
-        for nnc_entry in nnc
-            c1 = cell_index(nnc_entry[1], nnc_entry[2], nnc_entry[3])
-            c2 = cell_index(nnc_entry[4], nnc_entry[5], nnc_entry[6])
-            if c1 > 0 && c2 > 0
-                faceno = length(fp)
-                c1 != c2 || error("NNC cell pair must be distinct.")
-                # NNC connections have no nodes
-                push!(fp, fp[end])
-                push!(I_faces.neighbors, (c1, c2))
-                push!(I_faces.cell_faces[c1], faceno)
-                push!(I_faces.cell_faces[c2], faceno)
-            else
-                error("NNC connects inactive cells, cannot proceed: $(Tuple(nnc_entry[1:3])) -> $(Tuple(nnc_entry[4:6]))")
-            end
-        end
-    end
-
     function convert_to_flat(v)
         flat_vals = Int[]
         flat_pos = Int[1]

@@ -84,27 +84,33 @@ end
 
 function convert_ix_record(x::IXStandardRecord, unit_systems, meta, ::Val{:StraightPillarGrid})
     bdy = x.body
+    function to_vec(x)
+        [i for i in filter(y -> y isa Number, x.value)]
+    end
 
-    to_vec(x) = [i for i in filter(y -> y isa Number, x)]
-    get_mat(k) = to_vec(find_records(bdy, k, once = true).value)
+    function get_entry(k, u)
+        rec = find_records(bdy, k, once = true)
+        if isnothing(rec)
+            out = missing
+        else
+            out = to_vec(rec)
+            swap_unit_system!(out, unit_systems, u)
+        end
+        return out
+    end
+    to_vec(x::Nothing) = nothing
 
-    dx = get_mat("DeltaX")
-    dy = get_mat("DeltaY")
-    dz = get_mat("DeltaZ")
-    tops = get_mat("PillarTops")
-
-    swap_unit_system!(dx, unit_systems, :length)
-    swap_unit_system!(dy, unit_systems, :length)
-    swap_unit_system!(dz, unit_systems, :length)
-    swap_unit_system!(tops, unit_systems, :length)
+    dx = get_entry("DeltaX", :length)
+    dy = get_entry("DeltaY", :length)
+    dz = get_entry("DeltaZ", :length)
+    tops = get_entry("PillarTops", :length)
 
     props = find_records(bdy, "CellDoubleProperty", once = false)
-
     out_props = Dict{String, Any}()
     for p in props
         pname = p.value
         @assert length(p.body) == 1
-        v = to_vec(p.body[1].value)
+        v = to_vec(p.body[1])
         if pname == "POROSITY" || pname == "NET_TO_GROSS_RATIO"
             # Already identity
             u = :id

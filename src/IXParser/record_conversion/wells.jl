@@ -77,6 +77,10 @@ function convert_ix_record(x::IXStandardRecord, unit_systems, meta, ::Val{:Well}
             val = convert_function_call(rec, unit_systems, "Well")
         elseif rec isa IXStandardRecord
             val = convert_ix_record(rec, unit_systems, meta, kw)
+        elseif rec isa IXAssignmentRecord
+            asgn = rec.value
+            asgn = convert_ix_value(asgn, rec.index, unit_systems; throw = false)
+            val = IXAssignmentRecord(rec.keyword, rec.index, asgn)
         else
             error("Expected IXEqualRecord in Well record body, got $(typeof(rec))")
         end

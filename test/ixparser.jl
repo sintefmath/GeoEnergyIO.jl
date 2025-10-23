@@ -396,6 +396,32 @@ import GeoEnergyIO.IXParser:
 
         new_text = GeoEnergyIO.IXParser.replace_square_bracketed_newlines(text, "")
         @test new_text == text
+
+        text = """
+        FluidStream "S1" {
+            Enthalpy=FluidEnthalpy("E 1")
+            TracerConcentrations=[DoubleProperty(1 TRACER_CONCENTRATION['WI'])]
+            Sources=[FluidSourceExternal("FSE 1")]
+        }
+        """
+        new_text = GeoEnergyIO.IXParser.replace_square_bracketed_newlines(text)
+        ref_text = "FluidStream \"S1\" {\n    Enthalpy=FluidEnthalpy(\"E 1\")\n    TracerConcentrations=[DoubleProperty(1 TRACER_CONCENTRATION['WI'])]\n    Sources=[FluidSourceExternal(\"FSE 1\")]\n}\n"
+        @test new_text == ref_text
+
+        text = """
+        FluidStream "S1" {
+            Enthalpy=FluidEnthalpy("E 1")
+            TracerConcentrations=[
+                1
+                2
+                3
+            ]
+            Sources=[FluidSourceExternal("FSE 1")]
+        }
+        """
+        new_text = GeoEnergyIO.IXParser.replace_square_bracketed_newlines(text)
+        ref_text = "FluidStream \"S1\" {\n    Enthalpy=FluidEnthalpy(\"E 1\")\n    TracerConcentrations=[        1 NEWLINE         2 NEWLINE         3 NEWLINE     ]\n    Sources=[FluidSourceExternal(\"FSE 1\")]\n}\n"
+        @test new_text == ref_text
     end
 
     # Multiple entries in standard record
@@ -664,4 +690,3 @@ import GeoEnergyIO.IXParser:
         end
     end
 end
-

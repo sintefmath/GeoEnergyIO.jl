@@ -5,14 +5,28 @@ function replace_square_bracketed_newlines(s, replacement=" NEWLINE ")
     remainder = s
     while true
         start = findfirst(isequal(lbracket), remainder)
-        stop = findfirst(isequal(rbracket), remainder)
-        isnothing(start) == isnothing(stop) || error("Missing bracket pair")
         if isnothing(start)
             str *= remainder
             break
-        else
-            str *= remainder[1:(start-1)]
         end
+        lcount = 1
+        rcount = 0
+        stop = nothing
+        for pos in (start+1):lastindex(remainder)
+            ch = remainder[pos]
+            if ch == lbracket
+                lcount += 1
+            elseif ch == rbracket
+                rcount += 1
+            end
+            if rcount == lcount
+                stop = pos
+                break
+            end
+        end
+        # stop = findfirst(isequal(rbracket), remainder)
+        isnothing(start) == isnothing(stop) || error("Missing bracket pair")
+        str *= remainder[1:(start-1)]
         if start > stop
             print(s)
             error("Unable to match, closing bracket before starting bracket")
@@ -30,24 +44,6 @@ function replace_square_bracketed_newlines(s, replacement=" NEWLINE ")
         end
     end
 
-    return str
-end
-
-function replace_square_bracketed_newlines_old(s, replacement=" NEWLINE ")
-    section_regex = r"\[\n*(.*?)\n*\]"s # 's' flag for single-line mode (dot matches newline)
-    m = match(section_regex, s)
-    if isnothing(m)
-        return s
-    end
-    start = 1
-    str = ""
-    for m in eachmatch(section_regex, s)
-        str *= s[start:m.offset-1]
-        content = replace(only(m.captures), "\n" => replacement)
-        str *= "[" * content * "]"
-        start = m.offset + length(m.match)
-    end
-    str *= s[start:end]
     return str
 end
 

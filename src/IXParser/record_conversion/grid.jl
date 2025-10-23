@@ -84,26 +84,39 @@ end
 
 function convert_ix_record(x::IXStandardRecord, unit_systems, meta, ::Val{:StraightPillarGrid})
     bdy = x.body
-    function to_vec(x)
-        [i for i in filter(y -> y isa Number, x.value)]
+    function to_vec(x, T = missing)
+        xv = x.value
+        if ismissing(T)
+            out = [i for i in filter(y -> y isa Number, xv)]
+        else
+            out = [convert(T, i) for i in filter(y -> y isa Number, xv)]
+        end
+        return out
     end
 
-    function get_entry(k, u)
+    function to_vec(x::Nothing, T = missing)
+        return nothing
+    end
+
+    function get_entry(k, u, T = missing)
         rec = find_records(bdy, k, once = true)
         if isnothing(rec)
             out = missing
         else
-            out = to_vec(rec)
+            out = to_vec(rec, T)
+            T_out = eltype(out)
+            if !isconcretetype(T_out)
+                @warn "Non-concrete type detected for $k: $T_out"
+            end
             swap_unit_system!(out, unit_systems, u)
         end
         return out
     end
-    to_vec(x::Nothing) = nothing
 
-    dx = get_entry("DeltaX", :length)
-    dy = get_entry("DeltaY", :length)
-    dz = get_entry("DeltaZ", :length)
-    tops = get_entry("PillarTops", :length)
+    dx = get_entry("DeltaX", :length, Float64)
+    dy = get_entry("DeltaY", :length, Float64)
+    dz = get_entry("DeltaZ", :length, Float64)
+    tops = get_entry("PillarTops", :length, Float64)
 
     props = find_records(bdy, "CellDoubleProperty", once = false)
     out_props = Dict{String, Any}()
@@ -111,7 +124,7 @@ function convert_ix_record(x::IXStandardRecord, unit_systems, meta, ::Val{:Strai
         pname = p.value
         @assert length(p.body) == 1
         v = to_vec(p.body[1])
-        if eltype(v)<:AbstractFloat
+        if !(eltype(v)<:Integer)
             u = get_unit_type_ix_keyword(unit_systems, pname)
             swap_unit_system!(v, unit_systems, u)
         end

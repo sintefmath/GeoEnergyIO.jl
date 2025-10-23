@@ -487,6 +487,22 @@ import GeoEnergyIO.IXParser:
         @test s.body[2].value == true
 
         teststr = """
+        Well "W1" "W2""W3"  {
+            HistoricalControlModes=[RES_VOLUME_PRODUCTION_RATE ]
+            AutomaticClosureBehavior=SURFACE_SHUTIN
+            Constraints[BOTTOM_HOLE_PRESSURE]=100.0
+            Type=PRODUCER 
+            Status = ALL_COMPLETIONS_SHUTIN
+        
+        }
+        """
+        t = parse_ix_record(teststr)
+        @test t.body[3] isa GeoEnergyIO.IXParser.IXAssignmentRecord
+        @test t.body[3].keyword == "Constraints"
+        @test t.body[3].index == "BOTTOM_HOLE_PRESSURE"
+        @test t.body[3].value == 100.0
+
+        teststr = """
         FluidSourceExternal "FluidSource1" {
             Phase=WATER
             AvailableRate=DoubleProperty(0 WATER_FLOW_RATE)
@@ -557,72 +573,72 @@ import GeoEnergyIO.IXParser:
             @test s.body[1].value.value == 1.0
             @test s.body[1].value.name == GeoEnergyIO.IXParser.IXLookupRecord("TRACER_CONCENTRATION", "WI")
         end
+    end
 
-        @testset "repeats" begin
-            teststr = """
-            StraightPillarGrid "CoarseGrid" {
-                Units="ECLIPSE_FIELD"
-                DeltaX = [
-                    1.0 1.0 1.0 1.0 1.0
-                ]
-                CellDoubleProperty "PERM_I" {
-                    Values=[ 0.1 0.1 0.1 0.1 0.1]
-                }
+    @testset "repeats" begin
+        teststr = """
+        StraightPillarGrid "CoarseGrid" {
+            Units="ECLIPSE_FIELD"
+            DeltaX = [
+                1.0 1.0 1.0 1.0 1.0
+            ]
+            CellDoubleProperty "PERM_I" {
+                Values=[ 0.1 0.1 0.1 0.1 0.1]
             }
-            """
-            function test_repeat_kw(x)
-                @test x isa GeoEnergyIO.IXParser.IXStandardRecord
-                @test x.keyword == "StraightPillarGrid"
-                @test x.value == "CoarseGrid"
-                @test length(x.body) == 3
-                @test x.body[1] isa GeoEnergyIO.IXParser.IXEqualRecord
-                @test x.body[1].keyword == "Units"
-                @test x.body[1].value == "ECLIPSE_FIELD"
-                @test x.body[2] isa GeoEnergyIO.IXParser.IXEqualRecord
-                @test x.body[2].keyword == "DeltaX"
-                @test x.body[2].value[1:5] == [1.0, 1.0, 1.0, 1.0, 1.0]
-                @test x.body[3] isa GeoEnergyIO.IXParser.IXStandardRecord
-                @test x.body[3].keyword == "CellDoubleProperty"
-                @test x.body[3].value == "PERM_I"
-                @test length(x.body[3].body) == 1
-                @test x.body[3].body[1] isa GeoEnergyIO.IXParser.IXEqualRecord
-                @test x.body[3].body[1].keyword == "Values"
-                @test x.body[3].body[1].value[1:5] == [0.1, 0.1, 0.1, 0.1, 0.1]
-            end
-
-
-            s1 = GeoEnergyIO.IXParser.parse_ix_record(teststr)
-            test_repeat_kw(s1)
-
-            teststr = """
-            StraightPillarGrid "CoarseGrid" {
-                Units="ECLIPSE_FIELD"
-                DeltaX = [
-                    1.0 1.0 1.0 1.0 1.0
-                ]
-                CellDoubleProperty "PERM_I" {
-                    Values=[ 0.1 3*0.1 0.1]
-                }
-            }
-            """
-
-            s2 = GeoEnergyIO.IXParser.parse_ix_record(teststr)
-            test_repeat_kw(s2)
-
-            teststr = """
-            StraightPillarGrid "CoarseGrid" {
-                Units="ECLIPSE_FIELD"
-                DeltaX = [
-                    1.0 1.0 1.0 1.0 1.0
-                ]
-                CellDoubleProperty "PERM_I" {
-                    Values=[ 5*0.1]
-                }
-            }
-            """
-            s3 = GeoEnergyIO.IXParser.parse_ix_record(teststr)
-            test_repeat_kw(s3)
+        }
+        """
+        function test_repeat_kw(x)
+            @test x isa GeoEnergyIO.IXParser.IXStandardRecord
+            @test x.keyword == "StraightPillarGrid"
+            @test x.value == "CoarseGrid"
+            @test length(x.body) == 3
+            @test x.body[1] isa GeoEnergyIO.IXParser.IXEqualRecord
+            @test x.body[1].keyword == "Units"
+            @test x.body[1].value == "ECLIPSE_FIELD"
+            @test x.body[2] isa GeoEnergyIO.IXParser.IXEqualRecord
+            @test x.body[2].keyword == "DeltaX"
+            @test x.body[2].value[1:5] == [1.0, 1.0, 1.0, 1.0, 1.0]
+            @test x.body[3] isa GeoEnergyIO.IXParser.IXStandardRecord
+            @test x.body[3].keyword == "CellDoubleProperty"
+            @test x.body[3].value == "PERM_I"
+            @test length(x.body[3].body) == 1
+            @test x.body[3].body[1] isa GeoEnergyIO.IXParser.IXEqualRecord
+            @test x.body[3].body[1].keyword == "Values"
+            @test x.body[3].body[1].value[1:5] == [0.1, 0.1, 0.1, 0.1, 0.1]
         end
+
+
+        s1 = GeoEnergyIO.IXParser.parse_ix_record(teststr)
+        test_repeat_kw(s1)
+
+        teststr = """
+        StraightPillarGrid "CoarseGrid" {
+            Units="ECLIPSE_FIELD"
+            DeltaX = [
+                1.0 1.0 1.0 1.0 1.0
+            ]
+            CellDoubleProperty "PERM_I" {
+                Values=[ 0.1 3*0.1 0.1]
+            }
+        }
+        """
+
+        s2 = GeoEnergyIO.IXParser.parse_ix_record(teststr)
+        test_repeat_kw(s2)
+
+        teststr = """
+        StraightPillarGrid "CoarseGrid" {
+            Units="ECLIPSE_FIELD"
+            DeltaX = [
+                1.0 1.0 1.0 1.0 1.0
+            ]
+            CellDoubleProperty "PERM_I" {
+                Values=[ 5*0.1]
+            }
+        }
+        """
+        s3 = GeoEnergyIO.IXParser.parse_ix_record(teststr)
+        test_repeat_kw(s3)
     end
 
     @testset "DateTime formatting" begin
@@ -690,3 +706,4 @@ import GeoEnergyIO.IXParser:
         end
     end
 end
+

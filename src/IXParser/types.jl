@@ -20,8 +20,12 @@ end
 
 struct IXAssignmentRecord <: AbstractIXRecord
     keyword::String
-    index::Int
+    index::Union{Int, String}
     value::Any
+end
+
+function IXAssignmentRecord(kw::Base.String, index::IXKeyword, value)
+    return IXAssignmentRecord(kw, String(index), value)
 end
 
 function Base.show(io::IO, t::MIME"text/plain", dopt::IXEqualRecord)

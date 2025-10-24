@@ -342,7 +342,9 @@ function convert_ix_record(val, unit_systems, meta, ::Val{kw}) where kw
         :TimeStepSolution,
         :RegionFamily,
         :CellActivity,
-        :RockOptions
+        :RockOptions,
+        :KilloughRelPermHysteresis,
+        :KilloughCapPressureHysteresis
     )
     edit_list = (
         :CellPropertyEdit,

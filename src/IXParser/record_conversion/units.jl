@@ -116,7 +116,7 @@ function conversion_ix_dict()
     for k in ["GAS_PRODUCTION_RATE", "GAS_INJECTION_RATE"]
         u[k] = :gas_rate_surface
     end
-    for k in ["MOLECULAR_WEIGHT"]
+    for k in ["MolecularWeight"]
         u[k] = :molar_mass
     end
     return u

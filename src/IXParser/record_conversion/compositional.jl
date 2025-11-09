@@ -12,3 +12,7 @@ end
 function convert_ix_record(x::IXEqualRecord, unit_systems, meta, ::Val{:StandardTemperature})
     return swap_unit_system(x.value, unit_systems, :relative_temperature)
 end
+
+function convert_ix_record(x::IXEqualRecord, unit_systems, meta, ::Val{:ThermalModel})
+    return String(x.value)
+end

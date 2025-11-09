@@ -19,6 +19,8 @@ function read_ix_include_file!(dest, include_pth, options; verbose = false, stri
         read_ixf_file!(dest, include_pth, options; verbose = verbose, strict = strict)
     elseif ext == "epc"
         read_epc_file!(dest, include_pth, options; verbose = verbose, strict = strict)
+    elseif ext == "h5"
+        # H5 is implicitly handled by EPC reading
     else
         msg = "Unsupported file extension $ext for include file $include_pth"
         if strict

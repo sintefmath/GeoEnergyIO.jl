@@ -169,6 +169,7 @@ end
 
 function set_ix_array_values!(dest, v::Vector; T = missing)
     convert_t(x::AbstractArray, T::Type) = T.(x)
+    convert_t(x::AbstractArray{<:AbstractString}, T::Type) = x
     convert_t(x::Number, T::Type) = convert(T, x)
     # These don't convert
     convert_t(x, ::Missing) = x

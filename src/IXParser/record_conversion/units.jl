@@ -41,7 +41,8 @@ function conversion_ix_dict()
             "NET_TO_GROSS_RATIO",
             "PORE_VOLUME_MULTIPLIER",
             "Cell1",
-            "Cell2"
+            "Cell2",
+            "ComponentName"
         ]
         u[k] = :id
     end
@@ -114,6 +115,9 @@ function conversion_ix_dict()
     end
     for k in ["GAS_PRODUCTION_RATE", "GAS_INJECTION_RATE"]
         u[k] = :gas_rate_surface
+    end
+    for k in ["MOLECULAR_WEIGHT"]
+        u[k] = :molar_mass
     end
     return u
 end

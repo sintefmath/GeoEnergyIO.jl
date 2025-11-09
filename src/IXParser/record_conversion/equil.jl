@@ -1,5 +1,5 @@
 function convert_ix_record(x, unit_systems, meta, ::Val{:Equilibrium})
-    tab_keys = ("SolutionGORDepthTable", )
+    tab_keys = ("SolutionGORDepthTable", "TemperatureDepthTable")
     tab = convert_ix_record_to_dict(x, skip = tab_keys)
     if x isa IXStandardRecord
         dest = x.body

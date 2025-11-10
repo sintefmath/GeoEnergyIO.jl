@@ -7,7 +7,8 @@ function convert_ix_record(x::IXStandardRecord, unit_systems, meta, ::Val{:Visco
         xb::IXEqualRecord
         out[tabname][xb.keyword] = String(xb.value)
     else
-        out[tabname]["table"] = parse_and_convert_numerical_table(x, unit_systems, x.keyword)
+        tmp = parse_and_convert_numerical_table(x, unit_systems, x.keyword)
+        out[tabname]["table"] = tmp["table"]
     end
     return out
 end

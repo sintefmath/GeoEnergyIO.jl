@@ -16,3 +16,21 @@ end
 function convert_ix_record(x::IXEqualRecord, unit_systems, meta, ::Val{:ThermalModel})
     return String(x.value)
 end
+
+function convert_ix_record(x::IXStandardRecord, unit_systems, meta, ::Val{:FluidEnthalpy})
+    out = Dict()
+    out["group"] = String(x.value)
+    for v in x.body
+        kw = v.keyword
+        if kw == "DataType"
+            out["DataType"] = String(v.value)
+        elseif kw == "Temperature"
+            out["Temperature"] = swap_unit_system(v.value, unit_systems, :relative_temperature)
+        elseif kw == "Pressure"
+            out["Pressure"] = swap_unit_system(v.value, unit_systems, :pressure)
+        else
+            out[kw] = v.value
+        end
+    end
+    return out
+end

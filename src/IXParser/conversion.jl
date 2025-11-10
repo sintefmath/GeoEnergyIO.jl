@@ -336,7 +336,6 @@ function convert_ix_record(val, unit_systems, meta, ::Val{kw}) where kw
         :Strategy,
         :Expression,
         :FluidStreamMgr,
-        :FluidEnthalpy,
         :FluidSourceExternal,
         :FluidSourceInternal,
         :FluidStream,

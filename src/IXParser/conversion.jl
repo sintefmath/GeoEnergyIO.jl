@@ -509,10 +509,9 @@ function convert_ix_record_and_subrecords(x::IXStandardRecord, unit_systems, met
         kw_val = Val(Symbol(inner_kw))
         next = convert_ix_record(rec, unit_systems, meta, kw_val)
         if haskey(out, inner_kw)
-            merge_records!(out[inner_kw], next, kw_val)
-        else
-            out[rec.keyword] = next
+            next =  merge_records!(out[inner_kw], next, kw_val)
         end
+        out[inner_kw] = next
     end
     return out
 end

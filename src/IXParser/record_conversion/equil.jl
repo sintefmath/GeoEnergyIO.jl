@@ -15,5 +15,5 @@ function convert_ix_record(x, unit_systems, meta, ::Val{:Equilibrium})
         end
     end
     convert_dict_entries!(tab, unit_systems, skip = tab_keys)
-    return tab
+    return Dict(tab["group"] => tab)
 end

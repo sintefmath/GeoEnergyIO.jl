@@ -34,3 +34,15 @@ function convert_ix_record(x::IXStandardRecord, unit_systems, meta, ::Val{:Fluid
     end
     return out
 end
+
+function convert_ix_record(x::IXEqualRecord, unit_systems, meta, ::Union{Val{:EnthalpyLiquidHeatCapacity}, Val{:EnthalpyVaporHeatCapacity}})
+    out = Dict()
+    for entry in x.value
+        entry::IXEqualRecord
+        kw = entry.keyword
+        val = copy(entry.value)
+        u = get_unit_type_ix_keyword(unit_systems, kw)
+        out[kw] = swap_unit_system!(val, unit_systems, u)
+    end
+    return out
+end

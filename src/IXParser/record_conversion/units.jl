@@ -119,5 +119,8 @@ function conversion_ix_dict()
     for k in ["MolecularWeight"]
         u[k] = :molar_mass
     end
+    for k in ["LiquidHeatCapacityCoef1"]
+        u[k] = :mass_heat_capacity
+    end
     return u
 end

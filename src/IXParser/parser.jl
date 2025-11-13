@@ -19,6 +19,8 @@ function read_ix_include_file!(dest, include_pth, options; verbose = false, stri
         read_ixf_file!(dest, include_pth, options; verbose = verbose, strict = strict)
     elseif ext == "epc"
         read_epc_file!(dest, include_pth, options; verbose = verbose, strict = strict)
+    elseif ext == "h5"
+        # H5 is implicitly handled by EPC reading
     else
         msg = "Unsupported file extension $ext for include file $include_pth"
         if strict
@@ -65,6 +67,21 @@ function parse_epc_info(epc_pth)
     return out
 end
 
+function unwrap_resqml_h5_contents(h5)
+    kys = keys(h5)
+    for k in kys
+        if startswith(lowercase(k), "resqml")
+            return h5[k]
+        end
+    end
+    if length(kys) > 1
+        @warn "Multiple top-level groups found in HDF5 file and no group started with resqml, returning the first one."
+    elseif length(kys) == 0
+        error("No top-level groups found in HDF5 file.")
+    end
+    return h5[kys[1]]
+end
+
 function read_epc_file!(dest, include_pth, options; verbose = false, strict = false)
     t = get(options, "type", "epc")
     t == "epc" || error("EPC type must be 'epc', got $t")
@@ -74,7 +91,7 @@ function read_epc_file!(dest, include_pth, options; verbose = false, strict = fa
     basename, ext = splitext(include_pth)
 
     h5 = HDF5.h5open("$basename.h5", "r")
-    resqml = h5["RESQML"]
+    resqml = unwrap_resqml_h5_contents(h5)
     if epc_type == "props"
         ks = keys(resqml)
         if length(ks) == 0
@@ -156,7 +173,7 @@ function read_afi_file(fpath;
             end
             process_records!(dest, r.arg, basepath, verbose = verbose, strict = strict)
         elseif r isa IXIncludeRecord
-            dest, cid = get_simulation_section(out, r.options["simulation"], verbose = verbose)
+            dest, cid = get_simulation_section(out, get(r.options, "simulation", "IX"), verbose = verbose)
             recs = [r]
             process_records!(dest, recs, basepath; verbose = verbose, strict = strict)
         else
@@ -196,10 +213,16 @@ function process_records!(dest, recs::Vector, basepath; verbose = true, strict =
         if rec isa IXIncludeRecord
             pth = rec.filename
             include_pth = normpath(joinpath(basepath, pth))
-            if !isfile(include_pth)
-                error("Include file $include_pth does not exist, skipping.")
-            end
             msg("Processing include record: $pth")
+            if !isfile(include_pth)
+                msg = "Include file $include_pth does not exist, skipping."
+                if strict
+                    error(msg)
+                else
+                    println(msg)
+                    continue
+                end
+            end
             read_ix_include_file!(dest, include_pth, rec.options, verbose = true, strict = strict)
         elseif rec isa IXExtensionRecord
             ext = rec.value

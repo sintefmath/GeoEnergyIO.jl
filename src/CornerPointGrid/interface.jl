@@ -64,7 +64,6 @@ function mesh_from_zcorn_and_coord(grid; actnum = missing, minpv_removed = missi
         actnum, minpv_removed = get_effective_actnum(grid)
     end
     cartdims = grid["cartDims"]
-    nnc = get(grid, "NNC", missing)
     coord = grid["COORD"]
     zcorn = grid["ZCORN"]
     if repair
@@ -76,7 +75,7 @@ function mesh_from_zcorn_and_coord(grid; actnum = missing, minpv_removed = missi
     else
         pinch = missing
     end
-    G = grid_from_primitives(primitives, nnc = nnc, pinch = pinch)
+    G = grid_from_primitives(primitives, pinch = pinch)
     return G
 end
 
@@ -89,7 +88,6 @@ function pinch_primitives(grid, minpv_removed)
 end
 
 function mesh_from_dxdydz_and_tops(grid; actnum = get_effective_actnum(grid))
-    nnc = get(grid, "NNC", missing)
     cartdims = grid["cartDims"]
     nx, ny, nz = cartdims
     function meshgrid_section(k)
@@ -177,23 +175,6 @@ function mesh_from_dxdydz_and_tops(grid; actnum = get_effective_actnum(grid))
     for i in eachindex(G.node_points)
         node = G.node_points[i]
         G.node_points[i] += [0.0, 0.0, I_tops(node[1], node[2])]
-    end
-    if !ismissing(nnc)
-        function cell_index(i, j, k)
-            ix = ijk_to_linear(i, j, k, cartdims)
-        end
-        nnc_neighbors = Tuple{Int, Int}[]
-        for nnc_entry in nnc
-            c1 = cell_index(nnc_entry[1], nnc_entry[2], nnc_entry[3])
-            c2 = cell_index(nnc_entry[4], nnc_entry[5], nnc_entry[6])
-            if c1 > 0 && c2 > 0
-                @assert c1 != c2 "NNC cell pair must be distinct."
-                push!(nnc_neighbors, (c1, c2))
-            else
-                error("NNC connects inactive cells, cannot proceed: $(Tuple(nnc_entry[1:3])) -> $(Tuple(nnc_entry[4:6]))")
-            end
-        end
-        insert_nnc_faces!(G, nnc_neighbors)
     end
     if !all(actnum)
         active_cells = findall(x -> x > 0, vec(actnum))

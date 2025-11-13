@@ -169,6 +169,7 @@ end
 
 function set_ix_array_values!(dest, v::Vector; T = missing)
     convert_t(x::AbstractArray, T::Type) = T.(x)
+    convert_t(x::AbstractArray{<:AbstractString}, T::Type) = x
     convert_t(x::Number, T::Type) = convert(T, x)
     # These don't convert
     convert_t(x, ::Missing) = x
@@ -278,11 +279,21 @@ function start_time_from_record(x)
     return start_time
 end
 
-function time_from_record(x, start_time, usys)
+function time_from_record(x, start_time = missing, usys = missing)
+    # Example str:
+    # "1-Dec-2020 01:10:00.10000"
     if x.keyword == "DATE"
         val = strip(x.value)
-        # Example str:
-        # "1-Dec-2020 01:10:00.10000"
+        sval = rsplit(val, '.', limit = 2)
+        if length(sval) == 2
+            # Julia uses ms as integers. Strip excess values.
+            msstr = sval[end]
+            ndig = 3
+            if length(msstr) > ndig
+                msstr = msstr[1:ndig]
+                val = "$(sval[1]).$msstr"
+            end
+        end
         return DateTime(val, dateformat"d-u-y H:M:S.s")
     else
         error("Not implemented")
@@ -335,6 +346,9 @@ function convert_ix_record(val, unit_systems, meta, ::Val{kw}) where kw
         :Strategy,
         :Expression,
         :FluidStreamMgr,
+        :FluidSourceExternal,
+        :FluidSourceInternal,
+        :FluidStream,
         :AllWellDrawdownLimitOptions,
         :CouplingProperties,
         :GridReport,
@@ -342,7 +356,10 @@ function convert_ix_record(val, unit_systems, meta, ::Val{kw}) where kw
         :TimeStepSolution,
         :RegionFamily,
         :CellActivity,
-        :RockOptions
+        :RockOptions,
+        :RockMgr,
+        :KilloughRelPermHysteresis,
+        :KilloughCapPressureHysteresis
     )
     edit_list = (
         :CellPropertyEdit,
@@ -351,6 +368,7 @@ function convert_ix_record(val, unit_systems, meta, ::Val{kw}) where kw
     )
     convert_subrecords_list = (
         :BlackOilFluidModel,
+        :CompositionalFluidModel
     )
     # Main.lastrec[] = val
     kw_as_str = "$kw"
@@ -504,10 +522,9 @@ function convert_ix_record_and_subrecords(x::IXStandardRecord, unit_systems, met
         kw_val = Val(Symbol(inner_kw))
         next = convert_ix_record(rec, unit_systems, meta, kw_val)
         if haskey(out, inner_kw)
-            merge_records!(out[inner_kw], next, kw_val)
-        else
-            out[rec.keyword] = next
+            next =  merge_records!(out[inner_kw], next, kw_val)
         end
+        out[inner_kw] = next
     end
     return out
 end

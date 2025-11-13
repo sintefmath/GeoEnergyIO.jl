@@ -82,42 +82,92 @@ function convert_region_mapping(x::IXEqualRecord)
     return out
 end
 
+function convert_ix_record(x::IXStandardRecord, unit_systems, meta, ::Val{:ConnectionSet})
+    out = Dict{String, Any}(
+        "name" => x.value
+    )
+    if x.body[1] isa IXEqualRecord
+        for subrec in x.body
+            val = subrec.value
+            if val isa IXKeyword
+                val = String(val)
+            end
+            out[subrec.keyword] = val
+        end
+    else
+        table = Dict{String, Any}()
+        set_ix_array_values!(table, x.body)
+        for (k, v) in pairs(table)
+            u = get_unit_type_ix_keyword(unit_systems, k; throw = false)
+            if u != :id
+                if eltype(v)<:Integer
+                    v = Float64.(v)
+                    table[k] = v
+                end
+                swap_unit_system!(v, unit_systems, u)
+            end
+        end
+        out["table"] = table
+    end
+    return out
+end
+
 function convert_ix_record(x::IXStandardRecord, unit_systems, meta, ::Val{:StraightPillarGrid})
     bdy = x.body
+    function to_vec(x, T = missing)
+        xv = x.value
+        if ismissing(T)
+            out = [i for i in filter(y -> y isa Number, xv)]
+        else
+            out = [convert(T, i) for i in filter(y -> y isa Number, xv)]
+        end
+        return out
+    end
 
-    to_vec(x) = [i for i in filter(y -> y isa Number, x)]
-    get_mat(k) = to_vec(find_records(bdy, k, once = true).value)
+    function to_vec(x::Nothing, T = missing)
+        return nothing
+    end
 
-    dx = get_mat("DeltaX")
-    dy = get_mat("DeltaY")
-    dz = get_mat("DeltaZ")
-    tops = get_mat("PillarTops")
+    function get_entry(k, u, T = missing)
+        rec = find_records(bdy, k, once = true)
+        if isnothing(rec)
+            out = missing
+        else
+            out = to_vec(rec, T)
+            T_out = eltype(out)
+            if !isconcretetype(T_out)
+                @warn "Non-concrete type detected for $k: $T_out"
+            end
+            swap_unit_system!(out, unit_systems, u)
+        end
+        return out
+    end
 
-    swap_unit_system!(dx, unit_systems, :length)
-    swap_unit_system!(dy, unit_systems, :length)
-    swap_unit_system!(dz, unit_systems, :length)
-    swap_unit_system!(tops, unit_systems, :length)
-
-    props = find_records(bdy, "CellDoubleProperty", once = false)
+    dx = get_entry("DeltaX", :length, Float64)
+    dy = get_entry("DeltaY", :length, Float64)
+    dz = get_entry("DeltaZ", :length, Float64)
+    tops = get_entry("PillarTops", :length, Float64)
 
     out_props = Dict{String, Any}()
-    for p in props
-        pname = p.value
-        @assert length(p.body) == 1
-        v = to_vec(p.body[1].value)
-        if pname == "POROSITY" || pname == "NET_TO_GROSS_RATIO"
-            # Already identity
-            u = :id
-        elseif startswith(pname, "PERM")
-            u = :permeability
-        elseif pname == "PORE_VOLUME"
-            u = :volume
-        else
-            println("Unhandled property $pname in StraightPillarGrid, assuming unitless.")
-            u = :id
+    for (ptype, is_int) in [("CellIntegerProperty", true), ("CellDoubleProperty", false)]
+        props = find_records(bdy, ptype, once = false)
+        for p in props
+            pname = p.value
+            @assert length(p.body) == 1
+            if is_int
+                T = Int
+            else
+                # Probably Float64 but who knows, some datasets have Ints here
+                # as well.
+                T = missing
+            end
+            v = to_vec(p.body[1], T)
+            if !is_int && !(eltype(v)<:Integer)
+                u = get_unit_type_ix_keyword(unit_systems, pname)
+                swap_unit_system!(v, unit_systems, u)
+            end
+            out_props[pname] = v
         end
-        swap_unit_system!(v, unit_systems, u)
-        out_props[pname] = v
     end
     return Dict(
         "name" => x.value,

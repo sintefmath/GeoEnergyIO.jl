@@ -22,7 +22,17 @@ function convert_ix_record(x::IXStandardRecord, unit_systems, meta, ::Val{:WellD
     for (k, v) in pairs(well)
         if k == "WellToCellConnections"
             well[k] = convert_ix_values!(v, k, unit_systems; throw = false)
-        elseif k in ("WellName", "Undefined", "ResVolConditions", "Functions", "PseudoPressureModel", "AllowCrossFlow", "HeadDensityCalculation")
+        elseif k in (
+                "WellName",
+                "Undefined",
+                "ResVolConditions",
+                "Functions",
+                "PseudoPressureModel",
+                "AllowCrossFlow",
+                "Acceleration",
+                "Friction",
+                "HeadDensityCalculation"
+            )
             # Do nothing
         else
             log_unhandled!(meta, k)
@@ -77,6 +87,10 @@ function convert_ix_record(x::IXStandardRecord, unit_systems, meta, ::Val{:Well}
             val = convert_function_call(rec, unit_systems, "Well")
         elseif rec isa IXStandardRecord
             val = convert_ix_record(rec, unit_systems, meta, kw)
+        elseif rec isa IXAssignmentRecord
+            asgn = rec.value
+            asgn = convert_ix_value(asgn, rec.index, unit_systems; throw = false)
+            val = IXAssignmentRecord(rec.keyword, rec.index, asgn)
         else
             error("Expected IXEqualRecord in Well record body, got $(typeof(rec))")
         end
@@ -108,7 +122,7 @@ function convert_ix_record(x::IXEqualRecord, unit_systems, meta, ::Val{:Well})
                 continue
             end
             if haskey(out[name], colname)
-                println("Well '$name' column '$colname':\n   Duplicate entry in Well record, overwriting previous value: $(out[name][colname]) with $(mat[rowno, colno])")
+                println("Well '$name' column '$colname':\n   Duplicate entry in Well record, overwriting previous value $(out[name][colname]) with new value $(mat[rowno, colno])")
             end
             out[name][colname] = mat[rowno, colno]
         end

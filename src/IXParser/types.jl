@@ -18,12 +18,6 @@ struct IXEqualRecord <: AbstractIXRecord
     value::Any
 end
 
-struct IXAssignmentRecord <: AbstractIXRecord
-    keyword::String
-    index::Int
-    value::Any
-end
-
 function Base.show(io::IO, t::MIME"text/plain", dopt::IXEqualRecord)
     println(io, "IXEqualRecord: $(dopt.keyword) = $(dopt.value)")
 end
@@ -34,6 +28,16 @@ end
 
 Base.String(x::IXKeyword) = x.keyword
 Base.convert(::Type{String}, x::IXKeyword) = x.keyword
+
+struct IXAssignmentRecord <: AbstractIXRecord
+    keyword::String
+    index::Union{Int, String}
+    value::Any
+end
+
+function IXAssignmentRecord(kw::Base.String, index::IXKeyword, value)
+    return IXAssignmentRecord(kw, String(index), value)
+end
 
 struct IXFunctionCall <: AbstractIXRecord
     keyword::String

@@ -194,11 +194,26 @@ function set_ix_array_values!(dest, v::Vector; T = missing)
                     dest_h = get(dest, h, missing)
                     ix = er.index
                     insert_val = convert_t(er.value, T)
+                    if h == "PiMultiplier"
+                        default = 1.0
+                    elseif h == "Status"
+                        default = IX_OPEN
+                    else
+                        @warn "No default value known for keyword $h. Setting uninitialized values."
+                        default = missing
+                    end
                     if ismissing(dest_h)
                         dest_h = dest[h] = Vector{typeof(insert_val)}(undef, ix)
+                        if !ismissing(default)
+                            dest_h .= default
+                        end
                     end
-                    if length(dest_h) < ix
+                    n_current = length(dest_h)
+                    if n_current < ix
                         resize!(dest_h, ix)
+                        if !ismissing(default)
+                            dest_h[n_current+1:end] .= default
+                        end
                     end
                     dest_h[ix] = convert_t(er.value, T)
                 else

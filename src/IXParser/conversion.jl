@@ -279,11 +279,21 @@ function start_time_from_record(x)
     return start_time
 end
 
-function time_from_record(x, start_time, usys)
+function time_from_record(x, start_time = missing, usys = missing)
+    # Example str:
+    # "1-Dec-2020 01:10:00.10000"
     if x.keyword == "DATE"
         val = strip(x.value)
-        # Example str:
-        # "1-Dec-2020 01:10:00.10000"
+        sval = rsplit(val, '.', limit = 2)
+        if length(sval) == 2
+            # Julia uses ms as integers. Strip excess values.
+            msstr = sval[end]
+            ndig = 3
+            if length(msstr) > ndig
+                msstr = msstr[1:ndig]
+                val = "$(sval[1]).$msstr"
+            end
+        end
         return DateTime(val, dateformat"d-u-y H:M:S.s")
     else
         error("Not implemented")

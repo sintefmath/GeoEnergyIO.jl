@@ -660,6 +660,14 @@ import GeoEnergyIO.IXParser:
 
         teststr = "1-Dec-2020 01:10:00"
         @test testdate(teststr, DateTime(2020, 12, 1, 1, 10, 0))
+
+
+        testdate("01-Jan-2020", Dates.DateTime(2020, 1, 1)),
+        testdate("1-Dec-2020 01:10:00.10000", Dates.DateTime(2020, 12, 1, 1, 10, 0, 100)),
+        testdate("01-Apr-2027", Dates.DateTime(2027, 4, 1)),
+        testdate("01-Jan-1994 01:10:00", Dates.DateTime(1994, 1, 1, 1, 10, 0)),
+        testdate("01-Mar-1994 03:16:56.507232", Dates.DateTime(1994, 3, 1, 3, 16, 56, 507))
+
     end
 
     @testset "SPE9" begin

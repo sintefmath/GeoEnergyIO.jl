@@ -66,7 +66,7 @@ function conversion_ix_dict()
     end
 
     for k in ["PORE_VOLUME"]
-        u[k] = :volume
+        u[k] = :liquid_volume_reservoir
     end
 
     for k in ["OilSurfaceDensity", "GasSurfaceDensity", "WaterSurfaceDensity", "SurfaceDensity"]

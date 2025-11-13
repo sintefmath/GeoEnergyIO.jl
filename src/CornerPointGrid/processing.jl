@@ -390,7 +390,9 @@ function grid_from_primitives(primitives; nnc = missing, pinch = missing)
     if sum(active) == 0
         error("Grid has no active cells.")
     end
-
+    if !ismissing(nnc)
+        @warn "nnc keyword was passed, but this support has been moved out of this function. JutulDarcy now sets up NNC directly."
+    end
     Nx, Ny, Nz = coord_normal
     # A not very rigorous test for flipped coordinate systems.
     # The normal situation is Nx < 0, Ny > 0 and Nz > 0

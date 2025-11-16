@@ -470,6 +470,7 @@ function convert_ix_record(val, unit_systems, meta, ::Val{kw}) where kw
         :CellActivity,
         :RockOptions,
         :RockMgr,
+        :HistoricalDataControl,
         :KilloughRelPermHysteresis,
         :KilloughCapPressureHysteresis
     )
@@ -634,7 +635,7 @@ function convert_ix_record_and_subrecords(x::IXStandardRecord, unit_systems, met
         kw_val = Val(Symbol(inner_kw))
         next = convert_ix_record(rec, unit_systems, meta, kw_val)
         if haskey(out, inner_kw)
-            next =  merge_records!(out[inner_kw], next, kw_val)
+            next = merge_records!(out[inner_kw], next, kw_val)
         end
         out[inner_kw] = next
     end

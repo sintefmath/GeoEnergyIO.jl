@@ -68,6 +68,10 @@ function restructure_and_convert_units_afi(afi;
         structured_info = find_records(afi, "StructuredInfo", "IX", steps = false, once = true)
         out["IX"]["RESQML"] = convert_resqml(resqml, unit_systems, verbose = verbose, strict = strict, structured_info = structured_info)
     end
+    obsh = get(afi["FM"], "OBSH", missing)
+    if !ismissing(obsh)
+        out["FM"]["OBSH"] = convert_obsh(obsh, units, unit_systems; verbose = verbose, strict = strict)
+    end
     return out
 end
 
@@ -125,21 +129,41 @@ function convert_resqml(resqml, unit_systems; verbose = false, strict = false, s
     return out
 end
 
+function convert_obsh(obsh_outer, units, unit_systems; verbose = false, strict = false)
+    obsh_outer = deepcopy(obsh_outer)
+    for (pth, obsh) in pairs(obsh_outer)
+        u = get(obsh["metadata"], "units", missing)
+        if ismissing(u)
+            println("OBSH file $pth has no units metadata, assuming same as IX file.")
+            usys = unit_systems
+        else
+            usys = get_unit_system_pair(ix_unit_keyword_to_jutul_symbol(u), units, ix_dict = conversion_ix_dict())
+        end
+        obsh["wells_interp"] = Dict{Symbol, Any}()
+        for (k, w) in pairs(obsh["wells"])
+            obsh["wells_interp"][Symbol(k)] = Dict{String, Any}()
+            for (key, v) in pairs(w)
+                if key == "dates"
+                    continue
+                end
+                convert_ix_values!(v, key, usys; throw = strict)
+
+            end
+        end
+        # obsh["wells_interp"] = Dict{Symbol, Any}()
+        for (k, w) in pairs(obsh["wells"])
+            # obsh["wells_interp"][Symbol(k)] = Dict{String, Any}()
+        end
+    end
+    return obsh
+end
+
 function ix_units(afi)
     for rec in afi["IX"]["MODEL_DEFINITION"]
         if rec.keyword == "Units"
             for subrec in rec.value
                 if subrec isa IXEqualRecord && subrec.keyword == "UnitSystem"
-                    u = lowercase(subrec.value.keyword)
-                    if u == "eclipse_field"
-                        return :field
-                    elseif u == "eclipse_metric"
-                        return :metric
-                    elseif u == "eclipse_lab"
-                        return :lab
-                    else
-                        error("Unknown unit system $u in IX MODEL_DEFINITION.")
-                    end
+                    return ix_unit_keyword_to_jutul_symbol(subrec.value.keyword)
                 end
             end
             error("Unable to find UnitSystem in Units record in IX MODEL_DEFINITION. Malformed file?")
@@ -147,6 +171,19 @@ function ix_units(afi)
     end
     println("No Units record found in IX MODEL_DEFINITION, assuming METRIC units.")
     return :metric
+end
+
+function ix_unit_keyword_to_jutul_symbol(u)
+    u = lowercase(u)
+    if u == "eclipse_field"
+        return :field
+    elseif u == "eclipse_metric"
+        return :metric
+    elseif u == "eclipse_lab"
+        return :lab
+    else
+        error("Unknown unit system $u in IX MODEL_DEFINITION.")
+    end
 end
 
 function reshape_ix_matrix(m0)

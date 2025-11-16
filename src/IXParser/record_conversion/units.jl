@@ -113,6 +113,11 @@ function conversion_ix_dict()
         ]
         u[k] = :liquid_rate_surface
     end
+    # WATER_PRODUCTION_CUML.
+    for k in ["WATER_PRODUCTION_CUML", "OIL_PRODUCTION_CUML", "LIQUID_PRODUCTION_CUML"]
+        u[k] = :liquid_volume_surface
+    end
+    u["GAS_PRODUCTION_CUML"] = :gas_volume_surface
     for k in ["GAS_PRODUCTION_RATE", "GAS_INJECTION_RATE"]
         u[k] = :gas_rate_surface
     end

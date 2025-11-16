@@ -70,7 +70,7 @@ function restructure_and_convert_units_afi(afi;
     end
     obsh = get(afi["FM"], "OBSH", missing)
     if !ismissing(obsh)
-        out["FM"]["OBSH"] = convert_obsh(obsh, units, unit_systems; verbose = verbose, strict = strict)
+        out["FM"]["OBSH"] = convert_obsh(obsh, start_time, units, unit_systems; verbose = verbose, strict = strict)
     end
     return out
 end
@@ -129,8 +129,10 @@ function convert_resqml(resqml, unit_systems; verbose = false, strict = false, s
     return out
 end
 
-function convert_obsh(obsh_outer, units, unit_systems; verbose = false, strict = false)
+import Jutul: get_1d_interpolator
+function convert_obsh(obsh_outer, start_time::DateTime, units, unit_systems; verbose = false, strict = false)
     obsh_outer = deepcopy(obsh_outer)
+    diff_interp(x, t) = get_1d_interpolator(diff(t), diff(x))
     for (pth, obsh) in pairs(obsh_outer)
         u = get(obsh["metadata"], "units", missing)
         if ismissing(u)
@@ -147,15 +149,73 @@ function convert_obsh(obsh_outer, units, unit_systems; verbose = false, strict =
                     continue
                 end
                 convert_ix_values!(v, key, usys; throw = strict)
-
             end
         end
-        # obsh["wells_interp"] = Dict{Symbol, Any}()
+        obsh["metadata"]["units"] = units
+        obsh["wells_interp"] = Dict{Symbol, Any}()
         for (k, w) in pairs(obsh["wells"])
-            # obsh["wells_interp"][Symbol(k)] = Dict{String, Any}()
+            interp_w = Dict{String, Any}()
+            obsh["wells_interp"][Symbol(k)] = interp_w
+            dates = w["dates"]
+            t = map(d -> (d - start_time).value/1000.0, dates)
+            for (key, v) in pairs(w)
+                if key == "dates"
+                    continue
+                end
+                interp_w[key] = get_1d_interpolator(t, v)
+            end
+            # Production
+            # orat
+            has_oprod_rate = haskey(interp_w, "OIL_PRODUCTION_RATE")
+            has_oprod_cum = haskey(interp_w, "OIL_PRODUCTION_CUML")
+            if !has_oprod_rate && has_oprod_cum
+                interp_w["OIL_PRODUCTION_RATE"] = diff_interp(w["OIL_PRODUCTION_CUML"], t)
+            end
+            # wrat
+            has_wprod_rate = haskey(interp_w, "WATER_PRODUCTION_RATE")
+            has_wprod_cum = haskey(interp_w, "WATER_PRODUCTION_CUML")
+            if !has_wprod_rate && has_wprod_cum
+                interp_w["WATER_PRODUCTION_RATE"] = diff_interp(w["WATER_PRODUCTION_CUML"], t)
+            end
+            # grat
+            has_gprod_rate = haskey(interp_w, "GAS_PRODUCTION_RATE")
+            has_gprod_cum = haskey(interp_w, "GAS_PRODUCTION_CUML")
+
+            if !has_gprod_rate && has_gprod_cum
+                interp_w["GAS_PRODUCTION_RATE"] = diff_interp(w["GAS_PRODUCTION_CUML"], t)
+            end
+            # lrat
+            has_lprod_rate = haskey(interp_w, "LIQUID_PRODUCTION_RATE")
+            has_lprod_cum = haskey(interp_w, "LIQUID_PRODUCTION_CUML")
+            if !has_lprod_cum
+                val = zeros(length(t))
+                if has_wprod_cum
+                    val .+= w["WATER_PRODUCTION_CUML"]
+                end
+                if has_oprod_cum
+                    val .+= w["OIL_PRODUCTION_CUML"]
+                end
+                interp_w["LIQUID_PRODUCTION_CUML"] = get_1d_interpolator(t, val)
+                interp_w["LIQUID_PRODUCTION_RATE"] = diff_interp(val, t)
+            elseif !has_lprod_rate
+                interp_w["LIQUID_PRODUCTION_RATE"] = diff_interp(w["LIQUID_PRODUCTION_CUML"], t)
+            end
+            # Injection
+            # water
+            has_winj_rate = haskey(interp_w, "WATER_INJECTION_RATE")
+            has_winj_cum = haskey(interp_w, "WATER_INJECTION_CUML")
+            if !has_winj_rate && has_winj_cum
+                interp_w["WATER_INJECTION_RATE"] = diff_interp(w["WATER_INJECTION_CUML"], t)
+            end
+            # gas
+            has_ginj_rate = haskey(interp_w, "GAS_INJECTION_RATE")
+            has_ginj_cum = haskey(interp_w, "GAS_INJECTION_CUML")
+            if !has_ginj_rate && has_ginj_cum
+                interp_w["GAS_INJECTION_RATE"] = diff_interp(w["GAS_INJECTION_CUML"], t)
+            end
         end
     end
-    return obsh
+    return obsh_outer
 end
 
 function ix_units(afi)

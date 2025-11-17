@@ -157,6 +157,7 @@ function convert_obsh(obsh_outer, start_time::DateTime, units, unit_systems; ver
             obsh["wells_interp"][Symbol(k)] = interp_w
             dates = w["dates"]
             t = map(d -> (d - start_time).value/1000.0, dates)
+            interp_w["seconds"] = t
             for (key, v) in pairs(w)
                 if key == "dates"
                     continue

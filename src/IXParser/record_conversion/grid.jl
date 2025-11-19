@@ -36,9 +36,10 @@ end
 function convert_ix_record(x::IXEqualRecord, unit_systems, meta, ::Val{:Faults})
     names = String[]
     for rec in x.value
+        v = rec.value
         rec.keyword == "FaultNames" || error("Expected FaultNames record in Faults record body, got $(rec.keyword)")
-        if red.value isa String
-            append!(names, rec.value)
+        if v isa String
+            append!(names, v)
         end
     end
     return names

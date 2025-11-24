@@ -66,7 +66,7 @@ function conversion_ix_dict()
     end
 
     for k in ["PORE_VOLUME"]
-        u[k] = :volume
+        u[k] = :liquid_volume_reservoir
     end
 
     for k in ["OilSurfaceDensity", "GasSurfaceDensity", "WaterSurfaceDensity", "SurfaceDensity"]
@@ -109,9 +109,17 @@ function conversion_ix_dict()
             "OIL_PRODUCTION_RATE",
             "WATER_PRODUCTION_RATE",
             "LIQUID_PRODUCTION_RATE",
+            "WATER_INJECTION_RATE",
             "WATER_INJECTION_RATE"
         ]
         u[k] = :liquid_rate_surface
+    end
+    # WATER_PRODUCTION_CUML.
+    for k in ["WATER_PRODUCTION_CUML", "OIL_PRODUCTION_CUML", "LIQUID_PRODUCTION_CUML", "WATER_INJECTION_CUML"]
+        u[k] = :liquid_volume_surface
+    end
+    for k in ["GAS_PRODUCTION_CUML", "GAS_INJECTION_CUML"]
+        u[k] = :gas_volume_surface
     end
     for k in ["GAS_PRODUCTION_RATE", "GAS_INJECTION_RATE"]
         u[k] = :gas_rate_surface

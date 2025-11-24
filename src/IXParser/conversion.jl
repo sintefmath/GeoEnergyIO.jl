@@ -68,6 +68,10 @@ function restructure_and_convert_units_afi(afi;
         structured_info = find_records(afi, "StructuredInfo", "IX", steps = false, once = true)
         out["IX"]["RESQML"] = convert_resqml(resqml, unit_systems, verbose = verbose, strict = strict, structured_info = structured_info)
     end
+    obsh = get(afi["FM"], "OBSH", missing)
+    if !ismissing(obsh)
+        out["FM"]["OBSH"] = convert_obsh(obsh, start_time, units, unit_systems; verbose = verbose, strict = strict)
+    end
     return out
 end
 
@@ -125,21 +129,109 @@ function convert_resqml(resqml, unit_systems; verbose = false, strict = false, s
     return out
 end
 
+import Jutul: get_1d_interpolator
+function convert_obsh(obsh_outer, start_time::DateTime, units, unit_systems; verbose = false, strict = false)
+    obsh_outer = deepcopy(obsh_outer)
+    for (pth, obsh) in pairs(obsh_outer)
+        u = get(obsh["metadata"], "units", missing)
+        if ismissing(u)
+            println("OBSH file $pth has no units metadata, assuming same as IX file.")
+            usys = unit_systems
+        else
+            usys = get_unit_system_pair(ix_unit_keyword_to_jutul_symbol(u), units, ix_dict = conversion_ix_dict())
+        end
+        obsh["wells_interp"] = Dict{Symbol, Any}()
+        for (k, w) in pairs(obsh["wells"])
+            obsh["wells_interp"][Symbol(k)] = Dict{String, Any}()
+            for (key, v) in pairs(w)
+                if key == "dates"
+                    continue
+                end
+                convert_ix_values!(v, key, usys; throw = strict)
+            end
+        end
+        obsh["metadata"]["units"] = units
+        obsh["wells_interp"] = Dict{Symbol, Any}()
+        for (k, w) in pairs(obsh["wells"])
+            interp_w = Dict{String, Any}()
+            obsh["wells_interp"][Symbol(k)] = interp_w
+            dates = w["dates"]
+            t = map(d -> (d - start_time).value/1000.0, dates)
+            interp_w["seconds"] = t
+            for (key, v) in pairs(w)
+                if key == "dates"
+                    continue
+                end
+                interp_w[key] = get_1d_interpolator(t, v)
+            end
+            # Production
+            # orat
+            has_oprod_rate = haskey(interp_w, "OIL_PRODUCTION_RATE")
+            has_oprod_cum = haskey(interp_w, "OIL_PRODUCTION_CUML")
+            if !has_oprod_rate && has_oprod_cum
+                interp_w["OIL_PRODUCTION_RATE"] = rate_interpolator_from_cumulative(w["OIL_PRODUCTION_CUML"], t)
+            end
+            # wrat
+            has_wprod_rate = haskey(interp_w, "WATER_PRODUCTION_RATE")
+            has_wprod_cum = haskey(interp_w, "WATER_PRODUCTION_CUML")
+            if !has_wprod_rate && has_wprod_cum
+                interp_w["WATER_PRODUCTION_RATE"] = rate_interpolator_from_cumulative(w["WATER_PRODUCTION_CUML"], t)
+            end
+            # grat
+            has_gprod_rate = haskey(interp_w, "GAS_PRODUCTION_RATE")
+            has_gprod_cum = haskey(interp_w, "GAS_PRODUCTION_CUML")
+
+            if !has_gprod_rate && has_gprod_cum
+                interp_w["GAS_PRODUCTION_RATE"] = rate_interpolator_from_cumulative(w["GAS_PRODUCTION_CUML"], t)
+            end
+            # lrat
+            has_lprod_rate = haskey(interp_w, "LIQUID_PRODUCTION_RATE")
+            has_lprod_cum = haskey(interp_w, "LIQUID_PRODUCTION_CUML")
+            if !has_lprod_cum
+                val = zeros(length(t))
+                if has_wprod_cum
+                    val .+= w["WATER_PRODUCTION_CUML"]
+                end
+                if has_oprod_cum
+                    val .+= w["OIL_PRODUCTION_CUML"]
+                end
+                interp_w["LIQUID_PRODUCTION_CUML"] = get_1d_interpolator(t, val)
+                interp_w["LIQUID_PRODUCTION_RATE"] = rate_interpolator_from_cumulative(val, t)
+            elseif !has_lprod_rate
+                interp_w["LIQUID_PRODUCTION_RATE"] = rate_interpolator_from_cumulative(w["LIQUID_PRODUCTION_CUML"], t)
+            end
+            # Injection
+            # water
+            has_winj_rate = haskey(interp_w, "WATER_INJECTION_RATE")
+            has_winj_cum = haskey(interp_w, "WATER_INJECTION_CUML")
+            if !has_winj_rate && has_winj_cum
+                interp_w["WATER_INJECTION_RATE"] = rate_interpolator_from_cumulative(w["WATER_INJECTION_CUML"], t)
+            end
+            # gas
+            has_ginj_rate = haskey(interp_w, "GAS_INJECTION_RATE")
+            has_ginj_cum = haskey(interp_w, "GAS_INJECTION_CUML")
+            if !has_ginj_rate && has_ginj_cum
+                interp_w["GAS_INJECTION_RATE"] = rate_interpolator_from_cumulative(w["GAS_INJECTION_CUML"], t)
+            end
+        end
+    end
+    return obsh_outer
+end
+
+function rate_interpolator_from_cumulative(cumulative, t)
+    @assert issorted(t)
+    dt = diff(t)
+    @assert all(dt .> 0.0)
+    rate = diff(cumulative)./dt
+    return get_1d_interpolator(t[2:end], rate)
+end
+
 function ix_units(afi)
     for rec in afi["IX"]["MODEL_DEFINITION"]
         if rec.keyword == "Units"
             for subrec in rec.value
                 if subrec isa IXEqualRecord && subrec.keyword == "UnitSystem"
-                    u = lowercase(subrec.value.keyword)
-                    if u == "eclipse_field"
-                        return :field
-                    elseif u == "eclipse_metric"
-                        return :metric
-                    elseif u == "eclipse_lab"
-                        return :lab
-                    else
-                        error("Unknown unit system $u in IX MODEL_DEFINITION.")
-                    end
+                    return ix_unit_keyword_to_jutul_symbol(subrec.value.keyword)
                 end
             end
             error("Unable to find UnitSystem in Units record in IX MODEL_DEFINITION. Malformed file?")
@@ -147,6 +239,19 @@ function ix_units(afi)
     end
     println("No Units record found in IX MODEL_DEFINITION, assuming METRIC units.")
     return :metric
+end
+
+function ix_unit_keyword_to_jutul_symbol(u)
+    u = lowercase(u)
+    if u == "eclipse_field"
+        return :field
+    elseif u == "eclipse_metric"
+        return :metric
+    elseif u == "eclipse_lab"
+        return :lab
+    else
+        error("Unknown unit system $u in IX MODEL_DEFINITION.")
+    end
 end
 
 function reshape_ix_matrix(m0)
@@ -194,11 +299,26 @@ function set_ix_array_values!(dest, v::Vector; T = missing)
                     dest_h = get(dest, h, missing)
                     ix = er.index
                     insert_val = convert_t(er.value, T)
+                    if h == "PiMultiplier"
+                        default = 1.0
+                    elseif h == "Status"
+                        default = IX_OPEN
+                    else
+                        @warn "No default value known for keyword $h. Setting uninitialized values."
+                        default = missing
+                    end
                     if ismissing(dest_h)
                         dest_h = dest[h] = Vector{typeof(insert_val)}(undef, ix)
+                        if !ismissing(default)
+                            dest_h .= default
+                        end
                     end
-                    if length(dest_h) < ix
+                    n_current = length(dest_h)
+                    if n_current < ix
                         resize!(dest_h, ix)
+                        if !ismissing(default)
+                            dest_h[n_current+1:end] .= default
+                        end
                     end
                     dest_h[ix] = convert_t(er.value, T)
                 else
@@ -358,6 +478,7 @@ function convert_ix_record(val, unit_systems, meta, ::Val{kw}) where kw
         :CellActivity,
         :RockOptions,
         :RockMgr,
+        :HistoricalDataControl,
         :KilloughRelPermHysteresis,
         :KilloughCapPressureHysteresis
     )
@@ -522,7 +643,7 @@ function convert_ix_record_and_subrecords(x::IXStandardRecord, unit_systems, met
         kw_val = Val(Symbol(inner_kw))
         next = convert_ix_record(rec, unit_systems, meta, kw_val)
         if haskey(out, inner_kw)
-            next =  merge_records!(out[inner_kw], next, kw_val)
+            next = merge_records!(out[inner_kw], next, kw_val)
         end
         out[inner_kw] = next
     end

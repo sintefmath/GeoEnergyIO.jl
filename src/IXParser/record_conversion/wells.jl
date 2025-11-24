@@ -127,7 +127,7 @@ function convert_ix_record(x::IXEqualRecord, unit_systems, meta, ::Val{:Well})
             out[name][colname] = mat[rowno, colno]
         end
     end
-    return out
+    return Dict("wells" => out)
 end
 
 # function convert_ix_record(x::IXEqualRecord, unit_systems, meta, ::Union{Val{:Constraints}, Val{:HistoricalData}})

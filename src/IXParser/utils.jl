@@ -152,7 +152,6 @@ function reformat_obsh_file(x::AbstractDict)
     known_keys = ["header", "data", "date_format"]
     metadata = Dict{String, Any}()
     for (k, v) in x
-        @show k
         if !(k in known_keys)
             metadata[k] = v
         end

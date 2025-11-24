@@ -13,7 +13,7 @@ function read_ix_include_file(fname, options; kwarg...)
     return read_ix_include_file!(Dict{String, Any}(), fname, options; kwarg...)
 end
 
-function read_ix_include_file!(dest, include_pth, options; verbose = false, strict = false)
+function read_ix_include_file!(dest, include_pth, local_path, options; verbose = false, strict = false)
     ext = get_extension(include_pth)
     if ext == "ixf"
         read_ixf_file!(dest, include_pth, options; verbose = verbose, strict = strict)
@@ -21,8 +21,13 @@ function read_ix_include_file!(dest, include_pth, options; verbose = false, stri
         read_epc_file!(dest, include_pth, options; verbose = verbose, strict = strict)
     elseif ext == "h5"
         # H5 is implicitly handled by EPC reading
+    elseif ext == "obsh"
+        if !haskey(dest, "OBSH")
+            dest["OBSH"] = Dict{String, Any}()
+        end
+        dest["OBSH"][local_path] = read_obsh_file(include_pth; reformat = true)
     else
-        msg = "Unsupported file extension $ext for include file $include_pth"
+        msg = "Unsupported file extension $ext for include file $include_pth (local path $local_path)."
         if strict
             error(msg)
         else
@@ -223,7 +228,7 @@ function process_records!(dest, recs::Vector, basepath; verbose = true, strict =
                     continue
                 end
             end
-            read_ix_include_file!(dest, include_pth, rec.options, verbose = true, strict = strict)
+            read_ix_include_file!(dest, include_pth, pth, rec.options, verbose = true, strict = strict)
         elseif rec isa IXExtensionRecord
             ext = rec.value
             msg("Processing extension record: $ext")

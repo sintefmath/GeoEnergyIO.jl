@@ -130,5 +130,14 @@ function conversion_ix_dict()
     for k in ["LiquidHeatCapacityCoef1"]
         u[k] = :mass_heat_capacity
     end
+    for k in [
+        "THERMAL_CONDUCTIVITY_ROCK",
+        "THERMAL_CONDUCTIVITY_GAS",
+        "THERMAL_CONDUCTIVITY_OIL",
+        "THERMAL_CONDUCTIVITY_WATER"
+        ]
+        u[k] = :rock_conductivity
+    end
+    u["ROCK_HEAT_CAPACITY"] = :volume_heat_capacity
     return u
 end

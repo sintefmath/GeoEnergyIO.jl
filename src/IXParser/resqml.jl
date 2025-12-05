@@ -72,7 +72,7 @@ function convert_resqml_props(r, unit_systems = missing; verbose = false, strict
     if length(keys(read_obj)) == 1
         read_obj = only(values(read_obj))
         if is_continuous
-            read_obj, out["unit"] = convert_resqml_units(read_obj, out["unit"], unit_systems; throw = strict)
+            read_obj, out["unit"] = convert_resqml_units(read_obj, out["unit"], out["title"], unit_systems; throw = strict)
         else
             # Assume that units only apply for continuous props
             @assert ismissing(out["unit"])
@@ -88,34 +88,18 @@ function convert_resqml_units(data, unit, ::Missing)
     return data
 end
 
-function convert_resqml_units(data, unit, unit_systems; throw = true)
+function convert_resqml_units(data, unit, title, unit_systems; throw = true)
     sys = unit_systems.to
     unit = lowercase(unit)
-    if unit == "md"
-        v = si_unit(:milli)*si_unit(:darcy)/sys.permeability
-    elseif unit == "euc" || unit == "m3/m3"
-        v = missing
+    if startswith(title, "TRACER_CONCENTRATION")
+        u = :id
     else
-        msg = "Unit conversion for RESQML unit $unit not implemented."
-        if throw
-            error(msg)
-        else
-            @warn msg
-            v = missing
-        end
+        u = get_unit_type_ix_keyword(unit_systems, title, throw = throw)
     end
-    if ismissing(v)
-        data = map(Float64, data)
-        u = unit
-    else
-        l = GeoEnergyIO.InputParser.deck_unit_system_label(sys)
-        data = resqml_mapconvert(data, v)
-        u = "$unit (converted to $l)"
+    data = map(Float64, data)
+    if u != :id
+        swap_unit_system!(data, unit_systems, u)
     end
-    return (data, u)
+    l = GeoEnergyIO.InputParser.deck_unit_system_label(sys)
+    return (data, "$unit (converted to $l)")
 end
-
-function resqml_mapconvert(data, v)
-    return map(x -> Float64(x)*v, data)
-end
-

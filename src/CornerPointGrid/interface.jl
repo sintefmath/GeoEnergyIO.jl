@@ -91,8 +91,11 @@ function mesh_from_dxdydz_and_tops(grid; actnum = get_effective_actnum(grid))
     cartdims = grid["cartDims"]
     nx, ny, nz = cartdims
     function meshgrid_section(k)
-        gvec = grid[k]
         haskey(grid, k) || throw(ArgumentError("Section GRID must have $k section when using DX/DY/DZ/TOPS format."))
+        gvec = grid[k]
+        if ismissing(k)
+            throw(ArgumentError("Section GRID must have $k section when using DX/DY/DZ/TOPS format. Entry was present, but was of Missing type."))
+        end
         if k == "TOPS" && length(gvec) < nx*ny*nz
             # We only need the top layer - extract this and discard the rest if
             # too little data is provided.

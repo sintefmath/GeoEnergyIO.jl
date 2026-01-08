@@ -433,6 +433,9 @@ end
 function convert_ix_values!(x::AbstractArray, kw, unit_systems; throw = true)
     utype = get_unit_type_ix_keyword(unit_systems, kw; throw = throw)
     if utype != :id
+        if eltype(x)<:Integer
+            x = Float64.(x)
+        end
         GeoEnergyIO.InputParser.swap_unit_system!(x, unit_systems, utype)
     end
     return x

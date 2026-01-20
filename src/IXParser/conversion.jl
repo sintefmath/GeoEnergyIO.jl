@@ -443,7 +443,7 @@ end
 
 function convert_ix_values!(x::AbstractDict, kw, unit_systems; kwarg...)
     for (k, v) in pairs(x)
-        convert_ix_values!(v, k, unit_systems; kwarg...)
+        x[k] = convert_ix_values!(v, k, unit_systems; kwarg...)
     end
     return x
 end

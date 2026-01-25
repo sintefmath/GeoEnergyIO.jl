@@ -441,21 +441,22 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:EDITNNC})
     rec = read_record(f)
     while length(rec) > 0
         parsed = parse_defaulted_line(rec, [-1, -1, -1, -1, -1, -1, 1.0, 0, 0, 0, 0, "X+", "X+", 0.0])
-        # Box can be kept.
-        il = parsed[1]
-        iu = parsed[2]
-        jl = parsed[3]
-        ju = parsed[4]
-        kl = parsed[5]
-        ku = parsed[6]
-        il > 0 || error("I lower was defaulted in EDITNNC.")
-        iu > 0 || error("I upper was defaulted in EDITNNC.")
-        jl > 0 || error("J lower was defaulted in EDITNNC.")
-        ju > 0 || error("J upper was defaulted in EDITNNC.")
-        kl > 0 || error("K lower was defaulted in EDITNNC.")
-        ku > 0 || error("K upper was defaulted in EDITNNC.")
-        Ibox, Jbox, Kbox = (il, iu), (jl, ju), (kl, ku)
-        push_and_create!(data, "EDITNNC", [(i = Ibox, j = Jbox, k = Kbox, trans = parsed[7], diffuse = parsed[end])])
+        i1 = parsed[1]
+        j1 = parsed[2]
+        k1 = parsed[3]
+        i2 = parsed[4]
+        j2 = parsed[5]
+        j3 = parsed[6]
+        c1 = (i1, j1, k1)
+        c2 = (i2, j2, j3)
+        i1 > 0 || error("EDITNNC requires explicit cell indices (I index for first cell is defaulted or less than 1).")
+        i2 > 0 || error("EDITNNC requires explicit cell indices (I index for second cell is defaulted or less than 1).")
+        j1 > 0 || error("EDITNNC requires explicit cell indices (J index for first cell is defaulted or less than 1).")
+        j2 > 0 || error("EDITNNC requires explicit cell indices (J index for second cell is defaulted or less than 1).")
+        k1 > 0 || error("EDITNNC requires explicit cell indices (K index for first cell is defaulted or less than 1).")
+        j3 > 0 || error("EDITNNC requires explicit cell indices (K index for second cell is defaulted or less than 1).")
+
+        push_and_create!(data, "EDITNNC", (c1 = c1, c2 = c2, trans = parsed[7], diffuse = parsed[end]))
         rec = read_record(f)
     end
     return data

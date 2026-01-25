@@ -452,32 +452,3 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:EDITNNC})
     end
     parser_message(cfg, outer_data, "EDITNNC", PARSER_JUTULDARCY_MISSING_SUPPORT)
 end
-
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:EDITNNC})
-    # TODO: Merge shared code with COPY
-    rec = read_record(f)
-    while length(rec) > 0
-        parsed = parse_defaulted_line(rec, [-1, -1, -1, -1, -1, -1, 1.0, 0, 0, 0, 0, "X+", "X+", 0.0])
-        # Box can be kept.
-        il = parsed[1]
-        iu = parsed[2]
-        jl = parsed[3]
-        ju = parsed[4]
-        kl = parsed[5]
-        ku = parsed[6]
-        il > 0 || error("I lower was defaulted in EDITNNC.")
-        iu > 0 || error("I upper was defaulted in EDITNNC.")
-        jl > 0 || error("J lower was defaulted in EDITNNC.")
-        ju > 0 || error("J upper was defaulted in EDITNNC.")
-        kl > 0 || error("K lower was defaulted in EDITNNC.")
-        ku > 0 || error("K upper was defaulted in EDITNNC.")
-        Ibox, Jbox, Kbox = (il, iu), (jl, ju), (kl, ku)
-        do_apply = true
-        push_and_create!(data, "NNC_MULTRANS", [(i = Ibox, j = Jbox, k = Kbox, factor = parsed[7])])
-        push_and_create!(data, "NNC_MULTDIFFUSE", [(i = Ibox, j = Jbox, k = Kbox, factor = parsed[end])])
-
-        do_apply = false
-        rec = read_record(f)
-    end
-    return data
-end

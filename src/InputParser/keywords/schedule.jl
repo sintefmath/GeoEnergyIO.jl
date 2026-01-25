@@ -408,8 +408,8 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:WRFTPLT})
 end
 
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:GRUPTREE})
-    parser_message(cfg, outer_data, "GRUPTREE", PARSER_MISSING_SUPPORT)
-    skip_record(f)
+    rec = parse_defaulted_group(f, ["Default", "Default"])
+    push_and_create!(data, "GRUPTREE", rec)
 end
 
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:AQUFETP})

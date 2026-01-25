@@ -300,18 +300,18 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:MULTIPLY})
         ju = parsed[6]
         kl = parsed[7]
         ku = parsed[8]
-        target = get_operation_section(outer_data, dst)
         Ibox, Jbox, Kbox = (il, iu), (jl, ju), (kl, ku)
         do_apply = true
-        if ismissing(target)
-            if dst == "PORV" && haskey(grid, "PORO")
-                # TODO: Bit of a hack
-                target = grid["PORO"]
-            elseif dst in ("TRANX", "TRANY", "TRANZ")
-                dir = dst[end]
-                push_and_create!(data, "MULTRAN$dir", [(i = Ibox, j = Jbox, k = Kbox, factor = factor)])
-                do_apply = false
-            else
+        if dst == "PORV" && haskey(grid, "PORO")
+            # TODO: Bit of a hack
+            target = grid["PORO"]
+        elseif dst in ("TRANX", "TRANY", "TRANZ")
+            dir = dst[end]
+            push_and_create!(data, "MULTRAN$dir", [(i = Ibox, j = Jbox, k = Kbox, factor = factor)])
+            do_apply = false
+        else
+            target = get_operation_section(outer_data, dst)
+            if ismissing(target)
                 do_apply = false
                 parser_message(cfg, outer_data, "MULTIPLY", "Unable to apply MULTIPLY to non-declared field $dst. Skipping.")
             end

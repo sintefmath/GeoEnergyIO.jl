@@ -437,21 +437,21 @@ function apply_minmax!(target, lim, I, J, K, dims, F)
     end
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:EDITNNC})
-    rec = read_record(f)
-    grid = outer_data["GRID"]
-    dims = grid["cartDims"]
+# function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:EDITNNC})
+#     rec = read_record(f)
+#     grid = outer_data["GRID"]
+#     dims = grid["cartDims"]
 
-    while length(rec) > 0
-        parsed = parse_defaulted_line(rec, [-1, -1, -1, -1, -1, -1, 1.0, 0, 0, 0, 0, "X+", "X+", 0.0])
-        for i in 1:6
-            @assert parsed[i] > 0 "Entry $i in record $parsed was defaulted."
-        end
-        push_and_create!(data, "EDITNNC", parsed)
-        rec = read_record(f)
-    end
-    parser_message(cfg, outer_data, "EDITNNC", PARSER_JUTULDARCY_MISSING_SUPPORT)
-end
+#     while length(rec) > 0
+#         parsed = parse_defaulted_line(rec, [-1, -1, -1, -1, -1, -1, 1.0, 0, 0, 0, 0, "X+", "X+", 0.0])
+#         for i in 1:6
+#             @assert parsed[i] > 0 "Entry $i in record $parsed was defaulted."
+#         end
+#         push_and_create!(data, "EDITNNC", parsed)
+#         rec = read_record(f)
+#     end
+#     parser_message(cfg, outer_data, "EDITNNC", PARSER_JUTULDARCY_MISSING_SUPPORT)
+# end
 
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:EDITNNC})
     # TODO: Merge shared code with COPY
@@ -472,11 +472,7 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:EDITNNC})
         kl > 0 || error("K lower was defaulted in EDITNNC.")
         ku > 0 || error("K upper was defaulted in EDITNNC.")
         Ibox, Jbox, Kbox = (il, iu), (jl, ju), (kl, ku)
-        do_apply = true
-        push_and_create!(data, "NNC_MULTRANS", [(i = Ibox, j = Jbox, k = Kbox, factor = parsed[7])])
-        push_and_create!(data, "NNC_MULTDIFFUSE", [(i = Ibox, j = Jbox, k = Kbox, factor = parsed[end])])
-
-        do_apply = false
+        push_and_create!(data, "EDITNNC", [(i = Ibox, j = Jbox, k = Kbox, trans = parsed[7], diffuse = parsed[end])])
         rec = read_record(f)
     end
     return data

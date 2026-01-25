@@ -456,7 +456,7 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:EDITNNC})
         k1 > 0 || error("EDITNNC requires explicit cell indices (K index for first cell is defaulted or less than 1).")
         j3 > 0 || error("EDITNNC requires explicit cell indices (K index for second cell is defaulted or less than 1).")
 
-        push_and_create!(data, "EDITNNC", (c1 = c1, c2 = c2, trans = parsed[7], diffuse = parsed[end]))
+        push_and_create!(data, "EDITNNC", [(c1 = c1, c2 = c2, trans_mult = parsed[7], diffuse_mult = parsed[end])])
         rec = read_record(f)
     end
     return data

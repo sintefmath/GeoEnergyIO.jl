@@ -79,7 +79,9 @@ function convert_resqml(resqml, unit_systems; verbose = false, strict = false, s
     out = Dict{String, Any}()
     for r in get(resqml, "props", [])
         v = convert_resqml_props(r, unit_systems, verbose = verbose, strict = strict)
-        out[v["title"]] = v
+        if !ismissing(v)
+            out[v["title"]] = v
+        end
     end
     geom_and_props = get(resqml, "geom_and_props", [])
     for (i, g) in enumerate(geom_and_props)

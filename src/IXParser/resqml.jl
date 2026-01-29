@@ -57,30 +57,34 @@ function convert_resqml_props(r, unit_systems = missing; verbose = false, strict
             break
         end
     end
-    uuid = find_string_by_tag(prop, "eml20:UUID")
-
-    out = Dict{String, Any}()
-    out["is_discrete"] = is_discrete
-    out["is_continuous"] = is_continuous
-    out["UUID"] = uuid
-    out["UUID_obj"] = uuid_obj
-    out["kind"] = find_string_by_tag(prop, "resqml20:Kind")
-    out["title"] = find_string_by_tag(prop, "eml20:Title")
-    out["unit"] = find_string_by_tag(prop, "resqml20:UOM")
-    # Are values always patch0?
-    read_obj = HDF5.read(r.h5["/RESQML/$uuid_obj"])
-    if length(keys(read_obj)) == 1
-        read_obj = only(values(read_obj))
-        if is_continuous
-            read_obj, out["unit"] = convert_resqml_units(read_obj, out["unit"], out["title"], unit_systems; throw = strict)
-        else
-            # Assume that units only apply for continuous props
-            @assert ismissing(out["unit"])
-        end
+    if ismissing(prop)
+        println("No discrete or continuous property found in RESQML data entry.")
+        out = missing
     else
-        @warn "Expected only one dataset in /RESQML/$uuid_obj, got $(keys(read_obj)). Returning all values. No unit conversion will be done."
+        uuid = find_string_by_tag(prop, "eml20:UUID")
+        out = Dict{String, Any}()
+        out["is_discrete"] = is_discrete
+        out["is_continuous"] = is_continuous
+        out["UUID"] = uuid
+        out["UUID_obj"] = uuid_obj
+        out["kind"] = find_string_by_tag(prop, "resqml20:Kind")
+        out["title"] = find_string_by_tag(prop, "eml20:Title")
+        out["unit"] = find_string_by_tag(prop, "resqml20:UOM")
+        # Are values always patch0?
+        read_obj = HDF5.read(r.h5["/RESQML/$uuid_obj"])
+        if length(keys(read_obj)) == 1
+            read_obj = only(values(read_obj))
+            if is_continuous
+                read_obj, out["unit"] = convert_resqml_units(read_obj, out["unit"], out["title"], unit_systems; throw = strict)
+            else
+                # Assume that units only apply for continuous props
+                @assert ismissing(out["unit"])
+            end
+        else
+            @warn "Expected only one dataset in /RESQML/$uuid_obj, got $(keys(read_obj)). Returning all values. No unit conversion will be done."
+        end
+        out["values"] = read_obj
     end
-    out["values"] = read_obj
     return out
 end
 

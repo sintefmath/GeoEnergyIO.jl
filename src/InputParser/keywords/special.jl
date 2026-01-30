@@ -300,18 +300,18 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:MULTIPLY})
         ju = parsed[6]
         kl = parsed[7]
         ku = parsed[8]
-        target = get_operation_section(outer_data, dst)
         Ibox, Jbox, Kbox = (il, iu), (jl, ju), (kl, ku)
         do_apply = true
-        if ismissing(target)
-            if dst == "PORV" && haskey(grid, "PORO")
-                # TODO: Bit of a hack
-                target = grid["PORO"]
-            elseif dst in ("TRANX", "TRANY", "TRANZ")
-                dir = dst[end]
-                push_and_create!(data, "MULTRAN$dir", [(i = Ibox, j = Jbox, k = Kbox, factor = factor)])
-                do_apply = false
-            else
+        if dst == "PORV" && haskey(grid, "PORO")
+            # TODO: Bit of a hack
+            target = grid["PORO"]
+        elseif dst in ("TRANX", "TRANY", "TRANZ")
+            dir = dst[end]
+            push_and_create!(data, "MULTRAN$dir", [(i = Ibox, j = Jbox, k = Kbox, factor = factor)])
+            do_apply = false
+        else
+            target = get_operation_section(outer_data, dst)
+            if ismissing(target)
                 do_apply = false
                 parser_message(cfg, outer_data, "MULTIPLY", "Unable to apply MULTIPLY to non-declared field $dst. Skipping.")
             end
@@ -322,7 +322,6 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:MULTIPLY})
         rec = read_record(f)
     end
 end
-
 
 function apply_multiply!(target::AbstractVector, factor, I, J, K, dims)
     apply_multiply!(reshape(target, dims), factor, I, J, K, dims)
@@ -440,16 +439,25 @@ end
 
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:EDITNNC})
     rec = read_record(f)
-    grid = outer_data["GRID"]
-    dims = grid["cartDims"]
-
     while length(rec) > 0
         parsed = parse_defaulted_line(rec, [-1, -1, -1, -1, -1, -1, 1.0, 0, 0, 0, 0, "X+", "X+", 0.0])
-        for i in 1:6
-            @assert parsed[i] > 0 "Entry $i in record $parsed was defaulted."
-        end
-        push_and_create!(data, "EDITNNC", parsed)
+        i1 = parsed[1]
+        j1 = parsed[2]
+        k1 = parsed[3]
+        i2 = parsed[4]
+        j2 = parsed[5]
+        j3 = parsed[6]
+        c1 = (i1, j1, k1)
+        c2 = (i2, j2, j3)
+        i1 > 0 || error("EDITNNC requires explicit cell indices (I index for first cell is defaulted or less than 1).")
+        i2 > 0 || error("EDITNNC requires explicit cell indices (I index for second cell is defaulted or less than 1).")
+        j1 > 0 || error("EDITNNC requires explicit cell indices (J index for first cell is defaulted or less than 1).")
+        j2 > 0 || error("EDITNNC requires explicit cell indices (J index for second cell is defaulted or less than 1).")
+        k1 > 0 || error("EDITNNC requires explicit cell indices (K index for first cell is defaulted or less than 1).")
+        j3 > 0 || error("EDITNNC requires explicit cell indices (K index for second cell is defaulted or less than 1).")
+
+        push_and_create!(data, "EDITNNC", [(c1 = c1, c2 = c2, trans_mult = parsed[7], diffuse_mult = parsed[end])])
         rec = read_record(f)
     end
-    parser_message(cfg, outer_data, "EDITNNC", PARSER_JUTULDARCY_MISSING_SUPPORT)
+    return data
 end

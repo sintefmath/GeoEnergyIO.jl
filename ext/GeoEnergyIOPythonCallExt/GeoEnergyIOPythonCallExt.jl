@@ -1,7 +1,7 @@
 module GeoEnergyIOPythonCallExt
     import GeoEnergyIO
     using PythonCall
-    import Dates
+    import Dates: DateTime
     import Jutul: si_units
 
     function GeoEnergyIO.read_summary_impl(pth; extra_out = false, verbose = false)
@@ -28,6 +28,7 @@ module GeoEnergyIOPythonCallExt
             end
             t_total += t_kw
         end
+        out["START_DATE"] = pyconvert(DateTime, smry.getStartTime())
         if extra_out
             ret = (out, smry)
         else

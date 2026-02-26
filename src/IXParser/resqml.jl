@@ -71,7 +71,6 @@ function convert_resqml_props(r, unit_systems = missing; verbose = false, strict
         out["title"] = find_string_by_tag(prop, "eml20:Title")
         out["unit"] = find_string_by_tag(prop, "resqml20:UOM")
         # Are values always patch0?
-        @show r.h5
 
         k = "/RESQML/$uuid_obj"
         if !haskey(r.h5, k)

@@ -25,9 +25,9 @@ module RESQML
         end
 
         # Handle split part by overwriting mapping
-        pillar_ind = gdata["PillarIndices"]
         cpsl = get(gdata, "ColumnsPerSplitCoordinateLine", missing)
         if !ismissing(cpsl)
+            pillar_ind = gdata["PillarIndices"]
             cl = cpsl["cumulativeLength"]
             nsplitcols = length(cl)
             @assert length(pillar_ind) == nsplitcols

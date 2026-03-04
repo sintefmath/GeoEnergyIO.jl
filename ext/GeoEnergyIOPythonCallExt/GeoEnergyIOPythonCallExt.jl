@@ -2,6 +2,7 @@ module GeoEnergyIOPythonCallExt
     import GeoEnergyIO
     using PythonCall
     import Dates: DateTime
+    using Dates
     import Jutul: si_units
 
     function GeoEnergyIO.read_summary_impl(pth; extra_out = false, verbose = false)

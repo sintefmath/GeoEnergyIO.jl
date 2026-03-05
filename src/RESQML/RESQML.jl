@@ -6,8 +6,13 @@ module RESQML
         return (j - 1) * nx + i
     end
 
-    function setup_column_pillar_mapping(gdata, pillar_dims)
-        mapping = Dict{Tuple{Int, Int}, Int}()
+    function setup_column_pillar_mapping(gdata, pillar_dims; is_3d_pillars::Bool)
+        if is_3d_pillars
+            dest_T = Tuple{Int, Int}
+        else
+            dest_T = Int
+        end
+        mapping = Dict{Tuple{Int, Int}, dest_T}()
         nxpillars, nypillars = pillar_dims
         nxcols = nxpillars - 1
         nycols = nypillars - 1
@@ -17,17 +22,23 @@ module RESQML
                 col = linear_index(col_i, col_j, nxcols, nycols)
                 for i_offset in (0, 1)
                     for j_offset in (0, 1)
-                        pillar = linear_index(col_i + i_offset, col_j + j_offset, nxpillars, nypillars)
-                        mapping[(col, pillar)] = pillar
+                        pillar_linear = linear_index(col_i + i_offset, col_j + j_offset, nxpillars, nypillars)
+                        if is_3d_pillars
+                            v = (col_i + i_offset, col_j + j_offset)
+                        else
+                            v = pillar_linear
+                        end
+                        mapping[(col, pillar_linear)] = v
                     end
                 end
             end
         end
 
         # Handle split part by overwriting mapping
-        pillar_ind = gdata["PillarIndices"]
         cpsl = get(gdata, "ColumnsPerSplitCoordinateLine", missing)
         if !ismissing(cpsl)
+            @assert !is_3d_pillars "Split coordinate lines not supported for 3D pillar definitions"
+            pillar_ind = gdata["PillarIndices"]
             cl = cpsl["cumulativeLength"]
             nsplitcols = length(cl)
             @assert length(pillar_ind) == nsplitcols
@@ -84,7 +95,8 @@ module RESQML
                             for k_offset in (0, 1)
                                 corner = (j_offset, i_offset, k_offset)
                                 zcorn_ix = corner_index(cell, corner, cartDims)
-                                zcorn[zcorn_ix] = pillar_depths[pillar_depths_ix, cell_k + k_offset]
+                                pd = pillar_depths[pillar_depths_ix..., cell_k + k_offset]
+                                zcorn[zcorn_ix] = pd 
                             end
                         end
                     end
@@ -103,13 +115,22 @@ module RESQML
         pillar_dims = size(coord)[2:3]
         # Corner point depths
         pillar_depths = gdata["PointParameters"]
-        num_pillars, num_depths = size(pillar_depths)
+        pind = get(gdata, "PillarIndices", Int[])
+        psz = size(pillar_depths)
+        length(psz) == 2 || length(psz) == 3 || error("Expected pillar depth array to either be 2D with shape (num_pillars, num_depths) or 3D with shape (nxpillars, nypillars, num_depths)")
+        is_3d_pillars = length(psz) == 3
+        if is_3d_pillars
+            nxp, nyp, num_depths = size(pillar_depths)
+            num_pillars = nxp * nyp
+        else
+            num_pillars, num_depths = size(pillar_depths)
+        end
         cartDims = (pillar_dims[1] - 1, pillar_dims[2] - 1, num_depths - 1)
-        @assert num_pillars == prod(pillar_dims) + length(gdata["PillarIndices"])
+        @assert num_pillars == prod(pillar_dims) + length(pind)
         out["cartDims"] = cartDims
         # COORD is a vector
         out["COORD"] = build_coord(coord)
-        mm = setup_column_pillar_mapping(gdata, pillar_dims)
+        mm = setup_column_pillar_mapping(gdata, pillar_dims, is_3d_pillars = is_3d_pillars)
         # ZCORN is a vector
         out["ZCORN"] = build_zcorn(mm, cartDims, pillar_depths)
         if !ismissing(net_to_gross)

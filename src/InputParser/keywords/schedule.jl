@@ -561,3 +561,17 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:GTMULT})
     parser_message(cfg, outer_data, "ACTIONX", PARSER_MISSING_SUPPORT)
 end
 
+function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:VFPINJ})
+    record_start = read_record(f)
+    record_flow = read_record(f)
+    record_thp = parse_deck_vector(f)
+    # This determines how many lines to read for the remaining records.
+    n_lines = length(record_thp)
+    for i in 1:n_lines
+        rec = read_record(f)
+        if length(rec) == 0
+            break
+        end
+    end
+    parser_message(cfg, outer_data, "VFPINJ", PARSER_MISSING_SUPPORT)
+end

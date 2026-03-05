@@ -48,19 +48,27 @@ function convert_resqml_props(r, unit_systems = missing; verbose = false, strict
     prop = missing
     uuid_obj = missing
     is_discrete = is_continuous = false
+    uuids = String[]
+    props = []
     for (k, v) in pairs(namespace_resqml)
         is_discrete = startswith(k, "obj_DiscreteProperty")
-        is_continuous = startswith(k, "obj_ContinuousProperty")
+        is_continuous = startswith(k, "obj_ContinuousProperty") || startswith(k, "obj_CategoricalProperty")
         if is_discrete || is_continuous
-            uuid_obj = split(k, "_")[end] |> splitext |> first
-            prop = v
-            break
+            push!(uuids, split(k, "_")[end] |> splitext |> first)
+            push!(props, v)
         end
     end
-    if ismissing(prop)
-        println("No discrete or continuous property found in RESQML data entry.")
+    if length(props) == 0
+        println("No discrete or continuous property found in RESQML data entry")
+        display(r)
         out = missing
     else
+        prop = first(props)
+        uuid_obj = first(uuids)
+        if length(props) > 1
+            @warn "Found $(length(uuids)) properties in RESQML data entry. Using the first one with UUID $uuid_obj. Property is discrete: $is_discrete, continuous: $is_continuous."
+        end
+
         uuid = find_string_by_tag(prop, "eml20:UUID")
         out = Dict{String, Any}()
         out["is_discrete"] = is_discrete
@@ -71,7 +79,12 @@ function convert_resqml_props(r, unit_systems = missing; verbose = false, strict
         out["title"] = find_string_by_tag(prop, "eml20:Title")
         out["unit"] = find_string_by_tag(prop, "resqml20:UOM")
         # Are values always patch0?
-        read_obj = HDF5.read(r.h5["/RESQML/$uuid_obj"])
+
+        k = "/RESQML/$uuid_obj"
+        if !haskey(r.h5, k)
+            k = "/resqml20/$uuid_obj"
+        end
+        read_obj = HDF5.read(r.h5[k])
         if length(keys(read_obj)) == 1
             read_obj = only(values(read_obj))
             if is_continuous

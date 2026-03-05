@@ -2,6 +2,7 @@ module GeoEnergyIOPythonCallExt
     import GeoEnergyIO
     using PythonCall
     import Dates: DateTime
+    using Dates
     import Jutul: si_units
 
     function GeoEnergyIO.read_summary_impl(pth; extra_out = false, verbose = false)
@@ -254,7 +255,13 @@ module GeoEnergyIOPythonCallExt
             else
                 continue
             end
-            ju_vec = to_julia_array(v, T)
+            ju_vec = missing
+            try
+                ju_vec = to_julia_array(v, T)
+            catch excpt
+                println("Skipping $k due to exception in reading $excpt")
+                continue
+            end
             out[k] = map_to_active(ju_vec, actnum)
         end
         if extra_out

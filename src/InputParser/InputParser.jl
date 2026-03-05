@@ -77,7 +77,6 @@ module InputParser
                 :THPRES,
                 :PIMULTAB,
                 :VFPPROD,
-                :VFPINJ,
                 :WTRACER,
                 :GCONINJE,
                 :WTEST,

@@ -159,32 +159,34 @@ function convert_obsh(obsh_outer, start_time::DateTime, units, unit_systems; ver
             obsh["wells_interp"][Symbol(k)] = interp_w
             dates = w["dates"]
             t = map(d -> (d - start_time).value/1000.0, dates)
+            idx_unique = unique(i -> t[i], eachindex(t))
+            t = t[idx_unique]
             interp_w["seconds"] = t
             for (key, v) in pairs(w)
                 if key == "dates"
                     continue
                 end
-                interp_w[key] = get_1d_interpolator(t, v)
+                interp_w[key] = get_1d_interpolator(t, v[idx_unique])
             end
             # Production
             # orat
             has_oprod_rate = haskey(interp_w, "OIL_PRODUCTION_RATE")
             has_oprod_cum = haskey(interp_w, "OIL_PRODUCTION_CUML")
             if !has_oprod_rate && has_oprod_cum
-                interp_w["OIL_PRODUCTION_RATE"] = rate_interpolator_from_cumulative(w["OIL_PRODUCTION_CUML"], t)
+                interp_w["OIL_PRODUCTION_RATE"] = rate_interpolator_from_cumulative(w["OIL_PRODUCTION_CUML"][idx_unique], t)
             end
             # wrat
             has_wprod_rate = haskey(interp_w, "WATER_PRODUCTION_RATE")
             has_wprod_cum = haskey(interp_w, "WATER_PRODUCTION_CUML")
             if !has_wprod_rate && has_wprod_cum
-                interp_w["WATER_PRODUCTION_RATE"] = rate_interpolator_from_cumulative(w["WATER_PRODUCTION_CUML"], t)
+                interp_w["WATER_PRODUCTION_RATE"] = rate_interpolator_from_cumulative(w["WATER_PRODUCTION_CUML"][idx_unique], t)
             end
             # grat
             has_gprod_rate = haskey(interp_w, "GAS_PRODUCTION_RATE")
             has_gprod_cum = haskey(interp_w, "GAS_PRODUCTION_CUML")
 
             if !has_gprod_rate && has_gprod_cum
-                interp_w["GAS_PRODUCTION_RATE"] = rate_interpolator_from_cumulative(w["GAS_PRODUCTION_CUML"], t)
+                interp_w["GAS_PRODUCTION_RATE"] = rate_interpolator_from_cumulative(w["GAS_PRODUCTION_CUML"][idx_unique], t)
             end
             # lrat
             has_lprod_rate = haskey(interp_w, "LIQUID_PRODUCTION_RATE")
@@ -192,28 +194,28 @@ function convert_obsh(obsh_outer, start_time::DateTime, units, unit_systems; ver
             if !has_lprod_cum
                 val = zeros(length(t))
                 if has_wprod_cum
-                    val .+= w["WATER_PRODUCTION_CUML"]
+                    val .+= w["WATER_PRODUCTION_CUML"][idx_unique]
                 end
                 if has_oprod_cum
-                    val .+= w["OIL_PRODUCTION_CUML"]
+                    val .+= w["OIL_PRODUCTION_CUML"][idx_unique]
                 end
                 interp_w["LIQUID_PRODUCTION_CUML"] = get_1d_interpolator(t, val)
                 interp_w["LIQUID_PRODUCTION_RATE"] = rate_interpolator_from_cumulative(val, t)
             elseif !has_lprod_rate
-                interp_w["LIQUID_PRODUCTION_RATE"] = rate_interpolator_from_cumulative(w["LIQUID_PRODUCTION_CUML"], t)
+                interp_w["LIQUID_PRODUCTION_RATE"] = rate_interpolator_from_cumulative(w["LIQUID_PRODUCTION_CUML"][idx_unique], t)
             end
             # Injection
             # water
             has_winj_rate = haskey(interp_w, "WATER_INJECTION_RATE")
             has_winj_cum = haskey(interp_w, "WATER_INJECTION_CUML")
             if !has_winj_rate && has_winj_cum
-                interp_w["WATER_INJECTION_RATE"] = rate_interpolator_from_cumulative(w["WATER_INJECTION_CUML"], t)
+                interp_w["WATER_INJECTION_RATE"] = rate_interpolator_from_cumulative(w["WATER_INJECTION_CUML"][idx_unique], t)
             end
             # gas
             has_ginj_rate = haskey(interp_w, "GAS_INJECTION_RATE")
             has_ginj_cum = haskey(interp_w, "GAS_INJECTION_CUML")
             if !has_ginj_rate && has_ginj_cum
-                interp_w["GAS_INJECTION_RATE"] = rate_interpolator_from_cumulative(w["GAS_INJECTION_CUML"], t)
+                interp_w["GAS_INJECTION_RATE"] = rate_interpolator_from_cumulative(w["GAS_INJECTION_CUML"][idx_unique], t)
             end
         end
     end
@@ -223,7 +225,10 @@ end
 function rate_interpolator_from_cumulative(cumulative, t)
     @assert issorted(t)
     dt = diff(t)
-    @assert all(dt .> 0.0)
+    min_dt = minimum(dt)
+    if min_dt <= 0
+        error("Time steps must be strictly increasing to compute rate from cumulative. Found minimum dt = $min_dt.")
+    end
     rate = diff(cumulative)./dt
     return get_1d_interpolator(t[2:end], rate)
 end

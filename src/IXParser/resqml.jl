@@ -91,7 +91,10 @@ function convert_resqml_props(r, unit_systems = missing; verbose = false, strict
                 read_obj, out["unit"] = convert_resqml_units(read_obj, out["unit"], out["title"], unit_systems; throw = strict)
             else
                 # Assume that units only apply for continuous props
-                @assert ismissing(out["unit"])
+                u = out["unit"]
+                if !ismissing(u)
+                    @warn "Did not expect unit for categorical property, was $u. Will ignore this value."
+                end
             end
         else
             @warn "Expected only one dataset in /RESQML/$uuid_obj, got $(keys(read_obj)). Returning all values. No unit conversion will be done."

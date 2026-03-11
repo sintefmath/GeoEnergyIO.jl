@@ -98,6 +98,8 @@ end
 
 function handle_zero_effective_porosity!(actnum, g)
     minpv = get(g, "MINPV", 1e-6)
+    minporv = get(g, "MINPORV", 1e-6)
+    minpv = max(minpv, minporv)
     if haskey(g, "MINPVV")
         minpv_for_cell = i -> max(g["MINPVV"][i], minpv)
     else

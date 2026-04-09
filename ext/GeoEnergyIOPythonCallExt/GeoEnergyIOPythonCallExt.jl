@@ -296,12 +296,12 @@ module GeoEnergyIOPythonCallExt
             end
         end
         # Set up destination
-        if ismissing(smry_jutul["TIME"].start_date)
+        start = smry_jutul["TIME"].start_date
+        if ismissing(start) || isnothing(start)
             yr = 1970
             mnth = 1
             day = 1
         else
-            start = smry_jutul["TIME"].start_date
             yr = Dates.year(start)
             mnth = Dates.month(start)
             day = Dates.day(start)

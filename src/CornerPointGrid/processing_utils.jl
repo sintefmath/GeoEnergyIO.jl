@@ -354,12 +354,21 @@ function find_crossing_node(x1, x2, x3, x4)
     axb = cross(a, b)
     cxb = cross(c, b)
     nrm = norm(axb, 2)^2
-    if nrm == 0.0 
-        @warn "Bad intercept: $((x1, x2)) to $((x3, x4))" a b c
-        error()
+    if nrm > 0.0
+        x_intercept = x1 + a*(dot(cxb, axb)/nrm)
+        return x_intercept
     end
-    x_intercept = x1 + a*(dot(cxb, axb)/nrm)
-    return x_intercept
+    # Degenerate: segments are parallel (same direction in 3D). This occurs
+    # with vertical pillars from cpgrid_from_horizons when a ZCORN transform
+    # shifts both endpoints by the same throw, keeping direction vectors
+    # identical. Reduce to 1D crossing in z-parameter space:
+    #   Segment A: z(t) = z1 + t*(z2-z1)
+    #   Segment B: z(t) = z3 + t*(z4-z3)
+    # Solve for t where A and B cross in z.
+    z1, z2, z3, z4 = x1[3], x2[3], x3[3], x4[3]
+    denom = (z2 - z1) - (z4 - z3)
+    t = abs(denom) < 1e-12 ? 0.5 : clamp((z3 - z1) / denom, 0.0, 1.0)
+    return x1 + t * a
 end
 
 function cpgrid_get_or_add_crossing_node!(extra_node_lookup, nodes, pt)

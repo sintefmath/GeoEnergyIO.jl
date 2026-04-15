@@ -61,6 +61,9 @@ function parser_message(cfg::ParserVerbosityConfig, outer_data, keyword, msg::PA
     elseif msg == PARSER_JUTULDARCY_PARTIAL_SUPPORT
         text_msg = "$keyword is only partially supported by JutulDarcy solvers."
         do_print = cfg.warn_feature
+    elseif msg == PARSER_RECOVERABLE_ISSUE
+        text_msg = "There was an issue with parsing $keyword, but it was recoverable. The keyword may be ignored or partially supported."
+        do_print = cfg.warn_parsing
     else
         @assert msg == PARSER_PARTIAL_SUPPORT
         text_msg = "Parser has only partial support. $keyword may have missing or wrong entries."

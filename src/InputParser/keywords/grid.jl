@@ -369,6 +369,12 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:MULTFLT})
     faults = get(outer_data["GRID"], "FAULTS", missing)
     if ismissing(faults)
         parser_message(cfg, outer_data, "MULTFLT", PARSER_RECOVERABLE_ISSUE, "MULTFLT specified but no FAULTS defined, MULTFLT will be ignored.")
+        while true
+            rec = read_record(f)
+            if length(rec) == 0
+                break
+            end
+        end
         return data
     end
     out = parse_defaulted_group_well(f, tdims, faults);

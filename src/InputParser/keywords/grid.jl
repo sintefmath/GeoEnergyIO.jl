@@ -32,6 +32,27 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:GRIDFILE})
     data["GRIDFILE"] = parse_defaulted_line(rec, tdims)
 end
 
+function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:THPRESFT})
+    if !haskey(data, "THPRESFT")
+        data["THPRESFT"] = []
+    end
+    out = data["THPRESFT"]
+    default = ["DEFAULTED", 0.0];
+    while true
+        rec = read_record(f)
+        if length(rec) == 0
+            break
+        end
+        name, dpval = parse_defaulted_line(rec, default)
+        dpval = swap_unit_system(dpval, units, Val(:pressure))
+        if dpval != 0.0
+            parser_message(cfg, outer_data, "THPRESFT", PARSER_JUTULDARCY_PARTIAL_SUPPORT, "Non-default zero for THPRESFT are not supported in the solvers (was $dpval for ID $name")
+        end
+        push!(out, [name, dpval])
+    end
+    return data
+end
+
 function parse_keyword!(data, outer_data, units, cfg, f, ::Union{Val{:MINPORV}, Val{:MINPV}})
     rec = read_record(f)
     tdims = [1e-6];

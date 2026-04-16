@@ -42,6 +42,7 @@ function conversion_ix_dict()
             "PORE_VOLUME_MULTIPLIER",
             "Cell1",
             "Cell2",
+            "TrajectoryName",
             "ComponentName"
         ]
         u[k] = :id
@@ -89,7 +90,9 @@ function conversion_ix_dict()
             "WellBoreRadius",
             "CELL_BOTTOM_DEPTH",
             "CELL_TOP_DEPTH",
-            "CELL_CENTER_DEPTH"
+            "CELL_CENTER_DEPTH",
+            "TrajectoryStartMeasuredDepth",
+            "TrajectoryStopMeasuredDepth"
         ]
         u[k] = :length
     end

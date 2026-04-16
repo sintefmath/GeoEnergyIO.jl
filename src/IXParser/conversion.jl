@@ -328,6 +328,11 @@ function set_ix_array_values!(dest, v::Vector; T = missing)
                         end
                     end
                     dest_h[ix] = convert_t(er.value, T)
+                elseif er isa IXFunctionCall
+                    if !haskey(dest, h)
+                        dest[h] = []
+                    end
+                    push!(dest[h], er.args)
                 else
                     v = er.value
                     if length(v) == 0

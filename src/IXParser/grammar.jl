@@ -169,6 +169,8 @@ function convert_ix_bare_string(s)
         return false
     elseif s == "NONE"
         return nothing
+    elseif s == "UNSET"
+        return missing
     elseif s == "OPEN"
         return IX_OPEN
     elseif s == "CLOSED"

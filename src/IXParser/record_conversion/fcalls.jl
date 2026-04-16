@@ -18,5 +18,10 @@ function convert_function_argument(arg, unit_systems, context_kw = missing)
         error("Unhandled function argument type $kw $(typeof(x)) in context $context_kw")
     end
 
-    return IXEqualRecord(kw, map(convert_farg, arg.value))
+    if arg.value isa AbstractString
+        farg = convert_farg(arg.value)
+    else
+        farg = map(convert_farg, arg.value)
+    end
+    return IXEqualRecord(kw, farg)
 end

@@ -121,7 +121,8 @@ function handle_zero_effective_porosity!(actnum, g, minpv, minpv_for_cell)
                 end
             end
         end
-    elseif haskey(g, "PORO")
+    else
+        poro = get(g, "PORO", fill(1.0, size(actnum)))
         if haskey(g, "ZCORN")
             zcorn = g["ZCORN"]
             coord = reshape(g["COORD"], 6, :)'
@@ -135,7 +136,6 @@ function handle_zero_effective_porosity!(actnum, g, minpv, minpv_for_cell)
         else
             ntg = ones(size(actnum))
         end
-        poro = g["PORO"]
         deactivate_minpv!(actnum, changed, g, poro, ntg, zcorn, coord, cartdims, minpv)
     end
     return (actnum, changed)

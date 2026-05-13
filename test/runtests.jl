@@ -105,13 +105,13 @@ import Jutul: number_of_cells, number_of_boundary_faces, number_of_faces, conver
         (name="raised_col_sloped.txt", nf=5, nc=4, bnf=18)
         (name="1cell.txt", nf=0, nc=1, bnf=6)
         (name="2_5_node_pinch.txt", nf=2, nc=3, bnf=13)
-        (name="4_1_node_pinch.txt", nf=2, nc=3, bnf=10)
+        (name="4_1_node_pinch.txt", nf=1, nc=2, bnf=10)
         (name="raised_col.txt", nf=5, nc=4, bnf=17)
         (name="1col.txt", nf=2, nc=3, bnf=14)
         (name="2_6_node_pinch.txt", nf=2, nc=3, bnf=13)
         (name="sloped.txt", nf=14, nc=8, bnf=28)
         (name="2col.txt", nf=7, nc=6, bnf=22)
-        (name="model3_20_20_50.txt", nf=43743, nc=15250, bnf=4890)
+        (name="model3_20_20_50.txt", nf=43091, nc=14675, bnf=4964)
     ]
     for (name, nf_ref, nc_ref, nbf_ref) in grdecl_cases
         @testset "$name" begin

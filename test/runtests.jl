@@ -238,6 +238,22 @@ import Jutul: number_of_cells, number_of_boundary_faces, number_of_faces, conver
         m = mesh_from_grid_section(gs)
         @test number_of_cells(m) == (nx-1)*(ny-1)*(l1 + l2) - l1 - l2
     end
+    @testset "cpgrid_diagonal_fault_crossing" begin
+        # Diagonal fault with ZCORN throw creates parallel pillar segments
+        # in find_crossing_node (issue #47). Previously crashed with error().
+        nx = 21
+        ny = 21
+        xrng = range(0.0, 200.0, nx)
+        yrng = range(0.0, 200.0, ny)
+        depths = [fill(2000.0, nx, ny), fill(2025.0, nx, ny), fill(2050.0, nx, ny)]
+        function diagonal_fault(x, y, z, x_c, y_c, i, j, k)
+            on_hanging_wall = (x_c - 100.0) + (y_c - 100.0) > 0
+            return on_hanging_wall ? z - 10.0 : z
+        end
+        gs = cpgrid_from_horizons(xrng, yrng, depths; transforms = [diagonal_fault])
+        m = mesh_from_grid_section(gs)
+        @test number_of_cells(m) == (nx - 1) * (ny - 1) * 2
+    end
 end
 
 include("ixparser.jl")

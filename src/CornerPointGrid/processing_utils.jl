@@ -181,11 +181,12 @@ function handle_generic_intersections!(node_pos, extra_node_lookup, nodes, cell_
     line_low_a = (a1_l_pt, a2_l_pt)
     line_low_b = (b1_l_pt, b2_l_pt)
 
+    linepair_idx = line_pair_index(l1, l2)
     if at_before_bt_1 != at_before_bt_2 && !(matching_tt_1 || matching_tt_2)
         @assert a1_t != b1_t
         @assert a2_t != b2_t
 
-        n_tt = handle_crossing_node!(extra_node_lookup, nodes, line_top_a, line_top_b)
+        n_tt = handle_crossing_node!(extra_node_lookup, nodes, line_top_a, line_top_b, linepair_idx)
         push!(node_pos, n_tt)
     end
 
@@ -195,9 +196,9 @@ function handle_generic_intersections!(node_pos, extra_node_lookup, nodes, cell_
         if at_before_bt_1
             # A is above B at left edge. This extra node is formed from A lower
             # cutting B upper.
-            n_tl = handle_crossing_node!(extra_node_lookup, nodes, line_low_a, line_top_b)
+            n_tl = handle_crossing_node!(extra_node_lookup, nodes, line_low_a, line_top_b, linepair_idx)
         else
-            n_tl = handle_crossing_node!(extra_node_lookup, nodes, line_top_a, line_low_b)
+            n_tl = handle_crossing_node!(extra_node_lookup, nodes, line_top_a, line_low_b, linepair_idx)
         end
         push!(node_pos, n_tl)
     else
@@ -211,7 +212,7 @@ function handle_generic_intersections!(node_pos, extra_node_lookup, nodes, cell_
         @assert a2_l != b2_l
 
         # 1_low crossing 2_low (reversal a/b low over pair)
-        n_ll = handle_crossing_node!(extra_node_lookup, nodes, line_low_a, line_low_b)
+        n_ll = handle_crossing_node!(extra_node_lookup, nodes, line_low_a, line_low_b, linepair_idx)
         push!(node_pos, n_ll)
     end
 
@@ -219,9 +220,9 @@ function handle_generic_intersections!(node_pos, extra_node_lookup, nodes, cell_
         if at_before_bt_2
             # A is above B at right edge. This extra node is formed from A lower
             # cutting B upper.
-            n_lt = handle_crossing_node!(extra_node_lookup, nodes, line_low_a, line_top_b)
+            n_lt = handle_crossing_node!(extra_node_lookup, nodes, line_low_a, line_top_b, linepair_idx)
         else
-            n_lt = handle_crossing_node!(extra_node_lookup, nodes, line_top_a, line_low_b)
+            n_lt = handle_crossing_node!(extra_node_lookup, nodes, line_top_a, line_low_b, linepair_idx)
         end
         push!(node_pos, n_lt)
     else
@@ -232,9 +233,23 @@ function handle_generic_intersections!(node_pos, extra_node_lookup, nodes, cell_
     return node_pos
 end
 
-function handle_crossing_node!(extra_node_lookup, nodes, line_a, line_b)
+function line_pair_index(l1::NamedTuple, l2::NamedTuple)
+    i1 = l1.line_index
+    i2 = l2.line_index
+    return line_pair_index(i1, i2)
+end
+
+function line_pair_index(i1::Int, i2::Int)
+    @assert i1 != i2
+    if i1 > i2
+        i1, i2 = i2, i1
+    end
+    return (i1, i2)
+end
+
+function handle_crossing_node!(extra_node_lookup, nodes, line_a, line_b, linepair_idx::Tuple)
     pt = find_crossing_node(line_a, line_b)
-    return cpgrid_get_or_add_crossing_node!(extra_node_lookup, nodes, pt)
+    return cpgrid_get_or_add_crossing_node!(extra_node_lookup, nodes, pt, linepair_idx)
 end
 
 function find_crossing_node(l1, l2)
@@ -267,7 +282,7 @@ function find_crossing_node(x1, x2, x3, x4)
     return x1 + t * a
 end
 
-function cpgrid_get_or_add_crossing_node!(extra_node_lookup, nodes, pt)
+function cpgrid_get_or_add_crossing_node!(extra_node_lookup, nodes, pt, linepair_idx)
     function to_float(x::Float64)
         return x
     end
@@ -283,15 +298,15 @@ function cpgrid_get_or_add_crossing_node!(extra_node_lookup, nodes, pt)
     end
     pt = map(to_float, pt)
     if haskey(extra_node_lookup, pt)
-        ix = extra_node_lookup[pt]
+        ix, linepair_idx_stored = extra_node_lookup[pt]
+        @assert linepair_idx_stored == linepair_idx "Expected $linepair_idx_stored to match $linepair_idx"
     else
         push!(nodes, pt)
         ix = length(nodes)
-        extra_node_lookup[pt] = ix
+        extra_node_lookup[pt] = (ix, linepair_idx)
     end
     return ix
 end
-
 
 function find_linepair_overlap(pos_a, pos_b)
     function find_end(a, b, s::Symbol)

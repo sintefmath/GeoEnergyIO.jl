@@ -55,7 +55,11 @@ function cpgrid_primitives(coord, zcorn, cartdims; actnum = missing)
         end
     end
 
-    function generate_line(p1, p2, is_active)
+    function linear_line_ix(i, j)
+        return ij_to_linear(i, j, (nlinex, nliney))
+    end
+
+    function generate_line(p1, p2, is_active, idx)
         T_coord = promote_type(eltype(p1), eltype(p2), typeof(z_mean))
         if is_active
             line_length_hint = 2*8*(nz + 1)
@@ -71,6 +75,7 @@ function cpgrid_primitives(coord, zcorn, cartdims; actnum = missing)
 
         return (
             z = z,
+            line_index = idx,
             cells = cells,
             cellpos = cellpos,
             nodes = nodes,
@@ -83,7 +88,7 @@ function cpgrid_primitives(coord, zcorn, cartdims; actnum = missing)
     end
     # active_lines = BitArray(undef, nlinex, nliney)
     x1, x2 = get_line(coord, 1, 1, nlinex, nliney)
-    line0 = generate_line(x1, x2, false)
+    line0 = generate_line(x1, x2, false, 1)
     function boundary_index(i, j, is_top)
         if is_top
             layer_offset = -(2*nx*ny*nz)
@@ -104,13 +109,12 @@ function cpgrid_primitives(coord, zcorn, cartdims; actnum = missing)
         return cell
     end
 
-    linear_line_ix(i, j) = ij_to_linear(i, j, (nlinex, nliney))
     L_t = typeof(line0)
     lines = Matrix{L_t}(undef, nlinex, nliney)
     for i in 1:nlinex
         for j in 1:nliney
             p1, p2 = get_line(coord, i, j, nlinex, nliney)
-            lines[i, j] = generate_line(p1, p2, active_lines[i, j])
+            lines[i, j] = generate_line(p1, p2, active_lines[i, j], linear_line_ix(i, j))
         end
     end
     for i = 1:nx

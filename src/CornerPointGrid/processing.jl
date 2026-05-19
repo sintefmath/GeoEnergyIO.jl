@@ -288,7 +288,7 @@ function cpgrid_primitives(coord, zcorn, cartdims; actnum = missing)
             end
         end
     end
-    # Get a normal vector to estimate the direction of the coordiante system
+    # Get a normal vector to estimate the direction of the coordinate system
     x1_l, = get_line(coord, 2, 1, nlinex, nliney)
     x1_r, = get_line(coord, 1, 2, nlinex, nliney)
     coord_normal = cross(x1_l - x1, x1_r - x1)
@@ -360,6 +360,7 @@ function process_lines!(lines; sort_alg = QuickSort)
             end
             ix = pos[1:end-1]
             unique_z = line.z[ix]
+            # TODO: Add merging of nodes based on ztol here?
             # Put back the unique points only
             resize!(line.z, 0)
             for z_i in unique_z
@@ -411,13 +412,75 @@ function grid_from_primitives(primitives; nnc = missing, pinch = missing)
     # Lookup for extra nodes that are not in the pillars but are made due to intersections over faults.
     # The Float64 type is intentional.
     extra_node_lookup = Dict{SVector{3, Float64}, Int}()
+    node_buffer = Int[]
+    sizehint!(node_buffer, 10)
+
+    # Vertical faces
+    T = @NamedTuple{cell::Int, line1::Tuple{Int, Int}, line2::Tuple{Int, Int}}
+    ord_a = T[]
+    ord_b = T[]
+    for col_is_bnd in [true, false]
+        if col_is_bnd
+            col_neighbors = primitives.column_boundary
+        else
+            col_neighbors = primitives.column_neighbors
+        end
+        for (cols, pillars) in col_neighbors
+            # Get the pair of lines we are processing
+            p1, p2, conn_type = pillars
+            l1 = lines[p1]
+            l2 = lines[p2]
+            if length(cols) == 1
+                a = b = only(cols)
+            else
+                a, b = cols
+            end
+            is_idir = conn_type == :left || conn_type == :right
+
+            col_a = columns[a]
+            col_b = columns[b]
+
+            F_interior = (l, r, node_indices) -> insert_face!(I_faces, B_faces, l, r, node_indices, is_boundary = false, is_vertical = true, is_idir = is_idir, face_type = conn_type)
+            F_bnd = (l, r, node_indices) -> insert_face!(I_faces, B_faces, l, r, node_indices, is_boundary = true, is_vertical = true, is_idir = is_idir, face_type = conn_type)
+
+            cell_top_bottom!(ord_a, col_a.cells, l1, l2)
+            cell_top_bottom!(ord_b, col_b.cells, l1, l2)
+            for pos_a in ord_a
+                for pos_b in ord_b
+                    overlap = find_linepair_overlap(pos_a, pos_b)
+                    if isnothing(overlap)
+                        continue
+                    end
+                    cat1, cat2 = overlap
+                    l = pos_a.cell
+                    r = pos_b.cell
+                    l_bnd = cell_is_boundary(l)
+                    r_bnd = cell_is_boundary(r)
+                    if l_bnd && r_bnd
+                        # Two inactive cells, can be skipped.
+                        continue
+                    end
+                    cell_pair = (l, r)
+                    pair_is_bnd = l_bnd || r_bnd
+                    if col_is_bnd && pair_is_bnd
+                        # Skip boundary faces that are already added as part of the horizontal processing
+                        continue
+                    end
+                    if col_is_bnd || pair_is_bnd
+                        # Boundary if we are on a boundary column or one of the cells connected to the face is a boundary
+                        add_vertical_face_from_overlap!(extra_node_lookup, F_bnd, nodes, cell_pair, overlap, l1, l2, node_buffer)
+                    else
+                        add_vertical_face_from_overlap!(extra_node_lookup, F_interior, nodes, cell_pair, overlap, l1, l2, node_buffer)
+                    end
+                end
+            end
+        end
+    end
 
     # Create pinch maps
     pinch_top_to_bottom, pinch_bottom_to_top = generate_pinch_map(pinch, primitives, lines, column_lines, columns)
 
     # Horizontal faces (top/bottom and faces along column)
-    node_buffer = Int[]
-    sizehint!(node_buffer, 10)
     for (cl, col) in zip(column_lines, columns)
         number_of_cells_in_column = length(col.cells)
         current_column_lines = map(l -> lines[l], cl)
@@ -504,67 +567,6 @@ function grid_from_primitives(primitives; nnc = missing, pinch = missing)
             end
         end
         @assert num_pinched == pinch_count
-    end
-    # Vertical faces
-    T = @NamedTuple{cell::Int, line1::Tuple{Int, Int}, line2::Tuple{Int, Int}}
-    ord_a = T[]
-    ord_b = T[]
-    for col_is_bnd in [true, false]
-        if col_is_bnd
-            col_neighbors = primitives.column_boundary
-        else
-            col_neighbors = primitives.column_neighbors
-        end
-        for (cols, pillars) in col_neighbors
-            # Get the pair of lines we are processing
-            p1, p2, conn_type = pillars
-            l1 = lines[p1]
-            l2 = lines[p2]
-            if length(cols) == 1
-                a = b = only(cols)
-            else
-                a, b = cols
-            end
-            is_idir = conn_type == :left || conn_type == :right
-
-            col_a = columns[a]
-            col_b = columns[b]
-
-            F_interior = (l, r, node_indices) -> insert_face!(I_faces, B_faces, l, r, node_indices, is_boundary = false, is_vertical = true, is_idir = is_idir, face_type = conn_type)
-            F_bnd = (l, r, node_indices) -> insert_face!(I_faces, B_faces, l, r, node_indices, is_boundary = true, is_vertical = true, is_idir = is_idir, face_type = conn_type)
-
-            cell_top_bottom!(ord_a, col_a.cells, l1, l2)
-            cell_top_bottom!(ord_b, col_b.cells, l1, l2)
-            for pos_a in ord_a
-                for pos_b in ord_b
-                    overlap = find_linepair_overlap(pos_a, pos_b)
-                    if isnothing(overlap)
-                        continue
-                    end
-                    cat1, cat2 = overlap
-                    l = pos_a.cell
-                    r = pos_b.cell
-                    l_bnd = cell_is_boundary(l)
-                    r_bnd = cell_is_boundary(r)
-                    if l_bnd && r_bnd
-                        # Two inactive cells, can be skipped.
-                        continue
-                    end
-                    cell_pair = (l, r)
-                    pair_is_bnd = l_bnd || r_bnd
-                    if col_is_bnd && pair_is_bnd
-                        # Skip boundary faces that are already added as part of the horizontal processing
-                        continue
-                    end
-                    if col_is_bnd || pair_is_bnd
-                        # Boundary if we are on a boundary column or one of the cells connected to the face is a boundary
-                        add_vertical_face_from_overlap!(extra_node_lookup, F_bnd, nodes, cell_pair, overlap, l1, l2, node_buffer)
-                    else
-                        add_vertical_face_from_overlap!(extra_node_lookup, F_interior, nodes, cell_pair, overlap, l1, l2, node_buffer)
-                    end
-                end
-            end
-        end
     end
 
     function convert_to_flat(v)

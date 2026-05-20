@@ -88,7 +88,6 @@ function add_vertical_face_from_overlap!(extra_node_lookup, F, nodes, cell_pair,
     function global_node_point(l, local_node::Int)
         return nodes[global_node_index(l, local_node)]
     end
-
     function global_node_point_and_index(l, local_node)
         ix = global_node_index(l, local_node)
         return (nodes[ix], ix)
@@ -114,7 +113,7 @@ function add_vertical_face_from_overlap!(extra_node_lookup, F, nodes, cell_pair,
     if cat1 == cat2 == AB_RANGES_MATCH
         handle_matching_overlap!(node_pos, edge1, edge2, l1, l2)
     else
-        handle_generic_intersections!(node_pos, extra_node_lookup, nodes, cell_a, cell_b, l1, l2, overlap, global_node_point)
+        handle_generic_intersections!(node_pos, extra_node_lookup, nodes, cell_a, cell_b, l1, l2, overlap, global_node_point_and_index)
     end
     if cell_a == cell_b
         # If both cells are the same, we are dealing with a mirrored
@@ -136,7 +135,7 @@ function handle_matching_overlap!(node_pos, edge1, edge2, l1, l2)
     end
 end
 
-function handle_generic_intersections!(node_pos, extra_node_lookup, nodes, cell_a, cell_b, l1, l2, overlap, global_node_point)
+function handle_generic_intersections!(node_pos, extra_node_lookup, nodes, cell_a, cell_b, l1, l2, overlap, global_node_point_and_index)
     # Full ranges for line 1
     edge1 = overlap.line1.overlap
     range1_a = overlap.line1.range_a
@@ -164,22 +163,22 @@ function handle_generic_intersections!(node_pos, extra_node_lookup, nodes, cell_
     al_before_bl_2, matching_ll_2 = pos_diff(a2_l, b2_l)
 
     # Top nodes
-    a1_t_pt = global_node_point(l1, a1_t)
-    a2_t_pt = global_node_point(l2, a2_t)
-    b1_t_pt = global_node_point(l1, b1_t)
-    b2_t_pt = global_node_point(l2, b2_t)
+    a1_t_pt, a1_t_node_idx = global_node_point_and_index(l1, a1_t)
+    a2_t_pt, a2_t_node_idx = global_node_point_and_index(l2, a2_t)
+    b1_t_pt, b1_t_node_idx = global_node_point_and_index(l1, b1_t)
+    b2_t_pt, b2_t_node_idx = global_node_point_and_index(l2, b2_t)
 
-    line_top_a = (a1_t_pt, a2_t_pt)
-    line_top_b = (b1_t_pt, b2_t_pt)
+    line_top_a = (points = (a1_t_pt, a2_t_pt), index = (a1_t_node_idx, a2_t_node_idx))
+    line_top_b = (points = (b1_t_pt, b2_t_pt), index = (b1_t_node_idx, b2_t_node_idx))
 
     # Lower nodes
-    a1_l_pt = global_node_point(l1, a1_l)
-    a2_l_pt = global_node_point(l2, a2_l)
-    b1_l_pt = global_node_point(l1, b1_l)
-    b2_l_pt = global_node_point(l2, b2_l)
+    a1_l_pt, a1_l_node_idx = global_node_point_and_index(l1, a1_l)
+    a2_l_pt, a2_l_node_idx = global_node_point_and_index(l2, a2_l)
+    b1_l_pt, b1_l_node_idx = global_node_point_and_index(l1, b1_l)
+    b2_l_pt, b2_l_node_idx = global_node_point_and_index(l2, b2_l)
 
-    line_low_a = (a1_l_pt, a2_l_pt)
-    line_low_b = (b1_l_pt, b2_l_pt)
+    line_low_a = (points = (a1_l_pt, a2_l_pt), index = (a1_l_node_idx, a2_l_node_idx))
+    line_low_b = (points = (b1_l_pt, b2_l_pt), index = (b1_l_node_idx, b2_l_node_idx))
 
     linepair_idx = line_pair_index(l1, l2)
     if at_before_bt_1 != at_before_bt_2 && !(matching_tt_1 || matching_tt_2)
@@ -248,7 +247,16 @@ function line_pair_index(i1::Int, i2::Int)
 end
 
 function handle_crossing_node!(extra_node_lookup, nodes, line_a, line_b, linepair_idx::Tuple)
-    pt = find_crossing_node(line_a, line_b)
+    pt = find_crossing_node(line_a.points, line_b.points)
+    # The crossing node might coincide with the endpoints of the a/b lines. We
+    # can then return them instead.
+    for line in (line_a, line_b)
+        for i in 1:2
+            if pt == line.points[i]
+                return line.index[i]
+            end
+        end
+    end
     return cpgrid_get_or_add_crossing_node!(extra_node_lookup, nodes, pt, linepair_idx)
 end
 
@@ -299,7 +307,7 @@ function cpgrid_get_or_add_crossing_node!(extra_node_lookup, nodes, pt, linepair
     pt = map(to_float, pt)
     if haskey(extra_node_lookup, pt)
         ix, linepair_idx_stored = extra_node_lookup[pt]
-        @assert linepair_idx_stored == linepair_idx "Expected $linepair_idx_stored to match $linepair_idx"
+        @assert linepair_idx_stored == linepair_idx "Expected $linepair_idx_stored to match $linepair_idx for stored point $pt"
     else
         push!(nodes, pt)
         ix = length(nodes)

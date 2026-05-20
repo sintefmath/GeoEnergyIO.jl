@@ -286,8 +286,8 @@ function cpgrid_get_or_add_crossing_node!(extra_node_lookup, nodes, pt, line1, l
         return x
     end
     pt = map(to_float, pt)
-    l1_ref = sort(line1.index)
-    l2_ref = sort(line2.index)
+    l1_ref = tuple_sort(line1.index)
+    l2_ref = tuple_sort(line2.index)
     if haskey(extra_node_lookup, pt)
         ix, l1, l2 = extra_node_lookup[pt]
         ok_fwd = l1 == l1_ref && l2 == l2_ref
@@ -397,4 +397,12 @@ function determine_cell_overlap_inside_line(a_start, a_stop, b_start, b_stop)
     end
     # @info "Result:" out
     return (out[1], out[2], a_range, b_range)
+end
+
+function tuple_sort(t::Tuple{Int, Int})
+    a, b = t
+    if a > b
+        t = (b, a)
+    end
+    return t
 end

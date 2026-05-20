@@ -913,6 +913,46 @@ function generate_top_bottom_node_edge_map(node_coord, extra_node_lookup::Dict)
 end
 
 function add_extra_nodes_to_horizontal_edge(node_indices::NTuple{4, Int}, extra_edge_node_map::TB_NODE_EDGE_MAP)
-    # TODO: Finish.
-    return node_indices
+    # Add extra nodes to the horizontal edge if there are any. We have to check
+    # for each of the four edges if there are any extra nodes and add them in
+    # the correct order. They are stored in the map sorted from start to end, so
+    # we just have to figure out the correct direction to add them in.
+    function extra_nodes(i, j)
+        ni = node_indices[i]
+        nj = node_indices[j]
+        el = sort((ni, nj))
+        rev = el[1] == ni
+        v = get(extra_edge_node_map, el, missing)
+        return (v, rev)
+    end
+    extra_12, rev_12 = extra_nodes(1, 2)
+    extra_23, rev_23 = extra_nodes(2, 3)
+    extra_34, rev_34 = extra_nodes(3, 4)
+    extra_41, rev_41 = extra_nodes(4, 1)
+
+    if ismissing(extra_12) && ismissing(extra_23) && ismissing(extra_34) && ismissing(extra_41)
+        return node_indices
+    end
+    function add_extra!(dest, ::Missing, rev)
+        return dest
+    end
+    function add_extra!(dest, extra, rev)
+        if rev
+            append!(dest, Iterators.reverse(extra))
+        else
+            append!(dest, extra)
+        end
+        return dest
+    end
+    new_nodes = Int[node_indices[1]]
+    add_extra!(new_nodes, extra_12, rev_12)
+    push!(new_nodes, node_indices[2])
+    add_extra!(new_nodes, extra_23, rev_23)
+    push!(new_nodes, node_indices[3])
+    add_extra!(new_nodes, extra_34, rev_34)
+    push!(new_nodes, node_indices[4])
+    add_extra!(new_nodes, extra_41, rev_41)
+
+    return new_nodes
 end
+

@@ -415,10 +415,13 @@ function grid_from_primitives(primitives; nnc = missing, pinch = missing)
 
     # Lookup for extra nodes that are not in the set of all nodes on the pillars
     # but are made due to intersections over faults. The Float64 type is
-    # intentional as the key is used to look up values. The value is
-    # interpreted as (Node, (SmallestLineIndex, LargestLineIndex)) the added
-    # coordinate point is associated with.
-    extra_node_lookup = Dict{SVector{3, Float64}, Tuple{Int, Tuple{Int, Int}}}()
+    # intentional as the key is used to look up values. The value is interpreted
+    # as (Node, (n1_first, n1_second), (n2_first, n2_second)) the added
+    # coordinate point is associated with and the two tuples represent the nodal
+    # indices of the two lines that are crossing (sorted by low to high in each
+    # tuple).
+    Num_pt_T = SVector{3, Float64}
+    extra_node_lookup = Dict{Num_pt_T, Tuple{Int, Tuple{Int, Int}, Tuple{Int, Int}}}()
     node_buffer = Int[]
     sizehint!(node_buffer, 10)
 

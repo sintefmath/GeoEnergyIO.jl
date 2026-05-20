@@ -185,7 +185,7 @@ function handle_generic_intersections!(node_pos, extra_node_lookup, nodes, cell_
         @assert a1_t != b1_t
         @assert a2_t != b2_t
 
-        n_tt = handle_crossing_node!(extra_node_lookup, nodes, line_top_a, line_top_b, linepair_idx)
+        n_tt = handle_crossing_node!(extra_node_lookup, nodes, line_top_a, line_top_b)
         push!(node_pos, n_tt)
     end
 
@@ -195,9 +195,9 @@ function handle_generic_intersections!(node_pos, extra_node_lookup, nodes, cell_
         if at_before_bt_1
             # A is above B at left edge. This extra node is formed from A lower
             # cutting B upper.
-            n_tl = handle_crossing_node!(extra_node_lookup, nodes, line_low_a, line_top_b, linepair_idx)
+            n_tl = handle_crossing_node!(extra_node_lookup, nodes, line_low_a, line_top_b)
         else
-            n_tl = handle_crossing_node!(extra_node_lookup, nodes, line_top_a, line_low_b, linepair_idx)
+            n_tl = handle_crossing_node!(extra_node_lookup, nodes, line_top_a, line_low_b)
         end
         push!(node_pos, n_tl)
     else
@@ -211,7 +211,7 @@ function handle_generic_intersections!(node_pos, extra_node_lookup, nodes, cell_
         @assert a2_l != b2_l
 
         # 1_low crossing 2_low (reversal a/b low over pair)
-        n_ll = handle_crossing_node!(extra_node_lookup, nodes, line_low_a, line_low_b, linepair_idx)
+        n_ll = handle_crossing_node!(extra_node_lookup, nodes, line_low_a, line_low_b)
         push!(node_pos, n_ll)
     end
 
@@ -219,9 +219,9 @@ function handle_generic_intersections!(node_pos, extra_node_lookup, nodes, cell_
         if at_before_bt_2
             # A is above B at right edge. This extra node is formed from A lower
             # cutting B upper.
-            n_lt = handle_crossing_node!(extra_node_lookup, nodes, line_low_a, line_top_b, linepair_idx)
+            n_lt = handle_crossing_node!(extra_node_lookup, nodes, line_low_a, line_top_b)
         else
-            n_lt = handle_crossing_node!(extra_node_lookup, nodes, line_top_a, line_low_b, linepair_idx)
+            n_lt = handle_crossing_node!(extra_node_lookup, nodes, line_top_a, line_low_b)
         end
         push!(node_pos, n_lt)
     else
@@ -246,7 +246,7 @@ function line_pair_index(i1::Int, i2::Int)
     return (i1, i2)
 end
 
-function handle_crossing_node!(extra_node_lookup, nodes, line_a, line_b, linepair_idx::Tuple)
+function handle_crossing_node!(extra_node_lookup, nodes, line_a, line_b)
     pt = find_crossing_node(line_a.points, line_b.points)
     # The crossing node might coincide with the endpoints of the a/b lines. We
     # can then return them instead.
@@ -257,7 +257,7 @@ function handle_crossing_node!(extra_node_lookup, nodes, line_a, line_b, linepai
             end
         end
     end
-    return cpgrid_get_or_add_crossing_node!(extra_node_lookup, nodes, pt, linepair_idx)
+    return cpgrid_get_or_add_crossing_node!(extra_node_lookup, nodes, pt, line_a, line_b)
 end
 
 function find_crossing_node(l1, l2)
@@ -290,7 +290,7 @@ function find_crossing_node(x1, x2, x3, x4)
     return x1 + t * a
 end
 
-function cpgrid_get_or_add_crossing_node!(extra_node_lookup, nodes, pt, linepair_idx)
+function cpgrid_get_or_add_crossing_node!(extra_node_lookup, nodes, pt, line1, line2)
     function to_float(x::Float64)
         return x
     end
@@ -305,15 +305,19 @@ function cpgrid_get_or_add_crossing_node!(extra_node_lookup, nodes, pt, linepair
         return x
     end
     pt = map(to_float, pt)
+    l1_ref = sort(line1.index)
+    l2_ref = sort(line2.index)
     if haskey(extra_node_lookup, pt)
-        ix, linepair_idx_stored = extra_node_lookup[pt]
-        if linepair_idx_stored != linepair_idx
-            @warn "Expected $linepair_idx_stored to match $linepair_idx for stored point $pt"
+        ix, l1, l2 = extra_node_lookup[pt]
+        ok_fwd = l1 == l1_ref && l2 == l2_ref
+        ok_rev = l1 == l2_ref && l2 == l1_ref
+        if !(ok_fwd || ok_rev)
+            @warn "Expected pairs $l1 $l2 to match $l1_ref $l2_ref for stored point $pt" ok_fwd ok_rev
         end
     else
         push!(nodes, pt)
         ix = length(nodes)
-        extra_node_lookup[pt] = (ix, linepair_idx)
+        extra_node_lookup[pt] = (ix, l1_ref, l2_ref)
     end
     return ix
 end

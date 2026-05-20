@@ -549,6 +549,7 @@ function grid_from_primitives(primitives; nnc = missing, pinch = missing)
                 node_in_pillar_indices = map(F, cell_bnds)
                 # Then find the global node indices
                 node_indices = map((line, i) -> line.nodes[i], current_column_lines, node_in_pillar_indices)
+                node_indices = add_extra_nodes_to_horizontal_edge(node_indices, extra_edge_node_map)
                 insert_face!(I_faces, B_faces, c1, c2, node_indices, is_vertical = false, is_boundary = is_bnd, is_idir = false, face_type = ft)
             end
         end
@@ -573,6 +574,7 @@ function grid_from_primitives(primitives; nnc = missing, pinch = missing)
                 node_in_pillar_indices = map(last, cell_bnds)
                 # Then find the global node indices
                 node_indices = map((line, i) -> line.nodes[i], current_column_lines, node_in_pillar_indices)
+                node_indices = add_extra_nodes_to_horizontal_edge(node_indices, extra_edge_node_map)
                 # faceno index maps to the next face inserted
                 push!(pinched_faces, length(I_faces.face_pos))
                 insert_face!(I_faces, B_faces, top_cell, bottom_cell, node_indices, is_vertical = false, is_boundary = false, is_idir = false, face_type = :bottom)
@@ -882,12 +884,14 @@ function find_next_gap(cells, start)
     return (next_negative, next_positive, next_positive == n)
 end
 
+const TB_NODE_EDGE_MAP = Dict{Tuple{Int, Int}, Vector{Int}}
+
 function generate_top_bottom_node_edge_map(node_coord, extra_node_lookup::Dict)
     # We know of the extra nodes that have been added together with their index
     # and the index of the two lines that they belong to. We have to create the
     # map that have them sorted from start to finish for each edge for use in
     # the assembly.
-    out = Dict{Tuple{Int, Int}, Vector{Int}}()
+    out = TB_NODE_EDGE_MAP()
     for tup in values(extra_node_lookup)
         node_idx, l1, l2 = tup
         for line in (l1, l2)
@@ -906,4 +910,9 @@ function generate_top_bottom_node_edge_map(node_coord, extra_node_lookup::Dict)
         sort!(added_nodes, by = idx -> norm(node_coord[idx] - start_pt))
     end
     return out
+end
+
+function add_extra_nodes_to_horizontal_edge(node_indices::NTuple{4, Int}, extra_edge_node_map::TB_NODE_EDGE_MAP)
+    # TODO: Finish.
+    return node_indices
 end

@@ -3,15 +3,15 @@ using Test
 
 import GeoEnergyIO: test_input_file_path
 import Jutul: number_of_cells, number_of_boundary_faces, number_of_faces, convert_from_si
-
+import Jutul.MeshQualityControl: check_normals
 @testset "GeoEnergyIO.jl" begin
     import GeoEnergyIO.InputParser: clean_include_path, parse_defaulted_line
     import GeoEnergyIO.InputParser: parse_defaulted_group_well
 
     function test_normals(g)
-        ok_bnd = Jutul.MeshQualityControl.check_normals(g, print = false, boundary = true)
+        ok_bnd = check_normals(g, print = false, boundary = true)
         @test length(ok_bnd) == 0
-        ok_int = Jutul.MeshQualityControl.check_normals(g, print = false, boundary = false)
+        ok_int = check_normals(g, print = false, boundary = false)
         @test length(ok_int) == 0
     end
 
@@ -94,7 +94,6 @@ import Jutul: number_of_cells, number_of_boundary_faces, number_of_faces, conver
         @test grdecl["ZCORN"] == [0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0]
         @test sum(grdecl["COORD"]) == 12.0
         @test only(grdecl["ACTNUM"]) == true
-        test_normals(g)
     end
 
     grdecl_cases = [
@@ -256,6 +255,7 @@ import Jutul: number_of_cells, number_of_boundary_faces, number_of_faces, conver
         gs = cpgrid_from_horizons(xrng, yrng, depths, layer_width = [l1, l2])
         m = mesh_from_grid_section(gs)
         @test number_of_cells(m) == (nx-1)*(ny-1)*(l1 + l2) - l1 - l2
+        check_normals(m)
     end
     @testset "cpgrid_diagonal_fault_crossing" begin
         # Diagonal fault with ZCORN throw creates parallel pillar segments
@@ -272,6 +272,7 @@ import Jutul: number_of_cells, number_of_boundary_faces, number_of_faces, conver
         gs = cpgrid_from_horizons(xrng, yrng, depths; transforms = [diagonal_fault])
         m = mesh_from_grid_section(gs)
         @test number_of_cells(m) == (nx - 1) * (ny - 1) * 2
+        check_normals(m)
     end
 end
 

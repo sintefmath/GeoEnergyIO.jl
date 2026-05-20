@@ -88,7 +88,6 @@ function add_vertical_face_from_overlap!(extra_node_lookup, F, nodes, cell_pair,
     function global_node_point(l, local_node::Int)
         return nodes[global_node_index(l, local_node)]
     end
-
     function global_node_point_and_index(l, local_node)
         ix = global_node_index(l, local_node)
         return (nodes[ix], ix)
@@ -114,7 +113,7 @@ function add_vertical_face_from_overlap!(extra_node_lookup, F, nodes, cell_pair,
     if cat1 == cat2 == AB_RANGES_MATCH
         handle_matching_overlap!(node_pos, edge1, edge2, l1, l2)
     else
-        handle_generic_intersections!(node_pos, extra_node_lookup, nodes, cell_a, cell_b, l1, l2, overlap, global_node_point)
+        handle_generic_intersections!(node_pos, extra_node_lookup, nodes, cell_a, cell_b, l1, l2, overlap, global_node_point_and_index)
     end
     if cell_a == cell_b
         # If both cells are the same, we are dealing with a mirrored
@@ -136,111 +135,7 @@ function handle_matching_overlap!(node_pos, edge1, edge2, l1, l2)
     end
 end
 
-function handle_matching_overlap_with_intersections!(node_pos, extra_node_lookup, nodes, cell_a, cell_b, l1, l2, overlap, global_node_point)
-    # Full ranges for line 1
-    edge1 = overlap.line1.overlap
-    range1_a = overlap.line1.range_a
-    range1_b = overlap.line1.range_b
-    # Full ranges for line 2
-    edge2 = overlap.line2.overlap
-    range2_a = overlap.line2.range_a
-    range2_b = overlap.line2.range_b
-
-    # Fist traverse down left vertical edge, then find potential crossing point
-    # at lower horizontal edge, then up right vertical edge and finally
-    # potential crossing point at top horizontal edge.
-
-    # 1. Left vertical edge overlap
-    for local_node_ix in edge1
-        push!(node_pos, l1.nodes[local_node_ix])
-    end
-
-    # 2. Potential crossing point at lower horizontal edge
-    a1_l = range1_a[end]
-    b1_l = range1_b[end]
-    a2_l = range2_a[end]
-    b2_l = range2_b[end]
-    a_above_left_b_above_right = a1_l < b1_l && a2_l > b2_l
-    b_above_left_a_above_right = a1_l > b1_l && a2_l < b2_l
-    if a_above_left_b_above_right || b_above_left_a_above_right
-        # Crossing between two top lines
-        l1_p1 = global_node_point(l1, a1_l)
-        l1_p2 = global_node_point(l2, a2_l)
-        l2_p1 = global_node_point(l1, b1_l)
-        l2_p2 = global_node_point(l2, b2_l)
-        bottom_edge_node = handle_crossing_node!(extra_node_lookup, nodes, l1_p1, l1_p2, l2_p1, l2_p2)
-        push!(node_pos, bottom_edge_node)
-    end
-
-    # 3. Reverse traversal of right edge
-    for local_node_ix in reverse(overlap.line2.overlap)
-        push!(node_pos, l2.nodes[local_node_ix])
-    end
-
-    # 4. Finally potential crossing point at top horizontal edge
-    a1_t = range1_a[1]
-    b1_t = range1_b[1]
-    a2_t = range2_a[1]
-    b2_t = range2_b[1]
-
-    a_above_left_b_above_right = a1_t < b1_t && a2_t > b2_t
-    b_above_left_a_above_right = a1_t > b1_t && a2_t < b2_t
-
-    if a_above_left_b_above_right || b_above_left_a_above_right
-        l1_p1 = global_node_point(l1, a1_t)
-        l1_p2 = global_node_point(l2, a2_t)
-        l2_p1 = global_node_point(l1, b1_t)
-        l2_p2 = global_node_point(l2, b2_t)
-        bottom_edge_node = handle_crossing_node!(extra_node_lookup, nodes, l1_p1, l1_p2, l2_p1, l2_p2)
-        push!(node_pos, bottom_edge_node)
-    end
-end
-
-function handle_no_overlapping_edges(node_pos, extra_node_lookup, nodes, cell_a, cell_b, l1, l2, overlap, global_node_point)
-    # Full ranges for line 1
-    edge1 = overlap.line1.overlap
-    range1_a = overlap.line1.range_a
-    range1_b = overlap.line1.range_b
-    # Full ranges for line 2
-    edge2 = overlap.line2.overlap
-    range2_a = overlap.line2.range_a
-    range2_b = overlap.line2.range_b
-
-    first_and_last(x) = (first(x), last(x))
-    a1_t, a1_l = first_and_last(range1_a)
-    a2_t, a2_l = first_and_last(range2_a)
-    b1_t, b1_l = first_and_last(range1_b)
-    b2_t, b2_l = first_and_last(range2_b)
-
-    # Lower nodes
-    l1_p1_l = global_node_point(l1, a1_l)
-    l1_p2_l = global_node_point(l2, a2_l)
-    l2_p1_l = global_node_point(l1, b1_l)
-    l2_p2_l = global_node_point(l2, b2_l)
-    # Top nodes
-    l1_p1_t = global_node_point(l1, a1_t)
-    l1_p2_t = global_node_point(l2, a2_t)
-    l2_p1_t = global_node_point(l1, b1_t)
-    l2_p2_t = global_node_point(l2, b2_t)
-
-    # lower to lower
-    n_ll = handle_crossing_node!(extra_node_lookup, nodes, l1_p1_l, l1_p2_l, l2_p1_l, l2_p2_l)
-    push!(node_pos, n_ll)
-
-    # lower [1] to top [2]
-    n_lt = handle_crossing_node!(extra_node_lookup, nodes, l1_p1_l, l1_p2_l, l2_p1_t, l2_p2_t)
-    push!(node_pos, n_lt)
-
-    # top to top 
-    n_tt = handle_crossing_node!(extra_node_lookup, nodes, l1_p1_t, l1_p2_t, l2_p1_t, l2_p2_t)
-    push!(node_pos, n_tt)
-
-    # top [1] to lower [2]
-    n_tl = handle_crossing_node!(extra_node_lookup, nodes, l1_p1_t, l1_p2_t, l2_p1_l, l2_p2_l)
-    push!(node_pos, n_tl)
-end
-
-function handle_generic_intersections!(node_pos, extra_node_lookup, nodes, cell_a, cell_b, l1, l2, overlap, global_node_point)
+function handle_generic_intersections!(node_pos, extra_node_lookup, nodes, cell_a, cell_b, l1, l2, overlap, global_node_point_and_index)
     # Full ranges for line 1
     edge1 = overlap.line1.overlap
     range1_a = overlap.line1.range_a
@@ -268,22 +163,11 @@ function handle_generic_intersections!(node_pos, extra_node_lookup, nodes, cell_
     al_before_bl_2, matching_ll_2 = pos_diff(a2_l, b2_l)
 
     # Top nodes
-    a1_t_pt = global_node_point(l1, a1_t)
-    a2_t_pt = global_node_point(l2, a2_t)
-    b1_t_pt = global_node_point(l1, b1_t)
-    b2_t_pt = global_node_point(l2, b2_t)
-
-    line_top_a = (a1_t_pt, a2_t_pt)
-    line_top_b = (b1_t_pt, b2_t_pt)
-
+    line_top_a = local_line_data(l1, l2, a1_t, a2_t, global_node_point_and_index)
+    line_top_b = local_line_data(l1, l2, b1_t, b2_t, global_node_point_and_index)
     # Lower nodes
-    a1_l_pt = global_node_point(l1, a1_l)
-    a2_l_pt = global_node_point(l2, a2_l)
-    b1_l_pt = global_node_point(l1, b1_l)
-    b2_l_pt = global_node_point(l2, b2_l)
-
-    line_low_a = (a1_l_pt, a2_l_pt)
-    line_low_b = (b1_l_pt, b2_l_pt)
+    line_low_a = local_line_data(l1, l2, a1_l, a2_l, global_node_point_and_index)
+    line_low_b = local_line_data(l1, l2, b1_l, b2_l, global_node_point_and_index)
 
     if at_before_bt_1 != at_before_bt_2 && !(matching_tt_1 || matching_tt_2)
         @assert a1_t != b1_t
@@ -336,9 +220,25 @@ function handle_generic_intersections!(node_pos, extra_node_lookup, nodes, cell_
     return node_pos
 end
 
+function local_line_data(l1, l2, a1, a2, global_node_point_and_index)
+    a1_pt, a1_node_idx = global_node_point_and_index(l1, a1)
+    a2_pt, a2_node_idx = global_node_point_and_index(l2, a2)
+
+    return (points = (a1_pt, a2_pt), index = (a1_node_idx, a2_node_idx))
+end
+
 function handle_crossing_node!(extra_node_lookup, nodes, line_a, line_b)
-    pt = find_crossing_node(line_a, line_b)
-    return cpgrid_get_or_add_crossing_node!(extra_node_lookup, nodes, pt)
+    pt = find_crossing_node(line_a.points, line_b.points)
+    # The crossing node might coincide with the endpoints of the a/b lines. We
+    # can then return them instead.
+    for line in (line_a, line_b)
+        for i in 1:2
+            if norm(pt - line.points[i], 2) < 1e-12
+                return line.index[i]
+            end
+        end
+    end
+    return cpgrid_get_or_add_crossing_node!(extra_node_lookup, nodes, pt, line_a, line_b)
 end
 
 function find_crossing_node(l1, l2)
@@ -371,7 +271,7 @@ function find_crossing_node(x1, x2, x3, x4)
     return x1 + t * a
 end
 
-function cpgrid_get_or_add_crossing_node!(extra_node_lookup, nodes, pt)
+function cpgrid_get_or_add_crossing_node!(extra_node_lookup, nodes, pt, line1, line2)
     function to_float(x::Float64)
         return x
     end
@@ -386,16 +286,22 @@ function cpgrid_get_or_add_crossing_node!(extra_node_lookup, nodes, pt)
         return x
     end
     pt = map(to_float, pt)
+    l1_ref = tuple_sort(line1.index)
+    l2_ref = tuple_sort(line2.index)
     if haskey(extra_node_lookup, pt)
-        ix = extra_node_lookup[pt]
+        ix, l1, l2 = extra_node_lookup[pt]
+        ok_fwd = l1 == l1_ref && l2 == l2_ref
+        ok_rev = l1 == l2_ref && l2 == l1_ref
+        if !(ok_fwd || ok_rev)
+            @warn "Expected pairs $l1 $l2 to match $l1_ref $l2_ref for stored point $pt" ok_fwd ok_rev
+        end
     else
         push!(nodes, pt)
         ix = length(nodes)
-        extra_node_lookup[pt] = ix
+        extra_node_lookup[pt] = (ix, l1_ref, l2_ref)
     end
     return ix
 end
-
 
 function find_linepair_overlap(pos_a, pos_b)
     function find_end(a, b, s::Symbol)
@@ -493,3 +399,10 @@ function determine_cell_overlap_inside_line(a_start, a_stop, b_start, b_stop)
     return (out[1], out[2], a_range, b_range)
 end
 
+function tuple_sort(t::Tuple{Int, Int})
+    a, b = t
+    if a > b
+        t = (b, a)
+    end
+    return t
+end

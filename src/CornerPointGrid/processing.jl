@@ -55,7 +55,11 @@ function cpgrid_primitives(coord, zcorn, cartdims; actnum = missing)
         end
     end
 
-    function generate_line(p1, p2, is_active)
+    function linear_line_ix(i, j)
+        return ij_to_linear(i, j, (nlinex, nliney))
+    end
+
+    function generate_line(p1, p2, is_active, idx)
         T_coord = promote_type(eltype(p1), eltype(p2), typeof(z_mean))
         if is_active
             line_length_hint = 2*8*(nz + 1)
@@ -71,6 +75,7 @@ function cpgrid_primitives(coord, zcorn, cartdims; actnum = missing)
 
         return (
             z = z,
+            line_index = idx,
             cells = cells,
             cellpos = cellpos,
             nodes = nodes,
@@ -83,7 +88,7 @@ function cpgrid_primitives(coord, zcorn, cartdims; actnum = missing)
     end
     # active_lines = BitArray(undef, nlinex, nliney)
     x1, x2 = get_line(coord, 1, 1, nlinex, nliney)
-    line0 = generate_line(x1, x2, false)
+    line0 = generate_line(x1, x2, false, 1)
     function boundary_index(i, j, is_top)
         if is_top
             layer_offset = -(2*nx*ny*nz)
@@ -104,13 +109,12 @@ function cpgrid_primitives(coord, zcorn, cartdims; actnum = missing)
         return cell
     end
 
-    linear_line_ix(i, j) = ij_to_linear(i, j, (nlinex, nliney))
     L_t = typeof(line0)
     lines = Matrix{L_t}(undef, nlinex, nliney)
     for i in 1:nlinex
         for j in 1:nliney
             p1, p2 = get_line(coord, i, j, nlinex, nliney)
-            lines[i, j] = generate_line(p1, p2, active_lines[i, j])
+            lines[i, j] = generate_line(p1, p2, active_lines[i, j], linear_line_ix(i, j))
         end
     end
     for i = 1:nx
@@ -288,7 +292,7 @@ function cpgrid_primitives(coord, zcorn, cartdims; actnum = missing)
             end
         end
     end
-    # Get a normal vector to estimate the direction of the coordiante system
+    # Get a normal vector to estimate the direction of the coordinate system
     x1_l, = get_line(coord, 2, 1, nlinex, nliney)
     x1_r, = get_line(coord, 1, 2, nlinex, nliney)
     coord_normal = cross(x1_l - x1, x1_r - x1)
@@ -360,6 +364,7 @@ function process_lines!(lines; sort_alg = QuickSort)
             end
             ix = pos[1:end-1]
             unique_z = line.z[ix]
+            # TODO: Add merging of nodes based on ztol here?
             # Put back the unique points only
             resize!(line.z, 0)
             for z_i in unique_z
@@ -408,103 +413,18 @@ function grid_from_primitives(primitives; nnc = missing, pinch = missing)
     nlinex = nx+1
     nliney = ny+1
 
-    # Lookup for extra nodes that are not in the pillars but are made due to intersections over faults.
-    # The Float64 type is intentional.
-    extra_node_lookup = Dict{SVector{3, Float64}, Int}()
-
-    # Create pinch maps
-    pinch_top_to_bottom, pinch_bottom_to_top = generate_pinch_map(pinch, primitives, lines, column_lines, columns)
-
-    # Horizontal faces (top/bottom and faces along column)
+    # Lookup for extra nodes that are not in the set of all nodes on the pillars
+    # but are made due to intersections over faults. The Float64 type is
+    # intentional as the key is used to look up values. The value is interpreted
+    # as (Node, (n1_first, n1_second), (n2_first, n2_second)) the added
+    # coordinate point is associated with and the two tuples represent the nodal
+    # indices of the two lines that are crossing (sorted by low to high in each
+    # tuple).
+    Num_pt_T = SVector{3, Float64}
+    extra_node_lookup = Dict{Num_pt_T, Tuple{Int, Tuple{Int, Int}, Tuple{Int, Int}}}()
     node_buffer = Int[]
     sizehint!(node_buffer, 10)
-    for (cl, col) in zip(column_lines, columns)
-        number_of_cells_in_column = length(col.cells)
-        current_column_lines = map(l -> lines[l], cl)
-        for (i, cell) in enumerate(col.cells)
-            if cell_is_boundary(cell)
-                continue
-            end
-            if i == 1
-                prev = 0
-            else
-                prev = col.cells[i-1]
-            end
-            if i == number_of_cells_in_column
-                next = 0
-            else
-                next = col.cells[i+1]
-            end
-            top_is_boundary = cell_is_boundary(prev)
-            bottom_is_boundary = cell_is_boundary(next)
-            cell_bnds = map(l -> find_cell_bounds(cell, l), current_column_lines)
-            for is_top in (true, false)
-                if is_top
-                    if !top_is_boundary
-                        # Avoid adding interior faces twice.
-                        continue
-                    end
-                    is_bnd = top_is_boundary
-                    F = first
-                    c1 = prev
-                    c2 = cell
-                    ft = :top
-                else
-                    is_bnd = bottom_is_boundary
-                    F = last
-                    c1 = cell
-                    c2 = next
-                    ft = :bottom
-                end
-                # Pinch treatment
-                if haskey(pinch_top_to_bottom, c1)
-                    # If the there is a mapping (going down) from c1 to some
-                    # other cell due to pinch we should not add anything.
-                    @assert cell_is_boundary(c2)
-                    continue
-                end
-                if haskey(pinch_bottom_to_top, c2)
-                    # If the there is a mapping (going up) from c2 to some
-                    # other cell due to pinch we should not add anything.
-                    @assert cell_is_boundary(c1)
-                    continue
-                end
-                # Index into pillars
-                node_in_pillar_indices = map(F, cell_bnds)
-                # Then find the global node indices
-                node_indices = map((line, i) -> line.nodes[i], current_column_lines, node_in_pillar_indices)
-                insert_face!(I_faces, B_faces, c1, c2, node_indices, is_vertical = false, is_boundary = is_bnd, is_idir = false, face_type = ft)
-            end
-        end
-    end
-    # We skipped a bunch faces that belonged to pinched layers. Time to add them
-    # back in by systematically going through the pinch list.
-    num_pinched = length(keys(pinch_top_to_bottom))
-    pinched_faces = Int[]
-    if num_pinched > 0
-        pinch_count = 0
-        for (cl, col) in zip(column_lines, columns)
-            number_of_cells_in_column = length(col.cells)
-            current_column_lines = map(l -> lines[l], cl)
-            cl::Tuple{Int, Int, Int, Int}
-            @assert length(current_column_lines) == 4
-            for top_cell in col.cells
-                cell_bnds = map(l -> find_cell_bounds(top_cell, l), current_column_lines)
-                bottom_cell = get(pinch_top_to_bottom, top_cell, nothing)
-                if isnothing(bottom_cell)
-                    continue
-                end
-                node_in_pillar_indices = map(last, cell_bnds)
-                # Then find the global node indices
-                node_indices = map((line, i) -> line.nodes[i], current_column_lines, node_in_pillar_indices)
-                # faceno index maps to the next face inserted
-                push!(pinched_faces, length(I_faces.face_pos))
-                insert_face!(I_faces, B_faces, top_cell, bottom_cell, node_indices, is_vertical = false, is_boundary = false, is_idir = false, face_type = :bottom)
-                pinch_count += 1
-            end
-        end
-        @assert num_pinched == pinch_count
-    end
+
     # Vertical faces
     T = @NamedTuple{cell::Int, line1::Tuple{Int, Int}, line2::Tuple{Int, Int}}
     ord_a = T[]
@@ -565,6 +485,103 @@ function grid_from_primitives(primitives; nnc = missing, pinch = missing)
                 end
             end
         end
+    end
+
+    # Create pinch maps
+    pinch_top_to_bottom, pinch_bottom_to_top = generate_pinch_map(pinch, primitives, lines, column_lines, columns)
+
+    # Create mapping of extra added nodes
+    extra_edge_node_map = generate_top_bottom_node_edge_map(nodes, extra_node_lookup)
+
+    # Horizontal faces (top/bottom and faces along column)
+    for (cl, col) in zip(column_lines, columns)
+        number_of_cells_in_column = length(col.cells)
+        current_column_lines = map(l -> lines[l], cl)
+        for (i, cell) in enumerate(col.cells)
+            if cell_is_boundary(cell)
+                continue
+            end
+            if i == 1
+                prev = 0
+            else
+                prev = col.cells[i-1]
+            end
+            if i == number_of_cells_in_column
+                next = 0
+            else
+                next = col.cells[i+1]
+            end
+            top_is_boundary = cell_is_boundary(prev)
+            bottom_is_boundary = cell_is_boundary(next)
+            cell_bnds = map(l -> find_cell_bounds(cell, l), current_column_lines)
+            for is_top in (true, false)
+                if is_top
+                    if !top_is_boundary
+                        # Avoid adding interior faces twice.
+                        continue
+                    end
+                    is_bnd = top_is_boundary
+                    F = first
+                    c1 = prev
+                    c2 = cell
+                    ft = :top
+                else
+                    is_bnd = bottom_is_boundary
+                    F = last
+                    c1 = cell
+                    c2 = next
+                    ft = :bottom
+                end
+                # Pinch treatment
+                if haskey(pinch_top_to_bottom, c1)
+                    # If the there is a mapping (going down) from c1 to some
+                    # other cell due to pinch we should not add anything.
+                    @assert cell_is_boundary(c2)
+                    continue
+                end
+                if haskey(pinch_bottom_to_top, c2)
+                    # If the there is a mapping (going up) from c2 to some
+                    # other cell due to pinch we should not add anything.
+                    @assert cell_is_boundary(c1)
+                    continue
+                end
+                # Index into pillars
+                node_in_pillar_indices = map(F, cell_bnds)
+                # Then find the global node indices
+                node_indices = map((line, i) -> line.nodes[i], current_column_lines, node_in_pillar_indices)
+                node_indices = add_extra_nodes_to_horizontal_edge(node_indices, extra_edge_node_map)
+                insert_face!(I_faces, B_faces, c1, c2, node_indices, is_vertical = false, is_boundary = is_bnd, is_idir = false, face_type = ft)
+            end
+        end
+    end
+    # We skipped a bunch faces that belonged to pinched layers. Time to add them
+    # back in by systematically going through the pinch list.
+    num_pinched = length(keys(pinch_top_to_bottom))
+    pinched_faces = Int[]
+    if num_pinched > 0
+        pinch_count = 0
+        for (cl, col) in zip(column_lines, columns)
+            number_of_cells_in_column = length(col.cells)
+            current_column_lines = map(l -> lines[l], cl)
+            cl::Tuple{Int, Int, Int, Int}
+            @assert length(current_column_lines) == 4
+            for top_cell in col.cells
+                cell_bnds = map(l -> find_cell_bounds(top_cell, l), current_column_lines)
+                bottom_cell = get(pinch_top_to_bottom, top_cell, nothing)
+                if isnothing(bottom_cell)
+                    continue
+                end
+                node_in_pillar_indices = map(last, cell_bnds)
+                # Then find the global node indices
+                node_indices = map((line, i) -> line.nodes[i], current_column_lines, node_in_pillar_indices)
+                node_indices = add_extra_nodes_to_horizontal_edge(node_indices, extra_edge_node_map)
+                # faceno index maps to the next face inserted
+                push!(pinched_faces, length(I_faces.face_pos))
+                insert_face!(I_faces, B_faces, top_cell, bottom_cell, node_indices, is_vertical = false, is_boundary = false, is_idir = false, face_type = :bottom)
+                pinch_count += 1
+            end
+        end
+        @assert num_pinched == pinch_count
     end
 
     function convert_to_flat(v)
@@ -866,3 +883,76 @@ function find_next_gap(cells, start)
     end
     return (next_negative, next_positive, next_positive == n)
 end
+
+const TB_NODE_EDGE_MAP = Dict{Tuple{Int, Int}, Vector{Int}}
+
+function generate_top_bottom_node_edge_map(node_coord, extra_node_lookup::Dict)
+    # We know of the extra nodes that have been added together with their index
+    # and the index of the two lines that they belong to. We have to create the
+    # map that have them sorted from start to finish for each edge for use in
+    # the assembly.
+    out = TB_NODE_EDGE_MAP()
+    for tup in values(extra_node_lookup)
+        node_idx, l1, l2 = tup
+        for line in (l1, l2)
+            dest = get(out, line, missing)
+            if ismissing(dest)
+                out[line] = [node_idx]
+            else
+                push!(dest, node_idx)
+            end
+        end
+    end
+    # Then we sort all the line edges from start to finish
+    for (edge, added_nodes) in pairs(out)
+        start = first(edge)
+        start_pt = node_coord[start]
+        sort!(added_nodes, by = idx -> norm(node_coord[idx] - start_pt))
+    end
+    return out
+end
+
+function add_extra_nodes_to_horizontal_edge(node_indices::NTuple{4, Int}, extra_edge_node_map::TB_NODE_EDGE_MAP)
+    # Add extra nodes to the horizontal edge if there are any. We have to check
+    # for each of the four edges if there are any extra nodes and add them in
+    # the correct order. They are stored in the map sorted from start to end, so
+    # we just have to figure out the correct direction to add them in.
+    function extra_nodes(i, j)
+        ni = node_indices[i]
+        nj = node_indices[j]
+        el = tuple_sort((ni, nj))
+        rev = el[1] == ni
+        v = get(extra_edge_node_map, el, missing)
+        return (v, rev)
+    end
+    extra_12, rev_12 = extra_nodes(1, 2)
+    extra_23, rev_23 = extra_nodes(2, 3)
+    extra_34, rev_34 = extra_nodes(3, 4)
+    extra_41, rev_41 = extra_nodes(4, 1)
+
+    if ismissing(extra_12) && ismissing(extra_23) && ismissing(extra_34) && ismissing(extra_41)
+        return node_indices
+    end
+    function add_extra!(dest, ::Missing, rev)
+        return dest
+    end
+    function add_extra!(dest, extra, rev)
+        if rev
+            append!(dest, Iterators.reverse(extra))
+        else
+            append!(dest, extra)
+        end
+        return dest
+    end
+    new_nodes = Int[node_indices[1]]
+    add_extra!(new_nodes, extra_12, rev_12)
+    push!(new_nodes, node_indices[2])
+    add_extra!(new_nodes, extra_23, rev_23)
+    push!(new_nodes, node_indices[3])
+    add_extra!(new_nodes, extra_34, rev_34)
+    push!(new_nodes, node_indices[4])
+    add_extra!(new_nodes, extra_41, rev_41)
+
+    return new_nodes
+end
+

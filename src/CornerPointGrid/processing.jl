@@ -754,7 +754,7 @@ function insert_boundary_face!(B_faces, prev_cell, cell, nodes, is_vertical, is_
         # These need to be flipped to get right oriented normals. A better fix
         # is likely possible by having a careful look at the orientation of
         # vertical boundary faces in the interior.
-        nodes = reverse(nodes)
+        nodes = collect(Base.Iterators.Reverse(nodes))
     end
     boundary_faceno = length(B_faces.face_pos)
     add_face_from_nodes!(B_faces.faces, B_faces.face_pos, nodes, B_faces.flipped)

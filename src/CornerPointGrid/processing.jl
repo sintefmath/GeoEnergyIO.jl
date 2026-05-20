@@ -549,6 +549,9 @@ function grid_from_primitives(primitives; nnc = missing, pinch = missing)
                 node_in_pillar_indices = map(F, cell_bnds)
                 # Then find the global node indices
                 node_indices = map((line, i) -> line.nodes[i], current_column_lines, node_in_pillar_indices)
+                if is_bnd && is_top
+                    node_indices = reverse(node_indices)
+                end
                 node_indices = add_extra_nodes_to_horizontal_edge(node_indices, extra_edge_node_map)
                 insert_face!(I_faces, B_faces, c1, c2, node_indices, is_vertical = false, is_boundary = is_bnd, is_idir = false, face_type = ft)
             end
@@ -746,7 +749,16 @@ function insert_boundary_face!(B_faces, prev_cell, cell, nodes, is_vertical, is_
         self = cell
     else
         self = prev_cell
+        # nodes = reverse(nodes)
+    end
+    if face_type == :lower
         nodes = reverse(nodes)
+    end
+    if orient && face_type == :right
+        # nodes = reverse(nodes)
+    end
+    if !orient && face_type == :left
+        # nodes = reverse(nodes)
     end
     boundary_faceno = length(B_faces.face_pos)
     add_face_from_nodes!(B_faces.faces, B_faces.face_pos, nodes, B_faces.flipped)

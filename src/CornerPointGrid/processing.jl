@@ -450,8 +450,8 @@ function grid_from_primitives(primitives; nnc = missing, pinch = missing)
             col_a = columns[a]
             col_b = columns[b]
 
-            F_interior = (l, r, node_indices) -> insert_face!(I_faces, B_faces, l, r, node_indices, is_boundary = false, is_vertical = true, is_idir = is_idir, face_type = conn_type)
-            F_bnd = (l, r, node_indices) -> insert_face!(I_faces, B_faces, l, r, node_indices, is_boundary = true, is_vertical = true, is_idir = is_idir, face_type = conn_type)
+            F_interior = (l, r, node_indices, rev) -> insert_face!(I_faces, B_faces, l, r, node_indices, is_boundary = false, is_vertical = true, is_idir = is_idir, face_type = conn_type, rev = rev)
+            F_bnd = (l, r, node_indices, rev) -> insert_face!(I_faces, B_faces, l, r, node_indices, is_boundary = true, is_vertical = true, is_idir = is_idir, face_type = conn_type, rev = rev)
 
             cell_top_bottom!(ord_a, col_a.cells, l1, l2)
             cell_top_bottom!(ord_b, col_b.cells, l1, l2)
@@ -478,7 +478,7 @@ function grid_from_primitives(primitives; nnc = missing, pinch = missing)
                     end
                     if col_is_bnd || pair_is_bnd
                         # Boundary if we are on a boundary column or one of the cells connected to the face is a boundary
-                        add_vertical_face_from_overlap!(extra_node_lookup, F_bnd, nodes, cell_pair, overlap, l1, l2, node_buffer)
+                        add_vertical_face_from_overlap!(extra_node_lookup, F_bnd, nodes, cell_pair, overlap, l1, l2, node_buffer, pair_is_bnd)
                     else
                         add_vertical_face_from_overlap!(extra_node_lookup, F_interior, nodes, cell_pair, overlap, l1, l2, node_buffer)
                     end
@@ -549,8 +549,11 @@ function grid_from_primitives(primitives; nnc = missing, pinch = missing)
                 node_in_pillar_indices = map(F, cell_bnds)
                 # Then find the global node indices
                 node_indices = map((line, i) -> line.nodes[i], current_column_lines, node_in_pillar_indices)
+                if is_bnd && is_top
+                    node_indices = reverse(node_indices)
+                end
                 node_indices = add_extra_nodes_to_horizontal_edge(node_indices, extra_edge_node_map)
-                insert_face!(I_faces, B_faces, c1, c2, node_indices, is_vertical = false, is_boundary = is_bnd, is_idir = false, face_type = ft)
+                insert_face!(I_faces, B_faces, c1, c2, node_indices, is_vertical = false, is_boundary = is_bnd, is_idir = false, face_type = ft, rev = false)
             end
         end
     end
@@ -577,7 +580,7 @@ function grid_from_primitives(primitives; nnc = missing, pinch = missing)
                 node_indices = add_extra_nodes_to_horizontal_edge(node_indices, extra_edge_node_map)
                 # faceno index maps to the next face inserted
                 push!(pinched_faces, length(I_faces.face_pos))
-                insert_face!(I_faces, B_faces, top_cell, bottom_cell, node_indices, is_vertical = false, is_boundary = false, is_idir = false, face_type = :bottom)
+                insert_face!(I_faces, B_faces, top_cell, bottom_cell, node_indices, is_vertical = false, is_boundary = false, is_idir = false, face_type = :bottom, rev = false)
                 pinch_count += 1
             end
         end
@@ -738,7 +741,7 @@ function add_face_from_nodes!(V, Vpos, nodes, flipped)
     push!(Vpos, length(nodes) + Vpos[end])
 end
 
-function insert_boundary_face!(B_faces, prev_cell, cell, nodes, is_vertical, is_idir, face_type)
+function insert_boundary_face!(B_faces, prev_cell, cell, nodes, is_vertical, is_idir, face_type, rev)
     cell_is_boundary(x) = x < 1
     orient = cell_is_boundary(prev_cell) && !cell_is_boundary(cell)
     @assert orient || (cell_is_boundary(cell) && !cell_is_boundary(prev_cell)) "cell pair $((cell, prev_cell)) is not on boundary"
@@ -746,7 +749,12 @@ function insert_boundary_face!(B_faces, prev_cell, cell, nodes, is_vertical, is_
         self = cell
     else
         self = prev_cell
-        nodes = reverse(nodes)
+    end
+    if (rev && orient) || face_type == :lower
+        # These need to be flipped to get right oriented normals. A better fix
+        # is likely possible by having a careful look at the orientation of
+        # vertical boundary faces in the interior.
+        nodes = collect(Base.Iterators.Reverse(nodes))
     end
     boundary_faceno = length(B_faces.face_pos)
     add_face_from_nodes!(B_faces.faces, B_faces.face_pos, nodes, B_faces.flipped)
@@ -796,10 +804,11 @@ function insert_interior_face!(I_faces, prev_cell, cell, nodes, is_vertical, is_
     return I_faces
 end
 
-function insert_face!(I_faces, B_faces, prev_cell, cell, nodes; is_boundary, is_vertical, is_idir, face_type)
+function insert_face!(I_faces, B_faces, prev_cell, cell, nodes; is_boundary, is_vertical, is_idir, face_type, rev)
     if is_boundary
-        insert_boundary_face!(B_faces, prev_cell, cell, nodes, is_vertical, is_idir, face_type)
+        insert_boundary_face!(B_faces, prev_cell, cell, nodes, is_vertical, is_idir, face_type, rev)
     else
+        @assert rev == false
         insert_interior_face!(I_faces, prev_cell, cell, nodes, is_vertical, is_idir, face_type)
     end
 end

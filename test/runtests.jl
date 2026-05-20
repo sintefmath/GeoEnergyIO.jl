@@ -7,6 +7,14 @@ import Jutul: number_of_cells, number_of_boundary_faces, number_of_faces, conver
 @testset "GeoEnergyIO.jl" begin
     import GeoEnergyIO.InputParser: clean_include_path, parse_defaulted_line
     import GeoEnergyIO.InputParser: parse_defaulted_group_well
+
+    function test_normals(g)
+        ok_bnd = Jutul.MeshQualityControl.check_normals(g, print = false, boundary = true)
+        @test length(ok_bnd) == 0
+        ok_int = Jutul.MeshQualityControl.check_normals(g, print = false, boundary = false)
+        @test length(ok_int) == 0
+    end
+
     @testset "InputParser" begin
         @test clean_include_path("", " MYFILE") == "MYFILE"
         @test clean_include_path("/some/path", " MYFILE") == joinpath("/some/path", "MYFILE")
@@ -57,6 +65,7 @@ import Jutul: number_of_cells, number_of_boundary_faces, number_of_faces, conver
         @test number_of_cells(g) == 300
         @test number_of_faces(g) == 740
         @test number_of_boundary_faces(g) == 320
+        test_normals(g)
     end
     @testset "SPE9" begin
         spe9_pth = test_input_file_path("SPE9", "SPE9.DATA")
@@ -75,6 +84,7 @@ import Jutul: number_of_cells, number_of_boundary_faces, number_of_faces, conver
         @test number_of_cells(g) == 9000
         @test number_of_faces(g) == 25665
         @test number_of_boundary_faces(g) == 2670
+        test_normals(g)
     end
     @testset "Basic GRDECL parsing" begin
         pth = test_input_file_path("grdecl", "1cell.txt")
@@ -84,6 +94,7 @@ import Jutul: number_of_cells, number_of_boundary_faces, number_of_faces, conver
         @test grdecl["ZCORN"] == [0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0]
         @test sum(grdecl["COORD"]) == 12.0
         @test only(grdecl["ACTNUM"]) == true
+        test_normals(g)
     end
 
     grdecl_cases = [
@@ -125,6 +136,14 @@ import Jutul: number_of_cells, number_of_boundary_faces, number_of_faces, conver
             @test nbf == nbf_ref
             @test nf == nf_ref
         end
+    end
+
+    @testset "face orientation" begin
+        name = "model3_5_5_5.txt"
+        pth = test_input_file_path("grdecl", name)
+        grdecl = parse_grdecl_file(pth)
+        g = mesh_from_grid_section(grdecl)
+        test_normals(g)
     end
 
     import GeoEnergyIO.CornerPointGrid: determine_cell_overlap_inside_line

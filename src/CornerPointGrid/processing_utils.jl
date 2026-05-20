@@ -163,22 +163,11 @@ function handle_generic_intersections!(node_pos, extra_node_lookup, nodes, cell_
     al_before_bl_2, matching_ll_2 = pos_diff(a2_l, b2_l)
 
     # Top nodes
-    a1_t_pt, a1_t_node_idx = global_node_point_and_index(l1, a1_t)
-    a2_t_pt, a2_t_node_idx = global_node_point_and_index(l2, a2_t)
-    b1_t_pt, b1_t_node_idx = global_node_point_and_index(l1, b1_t)
-    b2_t_pt, b2_t_node_idx = global_node_point_and_index(l2, b2_t)
-
-    line_top_a = (points = (a1_t_pt, a2_t_pt), index = (a1_t_node_idx, a2_t_node_idx))
-    line_top_b = (points = (b1_t_pt, b2_t_pt), index = (b1_t_node_idx, b2_t_node_idx))
-
+    line_top_a = local_line_data(l1, l2, a1_t, a2_t, global_node_point_and_index)
+    line_top_b = local_line_data(l1, l2, b1_t, b2_t, global_node_point_and_index)
     # Lower nodes
-    a1_l_pt, a1_l_node_idx = global_node_point_and_index(l1, a1_l)
-    a2_l_pt, a2_l_node_idx = global_node_point_and_index(l2, a2_l)
-    b1_l_pt, b1_l_node_idx = global_node_point_and_index(l1, b1_l)
-    b2_l_pt, b2_l_node_idx = global_node_point_and_index(l2, b2_l)
-
-    line_low_a = (points = (a1_l_pt, a2_l_pt), index = (a1_l_node_idx, a2_l_node_idx))
-    line_low_b = (points = (b1_l_pt, b2_l_pt), index = (b1_l_node_idx, b2_l_node_idx))
+    line_low_a = local_line_data(l1, l2, a1_l, a2_l, global_node_point_and_index)
+    line_low_b = local_line_data(l1, l2, b1_l, b2_l, global_node_point_and_index)
 
     if at_before_bt_1 != at_before_bt_2 && !(matching_tt_1 || matching_tt_2)
         @assert a1_t != b1_t
@@ -229,6 +218,13 @@ function handle_generic_intersections!(node_pos, extra_node_lookup, nodes, cell_
         end
     end
     return node_pos
+end
+
+function local_line_data(l1, l2, a1, a2, global_node_point_and_index)
+    a1_pt, a1_node_idx = global_node_point_and_index(l1, a1)
+    a2_pt, a2_node_idx = global_node_point_and_index(l2, a2)
+
+    return (points = (a1_pt, a2_pt), index = (a1_node_idx, a2_node_idx))
 end
 
 function handle_crossing_node!(extra_node_lookup, nodes, line_a, line_b)

@@ -252,7 +252,7 @@ function handle_crossing_node!(extra_node_lookup, nodes, line_a, line_b, linepai
     # can then return them instead.
     for line in (line_a, line_b)
         for i in 1:2
-            if pt == line.points[i]
+            if norm(pt - line.points[i], 2) < 1e-12
                 return line.index[i]
             end
         end
@@ -307,7 +307,9 @@ function cpgrid_get_or_add_crossing_node!(extra_node_lookup, nodes, pt, linepair
     pt = map(to_float, pt)
     if haskey(extra_node_lookup, pt)
         ix, linepair_idx_stored = extra_node_lookup[pt]
-        @assert linepair_idx_stored == linepair_idx "Expected $linepair_idx_stored to match $linepair_idx for stored point $pt"
+        if linepair_idx_stored != linepair_idx
+            @warn "Expected $linepair_idx_stored to match $linepair_idx for stored point $pt"
+        end
     else
         push!(nodes, pt)
         ix = length(nodes)

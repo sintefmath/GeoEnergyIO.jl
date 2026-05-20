@@ -490,6 +490,9 @@ function grid_from_primitives(primitives; nnc = missing, pinch = missing)
     # Create pinch maps
     pinch_top_to_bottom, pinch_bottom_to_top = generate_pinch_map(pinch, primitives, lines, column_lines, columns)
 
+    # Create mapping of extra added nodes
+    extra_edge_node_map = generate_top_bottom_node_edge_map(nodes, extra_node_lookup)
+
     # Horizontal faces (top/bottom and faces along column)
     for (cl, col) in zip(column_lines, columns)
         number_of_cells_in_column = length(col.cells)
@@ -877,4 +880,30 @@ function find_next_gap(cells, start)
         next_positive = next_positive + next_negative - 1
     end
     return (next_negative, next_positive, next_positive == n)
+end
+
+function generate_top_bottom_node_edge_map(node_coord, extra_node_lookup::Dict)
+    # We know of the extra nodes that have been added together with their index
+    # and the index of the two lines that they belong to. We have to create the
+    # map that have them sorted from start to finish for each edge for use in
+    # the assembly.
+    out = Dict{Tuple{Int, Int}, Vector{Int}}()
+    for tup in values(extra_node_lookup)
+        node_idx, l1, l2 = tup
+        for line in (l1, l2)
+            dest = get(out, line, missing)
+            if ismissing(dest)
+                out[line] = [node_idx]
+            else
+                push!(dest, node_idx)
+            end
+        end
+    end
+    # Then we sort all the line edges from start to finish
+    for (edge, added_nodes) in pairs(out)
+        start = first(edge)
+        start_pt = node_coord[start]
+        sort!(added_nodes, by = idx -> norm(node_coord[idx] - start_pt))
+    end
+    return out
 end

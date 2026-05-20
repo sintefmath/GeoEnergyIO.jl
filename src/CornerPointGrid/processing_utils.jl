@@ -406,3 +406,31 @@ function tuple_sort(t::Tuple{Int, Int})
     end
     return t
 end
+
+function map_nodes_to_active(nodes, lists_of_nodes...)
+    active_nodes = Int[]
+    sizehint!(active_nodes, length(nodes))
+    for list in lists_of_nodes
+        for node in list
+            push!(active_nodes, node)
+        end
+    end
+    active_nodes = sort(unique!(active_nodes))
+    new_node_indices = zeros(Int, length(nodes))
+    for (new_idx, old_idx) in enumerate(active_nodes)
+        new_node_indices[old_idx] = new_idx
+    end
+    new_nodes = nodes[active_nodes]
+    return new_nodes, new_node_indices
+end
+
+function remap_to_active_nodes!(lists_of_nodes::Vector{Int}, new_node_indices::Vector{Int})
+    for (i, node) in enumerate(lists_of_nodes)
+        new_ind = new_node_indices[node]
+        if new_ind < 1
+            error("Node $node is not active and cannot be remapped")
+        end
+        lists_of_nodes[i] = new_ind
+    end
+    return lists_of_nodes
+end

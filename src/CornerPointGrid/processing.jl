@@ -598,6 +598,13 @@ function grid_from_primitives(primitives; nnc = missing, pinch = missing)
         return (flat_vals, flat_pos)
     end
 
+    # We now have several nodes that potentially are not connected to any face.
+    # We need to remove those and remap the node indices in the faces to match
+    # the new node list.
+    nodes, new_node_indices = map_nodes_to_active(nodes, I_faces.faces, B_faces.faces)
+    remap_to_active_nodes!(I_faces.faces, new_node_indices)
+    remap_to_active_nodes!(B_faces.faces, new_node_indices)
+
     c2f, c2f_pos = convert_to_flat(I_faces.cell_faces)
     b2f, b2f_pos = convert_to_flat(B_faces.cell_faces)
 
@@ -610,7 +617,7 @@ function grid_from_primitives(primitives; nnc = missing, pinch = missing)
         I_faces.face_pos,
         B_faces.faces,
         B_faces.face_pos,
-        primitives.nodes,
+        nodes,
         I_faces.neighbors,
         B_faces.neighbors,;
         structure = CartesianIndex(cartdims[1], cartdims[2], cartdims[3]),

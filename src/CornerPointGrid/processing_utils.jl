@@ -180,7 +180,6 @@ function handle_generic_intersections!(node_pos, extra_node_lookup, nodes, cell_
     line_low_a = (points = (a1_l_pt, a2_l_pt), index = (a1_l_node_idx, a2_l_node_idx))
     line_low_b = (points = (b1_l_pt, b2_l_pt), index = (b1_l_node_idx, b2_l_node_idx))
 
-    linepair_idx = line_pair_index(l1, l2)
     if at_before_bt_1 != at_before_bt_2 && !(matching_tt_1 || matching_tt_2)
         @assert a1_t != b1_t
         @assert a2_t != b2_t
@@ -230,20 +229,6 @@ function handle_generic_intersections!(node_pos, extra_node_lookup, nodes, cell_
         end
     end
     return node_pos
-end
-
-function line_pair_index(l1::NamedTuple, l2::NamedTuple)
-    i1 = l1.line_index
-    i2 = l2.line_index
-    return line_pair_index(i1, i2)
-end
-
-function line_pair_index(i1::Int, i2::Int)
-    @assert i1 != i2
-    if i1 > i2
-        i1, i2 = i2, i1
-    end
-    return (i1, i2)
 end
 
 function handle_crossing_node!(extra_node_lookup, nodes, line_a, line_b)

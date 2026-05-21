@@ -30,7 +30,6 @@ indicating if a cell is to be included in the processed mesh.
   than or equal to `ztol`, they will be considered the same for purposes of
   generating faces.
 """
-
 function mesh_from_grid_section(f;
         actnum = missing,
         repair_zcorn = true,

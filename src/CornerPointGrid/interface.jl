@@ -22,7 +22,7 @@ ZCORN array will be mutated during fixing to avoid a copy.
 """
 function mesh_from_grid_section(f; actnum = missing, repair_zcorn = true, process_pinch = true)
     if f isa String
-        f = InputParser.parse_grdecl_file(f)
+        f = parse_grdecl_file(f)
     end
     f::AbstractDict
     if haskey(f, "GRID")

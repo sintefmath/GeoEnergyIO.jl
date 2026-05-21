@@ -12,6 +12,7 @@ module CornerPointGrid
     import Jutul: jutul_message
     import StaticArrays: SVector
     import LinearAlgebra: cross, dot, norm
+    import GeoEnergyIO.InputParser: parse_grdecl_file
     export mesh_from_grid_section
     include("interface.jl")
     include("processing.jl")

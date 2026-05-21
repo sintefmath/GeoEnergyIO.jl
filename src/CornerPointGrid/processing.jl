@@ -1,4 +1,4 @@
-function cpgrid_primitives(coord, zcorn, cartdims; actnum = missing)
+function cpgrid_primitives(coord, zcorn, cartdims; actnum = missing, ztol = DEFAULT_ZTOL)
     # Add all lines that have at least one active neighbor
     coord = reshape(coord, 6, :)'
     nx, ny, nz = cartdims
@@ -169,7 +169,7 @@ function cpgrid_primitives(coord, zcorn, cartdims; actnum = missing)
     end
 
     # Process lines and merge similar nodes
-    nodes, lines_active = process_lines!(lines)
+    nodes, lines_active = process_lines!(lines, ztol = ztol)
     # if true
     #     for i in eachindex(lines)
     #         if !lines_active[i]
@@ -312,7 +312,7 @@ function cpgrid_primitives(coord, zcorn, cartdims; actnum = missing)
     )
 end
 
-function process_lines!(lines; sort_alg = QuickSort)
+function process_lines!(lines; sort_alg = QuickSort, ztol = DEFAULT_ZTOL)
     if length(lines) > 0
         T = eltype(lines[1].z)
     else
@@ -320,7 +320,6 @@ function process_lines!(lines; sort_alg = QuickSort)
     end
     nodes = Vector{SVector{3, T}}()
     active_lines = BitVector(undef, length(lines))
-    node_counter = 1
     pbuf_int = Int[]
     pbuf_float = Float64[]
     function mypermute!(x, p, buf)
@@ -367,12 +366,22 @@ function process_lines!(lines; sort_alg = QuickSort)
             # TODO: Add merging of nodes based on ztol here?
             # Put back the unique points only
             resize!(line.z, 0)
-            for z_i in unique_z
-                push!(line.z, z_i)
-                push!(line.nodes, node_counter)
-                node_counter += 1
-                new_node = interp_coord(line, z_i)
-                push!(nodes, new_node)
+            for (idx, z_i) in enumerate(unique_z)
+                if idx > 1
+                    z_prev = unique_z[idx-1]
+                else
+                    z_prev = Inf
+                end
+                dz = abs(z_i - z_prev)
+                if dz > ztol
+                    new_node = interp_coord(line, z_i)
+                    push!(nodes, new_node)
+                    push!(line.z, z_i)
+                    push!(line.nodes, length(nodes))
+                else
+                    push!(line.nodes, line.nodes[end])
+                    push!(line.z, z_prev)
+                end
             end
         end
     end

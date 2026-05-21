@@ -13,14 +13,30 @@ Optionally the `actnum` can be specified separately. The `actnum` should have
 equal length to the number of logical cells in the grid with true/false
 indicating if a cell is to be included in the processed mesh.
 
-The additional argument `repair_zcorn` only applies when the grid is defined
-using COORD/ZCORN arrays. If set to `true`, the monotonicity of the ZCORN
-coordinates in each corner-point pillar will be checked and optionally fixed
-prior to mesh construction. Note that if non-monotone ZCORN are fixed, if the
-first input argument to this function is an already parsed data structure, the
-ZCORN array will be mutated during fixing to avoid a copy.
+# Additional keyword arguments
+
+- `repair_zcorn::Bool` only applies when the grid is defined using COORD/ZCORN
+  arrays. If set to `true`, the monotonicity of the ZCORN coordinates in each
+  corner-point pillar will be checked and optionally fixed prior to mesh
+  construction. Note that if non-monotone ZCORN are fixed, if the first input
+  argument to this function is an already parsed data structure, the ZCORN array
+  will be mutated during fixing to avoid a copy.
+- `process_pinch::Bool` only applies when the grid is defined using COORD/ZCORN
+  arrays. If set to `true`, PINCH will be applied to remove very thin cells, and
+  provide new vertical connections where such cells have been removed.
+- `ztol::Real` only applies when the grid is defined using COORD/ZCORN arrays.
+  This is the tolerance for determining if two z-coordinates in a corner-point
+  pillar are effectively the same. If the difference in z-coordinates is less
+  than or equal to `ztol`, they will be considered the same for purposes of
+  generating faces.
 """
-function mesh_from_grid_section(f; actnum = missing, repair_zcorn = true, process_pinch = true)
+
+function mesh_from_grid_section(f;
+        actnum = missing,
+        repair_zcorn = true,
+        process_pinch = true,
+        ztol = DEFAULT_ZTOL
+    )
     if f isa String
         f = parse_grdecl_file(f)
     end
@@ -40,7 +56,8 @@ function mesh_from_grid_section(f; actnum = missing, repair_zcorn = true, proces
             actnum = actnum,
             minpv_removed = minpv_removed,
             repair = repair_zcorn,
-            process_pinch = process_pinch
+            process_pinch = process_pinch,
+            ztol = ztol
         )
     else
         G = mesh_from_dxdydz_and_tops(grid, actnum = actnum)
@@ -59,7 +76,13 @@ function mesh_from_grid_section(f, actnum, repair_zcorn = true, process_pinch = 
     return mesh_from_grid_section(f, actnum = actnum, repair_zcorn = repair_zcorn, process_pinch = process_pinch)
 end
 
-function mesh_from_zcorn_and_coord(grid; actnum = missing, minpv_removed = missing, repair = true, process_pinch = true)
+function mesh_from_zcorn_and_coord(grid;
+        actnum = missing,
+        minpv_removed = missing,
+        repair = true,
+        process_pinch = true,
+        ztol = DEFAULT_ZTOL
+    )
     if ismissing(actnum)
         actnum, minpv_removed = get_effective_actnum(grid)
     end
@@ -69,7 +92,7 @@ function mesh_from_zcorn_and_coord(grid; actnum = missing, minpv_removed = missi
     if repair
         repair_zcorn!(zcorn, cartdims)
     end
-    primitives = cpgrid_primitives(coord, zcorn, cartdims, actnum = actnum)
+    primitives = cpgrid_primitives(coord, zcorn, cartdims, actnum = actnum, ztol = ztol)
     if process_pinch
         pinch = pinch_primitives(grid, minpv_removed)
     else

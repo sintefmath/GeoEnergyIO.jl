@@ -14,6 +14,10 @@ module CornerPointGrid
     import LinearAlgebra: cross, dot, norm
     import GeoEnergyIO.InputParser: parse_grdecl_file
     export mesh_from_grid_section
+    # Default ztol for determining if two z-coordinates are effectively the
+    # same in a corner-point pillar.
+    const DEFAULT_ZTOL = 0.0
+
     include("interface.jl")
     include("processing.jl")
     include("processing_utils.jl")

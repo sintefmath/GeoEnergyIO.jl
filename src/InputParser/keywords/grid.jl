@@ -1,6 +1,6 @@
 function parse_and_set_grid_data!(data, outer_data, units, cfg, f, k; unit = :id, T = Float64, default = zero(T))
-    bdims = get_boxdims(outer_data)
-    cdims = get_cartdims(outer_data)
+    bdims = Tuple(get_boxdims(outer_data))
+    cdims = Tuple(get_cartdims(outer_data))
     vals = parse_grid_vector(f, bdims, T)
     if unit != :id
         vals = swap_unit_system!(vals, units, Val(unit))

@@ -12,8 +12,12 @@ end
 
 function get_boxdims(outer_data)
     gdata = get_section(outer_data, :GRID, set_current = false)
-    box = gdata["CURRENT_BOX"]
-    dim = @. box.upper - box.lower + 1
+    if haskey(gdata, "CURRENT_BOX")
+        box = gdata["CURRENT_BOX"]
+        dim = @. box.upper - box.lower + 1
+    else
+        dim = get_cartdims(outer_data)
+    end
     return dim
 end
 

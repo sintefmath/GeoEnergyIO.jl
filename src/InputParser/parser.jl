@@ -272,11 +272,11 @@ function parse_data_file!(outer_data, filename, data = outer_data;
 end
 
 """
-    parse_grdecl_file("mygrid.grdecl"; actnum_path = missing, kwarg...)
+    parse_grdecl_file("mygrid.grdecl", dims; actnum_path = missing, kwarg...)
 
 Parse a GRDECL file separately from the full input file. Note that the GRID
 section does not contain units - passing the `input_units` keyword is therefore
-highly recommended.
+highly recommended. Passing the dimensions as a second argument is highly recommended.
 
 # Keyword arguments
  - `actnum_path=missing`: Path to ACTNUM file, if this is not included in the main file.
@@ -286,20 +286,27 @@ highly recommended.
  - `extra_paths`: List of extra paths to parse as a part of grid section, ex: `["PORO.inc", "PERM.inc"]`.
 
 """
-function parse_grdecl_file(filename;
+function parse_grdecl_file(filename, dims = missing;
         actnum_path = missing,
         input_units = :metric,
         extra_paths = String[],
         kwarg...
     )
     outer_data = Dict{String, Any}()
-    data = new_section(outer_data, :GRID)
+    data = get_section(outer_data, :GRID)
+    if ismissing(dims)
+        println("No dimensions provided, trying to parse from file...")
+    else
+        length(dims) == 3 || throw(ArgumentError("Expected dims to be a tuple of length 3, got length $(length(dims))"))
+        nx, ny, nz = dims
+        data["cartDims"] = [nx, ny, nz]
+    end
     parse_data_file!(outer_data, filename, data; input_units = input_units, kwarg...)
     if !ismissing(actnum_path)
         parse_data_file!(outer_data, actnum_path, data; input_units = input_units, kwarg...)
     end
     if !haskey(data, "ACTNUM")
-        data["ACTNUM"] = fill(true, data["cartDims"])
+        data["ACTNUM"] = fill(true, Tuple(data["cartDims"]))
     end
     for local_path in extra_paths
         if !ispath(local_path)

@@ -80,7 +80,7 @@ function cell_top_bottom!(out, cells, line1, line2; check = false)
     return out
 end
 
-function add_vertical_face_from_overlap!(extra_node_lookup, F, nodes, cell_pair, overlap, l1, l2, node_pos, reversed = false)
+function add_vertical_face_from_overlap!(extra_node_lookup, F, nodes, cell_pair, overlap, l1, l2, node_pos, reversed = false; is_boundary_col = false)
     resize!(node_pos, 0)
     function global_node_index(l, local_node)
         return l.nodes[local_node]
@@ -118,6 +118,13 @@ function add_vertical_face_from_overlap!(extra_node_lookup, F, nodes, cell_pair,
     if cell_a == cell_b
         # If both cells are the same, we are dealing with a mirrored
         # column pair at the boundary.
+        cell_a = 0
+    elseif is_boundary_col
+        # Sheared boundary column: the two boundary pillars land in different active
+        # cells (a within-column offset reaching the domain edge), so neither side is an
+        # inactive/ghost cell. It is still an external boundary face, so mark one side as
+        # outside and insert it as a boundary face owned by cell_b rather than a
+        # (nonexistent) interior connection between two active cells.
         cell_a = 0
     end
     if length(node_pos) > 2

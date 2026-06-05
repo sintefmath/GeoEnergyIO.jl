@@ -487,7 +487,7 @@ function grid_from_primitives(primitives; nnc = missing, pinch = missing)
                     end
                     if col_is_bnd || pair_is_bnd
                         # Boundary if we are on a boundary column or one of the cells connected to the face is a boundary
-                        add_vertical_face_from_overlap!(extra_node_lookup, F_bnd, nodes, cell_pair, overlap, l1, l2, node_buffer, pair_is_bnd)
+                        add_vertical_face_from_overlap!(extra_node_lookup, F_bnd, nodes, cell_pair, overlap, l1, l2, node_buffer, pair_is_bnd, is_boundary_col = col_is_bnd)
                     else
                         add_vertical_face_from_overlap!(extra_node_lookup, F_interior, nodes, cell_pair, overlap, l1, l2, node_buffer)
                     end

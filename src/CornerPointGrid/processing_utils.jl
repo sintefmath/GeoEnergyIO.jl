@@ -180,8 +180,7 @@ function handle_generic_intersections!(node_pos, extra_node_lookup, nodes, cell_
         @assert a1_t != b1_t
         @assert a2_t != b2_t
 
-        n_tt = handle_crossing_node!(extra_node_lookup, nodes, line_top_a, line_top_b)
-        push!(node_pos, n_tt)
+        push_crossing_node!(node_pos, extra_node_lookup, nodes, line_top_a, line_top_b)
     end
 
     if length(edge1) == 0
@@ -190,11 +189,10 @@ function handle_generic_intersections!(node_pos, extra_node_lookup, nodes, cell_
         if at_before_bt_1
             # A is above B at left edge. This extra node is formed from A lower
             # cutting B upper.
-            n_tl = handle_crossing_node!(extra_node_lookup, nodes, line_low_a, line_top_b)
+            push_crossing_node!(node_pos, extra_node_lookup, nodes, line_low_a, line_top_b)
         else
-            n_tl = handle_crossing_node!(extra_node_lookup, nodes, line_top_a, line_low_b)
+            push_crossing_node!(node_pos, extra_node_lookup, nodes, line_top_a, line_low_b)
         end
-        push!(node_pos, n_tl)
     else
         for local_node_ix in edge1
             push!(node_pos, l1.nodes[local_node_ix])
@@ -206,19 +204,17 @@ function handle_generic_intersections!(node_pos, extra_node_lookup, nodes, cell_
         @assert a2_l != b2_l
 
         # 1_low crossing 2_low (reversal a/b low over pair)
-        n_ll = handle_crossing_node!(extra_node_lookup, nodes, line_low_a, line_low_b)
-        push!(node_pos, n_ll)
+        push_crossing_node!(node_pos, extra_node_lookup, nodes, line_low_a, line_low_b)
     end
 
     if length(edge2) == 0
         if at_before_bt_2
             # A is above B at right edge. This extra node is formed from A lower
             # cutting B upper.
-            n_lt = handle_crossing_node!(extra_node_lookup, nodes, line_low_a, line_top_b)
+            push_crossing_node!(node_pos, extra_node_lookup, nodes, line_low_a, line_top_b)
         else
-            n_lt = handle_crossing_node!(extra_node_lookup, nodes, line_top_a, line_low_b)
+            push_crossing_node!(node_pos, extra_node_lookup, nodes, line_top_a, line_low_b)
         end
-        push!(node_pos, n_lt)
     else
         for local_node_ix in reverse(edge2)
             push!(node_pos, l2.nodes[local_node_ix])
@@ -234,8 +230,15 @@ function local_line_data(l1, l2, a1, a2, global_node_point_and_index)
     return (points = (a1_pt, a2_pt), index = (a1_node_idx, a2_node_idx))
 end
 
+function push_crossing_node!(node_pos, extra_node_lookup, nodes, line_a, line_b)
+    n = handle_crossing_node!(extra_node_lookup, nodes, line_a, line_b)
+    isnothing(n) || push!(node_pos, n)
+    return node_pos
+end
+
 function handle_crossing_node!(extra_node_lookup, nodes, line_a, line_b)
     pt = find_crossing_node(line_a.points, line_b.points)
+    isnothing(pt) && return nothing
     # The crossing node might coincide with the endpoints of the a/b lines. We
     # can then return them instead.
     for line in (line_a, line_b)
@@ -254,18 +257,31 @@ function find_crossing_node(l1, l2)
 end
 
 function find_crossing_node(x1, x2, x3, x4)
-    # Line (x1 -> x2) crossing line (x3 -> x4)
+    # Segment (x1 -> x2) crossing segment (x3 -> x4). This function must not
+    # create infinite-line intersections outside the segment extents: nearly
+    # parallel CPG edges can otherwise produce nodes millions of segment lengths
+    # away from the reservoir.
     a = x2 - x1
     b = x4 - x3
     c = x3 - x1
     axb = cross(a, b)
     cxb = cross(c, b)
     nrm = norm(axb, 2)^2
-    if nrm > 0.0
-        x_intercept = x1 + a*(dot(cxb, axb)/nrm)
+    lena2 = dot(a, a)
+    lenb2 = dot(b, b)
+    scale = max(lena2 * lenb2, eps(Float64))
+    parallel = nrm <= 1e-12 * scale
+    if !parallel
+        t = dot(cxb, axb) / nrm
+        u = dot(cross(c, a), axb) / nrm
+        bounded = _bounded_segment_parameter(t)
+        isnothing(bounded) && return nothing
+        bounded_u = _bounded_segment_parameter(u)
+        isnothing(bounded_u) && return nothing
+        x_intercept = x1 + a * bounded
         return x_intercept
     end
-    # Degenerate: segments are parallel (same direction in 3D). This occurs
+    # Degenerate or nearly degenerate: segments are parallel (same direction in 3D). This occurs
     # with vertical pillars from cpgrid_from_horizons when a ZCORN transform
     # shifts both endpoints by the same throw, keeping direction vectors
     # identical. Reduce to 1D crossing in z-parameter space:
@@ -274,8 +290,17 @@ function find_crossing_node(x1, x2, x3, x4)
     # Solve for t where A and B cross in z.
     z1, z2, z3, z4 = x1[3], x2[3], x3[3], x4[3]
     denom = (z2 - z1) - (z4 - z3)
-    t = abs(denom) < 1e-12 ? 0.5 : clamp((z3 - z1) / denom, 0.0, 1.0)
-    return x1 + t * a
+    t = abs(denom) < 1e-12 ? 0.5 : (z3 - z1) / denom
+    bounded = _bounded_segment_parameter(t)
+    isnothing(bounded) && return nothing
+    return x1 + bounded * a
+end
+
+function _bounded_segment_parameter(t; tol = 1e-10)
+    if t < -tol || t > 1 + tol
+        return nothing
+    end
+    return clamp(t, 0.0, 1.0)
 end
 
 function cpgrid_get_or_add_crossing_node!(extra_node_lookup, nodes, pt, line1, line2)

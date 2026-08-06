@@ -3,7 +3,7 @@ using Test
 
 import GeoEnergyIO: test_input_file_path
 import Jutul: number_of_cells, number_of_boundary_faces, number_of_faces, convert_from_si
-import Jutul.MeshQualityControl: check_normals
+import Jutul.MeshQualityControl: check_normals, si_unit
 @testset "GeoEnergyIO.jl" begin
     import GeoEnergyIO.InputParser: clean_include_path, parse_defaulted_line
     import GeoEnergyIO.InputParser: parse_defaulted_group_well
@@ -306,6 +306,17 @@ import Jutul.MeshQualityControl: check_normals
         m = mesh_from_grid_section(gs)
         @test number_of_cells(m) == (nx - 1) * (ny - 1) * 2
         check_normals(m)
+    end
+
+    @testset "convert_between_unit_systems" begin
+        # 1 darcy should end up as 1000 mD in field units
+        darcy = si_unit(:darcy)
+        @test convert_between_unit_systems(1darcy, :permeability, from = :si, to = :field) ≈ 1000.0
+        @test convert_between_unit_systems([1darcy, 0.001darcy], :permeability, from = :si, to = :field) ≈ [1000.0, 1.0]
+        @test convert_between_unit_systems(1darcy, "permeability", from = "si", to = "field") ≈ 1000.0
+        @test convert_between_unit_systems(273.15, "absolute_temperature", from = "si", to = "lab") ≈ 273.15
+        @test convert_between_unit_systems(273.15, :absolute_temperature, from = :si, to = :field) ≈ 491.67
+        @test convert_between_unit_systems(1e5, "pressure", from = "si", to = "metric") ≈ 1.0
     end
 end
 

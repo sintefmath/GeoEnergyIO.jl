@@ -51,8 +51,15 @@ Base.@kwdef struct DeckUnitSystem{S, T}
     absolute_temperature_numeric::T = 1.0
 end
 
-function DeckUnitSystem(sys::Symbol, T = Float64)
-    #meter, day, kilogram, bar = si_units(:meter, :day, :kilogram, :bar)
+function DeckUnitSystem(sys::DeckUnitSystem)
+    return sys
+end
+
+function DeckUnitSystem(sys::AbstractString, T = Float64)
+    return DeckUnitSystem(Symbol(lowercase(sys)), T)
+end
+
+function DeckUnitSystem(sys::Symbol = :si, T = Float64)
     u = Jutul.all_units()
     m = u[:meter]
     K = u[:kelvin]
@@ -66,18 +73,18 @@ function DeckUnitSystem(sys::Symbol, T = Float64)
     stb = u[:stb]
     rankine = u[:rankine]
     btu = u[:btu]
+    J = u[:joule]
+    kJ = u[:kilo]*J
 
     # Commons
     cP = u[:centi]*u[:poise]
     mD = u[:milli]*u[:darcy]
     if sys == :metric
         len = m
-        kJ = u[:kilo]*u[:joule]
         volume = m^3
         time = day
         pressure = u[:bar]
         mol = u[:kilo]
-        molar_mass = 1/(mol)
         mass = kilogram
         viscosity = cP
         surface_tension = u[:newton]/m
@@ -98,7 +105,6 @@ function DeckUnitSystem(sys::Symbol, T = Float64)
         time = day
         pressure = psi
         mol = pound*kilo
-        molar_mass = 1/(mol)
         mass = pound
         viscosity = cP
         surface_tension = u[:lbf]/u[:inch]
@@ -115,9 +121,29 @@ function DeckUnitSystem(sys::Symbol, T = Float64)
         absolute_temperature = :Rankine
         absolute_temperature_numeric = rankine
     elseif sys == :lab
-        error("Not implemented")
-    else
-        @assert sys == :si
+        hr = u[:hour]
+        len = centi*m
+        volume = len^3
+        pressure = u[:atm]
+        time = hr
+        mol = u[:gram]
+        molar_mass = 1/(mol)
+        mass = u[:gram]
+        viscosity = cP
+        liquid_volume_surface = volume
+        liquid_volume_reservoir = volume
+        gas_volume_surface = volume
+        gas_volume_reservoir = volume
+        surface_tension = u[:dyne]/(centi*m)
+        jsurface_tension = u[:dyne]/(centi*m)
+        permeability = mD
+        volume_heat_capacity = J/(volume*K)
+        mass_heat_capacity = J/(mass*K)
+        rock_conductivity = kJ/(centi*m*hr*K)
+        relative_temperature = :Celsius
+        absolute_temperature = :Kelvin
+        absolute_temperature_numeric = K
+    elseif sys == :si
         len = 1.0
         time = 1.0
         pressure = 1.0
@@ -134,11 +160,13 @@ function DeckUnitSystem(sys::Symbol, T = Float64)
         rock_conductivity = 1.0
         volume_heat_capacity = 1.0
         mass_heat_capacity = 1.0
-        molar_mass = 1.0
         relative_temperature = :Celsius
         absolute_temperature = :Kelvin
         absolute_temperature_numeric = K
+    else
+        error("Unknown unit system: $sys. Valid options are :si, :metric, :field, and :lab.")
     end
+    molar_mass = 1/(mol)
     area = len^2
     volume = len^3
     density = mass/volume
@@ -334,4 +362,115 @@ end
 
 function deck_unit(sys::DeckUnitSystem, ::Val{:aquifer_transmissibility})
     return deck_unit(sys, :transmissibility)/deck_unit(sys, :viscosity)
+end
+
+# High level unit support - exposed to users
+
+"""
+    val = convert_between_unit_systems(val, value_type; from = :field, to = :si)
+    val = convert_between_unit_systems(val, value_type, from, to)
+
+Convert a value `val` interpreted as `value_type` from one unit system to
+another. The unit systems are specified by the keyword arguments `from` and
+`to`.
+
+# Arguments
+- `val`: The value to convert. Can be a scalar or an array. The function will
+  copy the array and return a new array with the converted values.
+- `value_type`: The type of value being converted. This can be a symbol or
+  string that indicates what the unit is interpreted as (e.g. `:pressure` or
+  `:permeability`). See the notes for all possible units.
+- `from`: The unit system to convert from. See the notes for the list of
+  possible unit systems.
+- `to`: The unit system to convert to. See the notes for the list of possible
+  unit systems. Defaults to `:si`.
+
+Valid unit systems are `:si`, `:metric`, `:field`, and `:lab`. The
+function returns the converted value in the target unit system.
+
+# Notes
+This function also supports `AbstractString` in place of symbols for the
+`value_type`, `from`, and `to` arguments. For example, you can use
+`"permeability"` instead of `:permeability`, or `"si"` instead of `:si`.
+
+The function has both a keyword argument version `(val, value_type, from = :si,
+to = :field)` and a positional argument version `(val, value_type, :si,
+:kelvin)`. The keyword argument version is more explicit, but is a bit more
+verbose.
+
+## Possible value types
+
+- `:length`: Length and depth measurements.
+- `:area`: Area, typically length squared.
+- `:time`: Unit of time.
+- `:density`: Mass density, typically mass per unit volume.
+- `:pressure`: Pressure, typically force per unit area.
+- `:mol`: How moles are specified for amounts of species. Some unit systems use
+  kilomoles, others use moles directly. The name is a bit misleading, but it is
+  used to convert between the different types of molar representation.
+- `:mass`
+- `:u_rs`: Unit of surface volume per reservoir volume (used in rs calculations for dissolved gas).
+- `:u_rv`: Unit of reservoir volume per surface volume (used in rv calculations for vaporized oil).
+- `:concentration`: Mass concentration, typically mass per unit volume.
+- `:compressibility`: Compressibility factors, typically in units of reciprocal pressure.
+- `:viscosity`: Viscosity (centipoise in all unit systems except SI, which is Pa*s).
+- `:surface_tension`: Surface tension used for compositional effects.
+- `:jsurface_tension`: Surface tension used for surfacant effects.
+- `:permeability`: Permeability, typically in millidarcies for all systems except SI.
+- `:liquid_volume_surface`: Liquid volume at surface conditions.
+- `:liquid_volume_reservoir`: Liquid volume at reservoir conditions.
+- `:liquid_formation_volume_factor`: Ratio of liquid volume at reservoir
+  conditions to liquid volume at surface conditions.
+- `:gas_volume_surface`: Gas volume at surface conditions.
+- `:gas_volume_reservoir`: Gas volume at reservoir conditions.
+- `:gas_formation_volume_factor`: Ratio of gas volume at reservoir conditions to
+  gas volume at surface conditions.
+- `:volume`: Volume, typically length cubed.
+- `:transmissibility`: Transmissibility and well connection factors.
+- `:rock_conductivity`: Thermal conductivity of the rock.
+- `:volume_heat_capacity`: Heat capacity per unit volume of the rock.
+- `:mass_heat_capacity`: Heat capacity per unit mass of the rock.
+- `:molar_mass`: Molar mass of a species.
+- `:absolute_temperature_numeric`: The numeric value of absolute temperature in the unit system (Kelvin for SI, Rankine for field, etc.).
+- `:Kh`: Permeability times length.
+- `:time_over_volume`: Time divided by volume, used for certain rate calculations.
+- `:liquid_rate_surface`: Liquid production rate at surface conditions.
+- `:gas_rate_surface`: Gas production rate at surface conditions.
+- `:liquid_rate_reservoir`: Liquid production rate at reservoir conditions.
+- `:gas_rate_reservoir`: Gas production rate at reservoir conditions.
+- `:critical_volume`: Critical volume, typically volume per some definition of .
+- `:thermal_expansion_c1`: Thermal expansion coefficient of the first order, typically 1/temperature.
+- `:thermal_expansion_c2`: Thermal expansion coefficient of the second order, typically 1/temperature^2.
+- `:aquifer_transmissibility`: Transmissibility of an aquifer, typically
+  transmissibility unit divided by viscosity unit.
+
+# Examples
+```jldoctest
+# Convert 273.15 degrees Kelvin (freezing point of water) to field units (491.67 degrees Rankine)
+convert_between_unit_systems(273.15, :absolute_temperature, from = :si, to = :field)
+
+# output
+491.66999999999996
+
+```
+```jldoctest
+# Convert 100000 Pa to metric units (1.0 bar)
+convert_between_unit_systems(1e5, "pressure", from = "si", to = "metric")
+
+# output
+1.0
+```
+"""
+function convert_between_unit_systems
+
+end
+
+function convert_between_unit_systems(val, value_type::Union{Symbol, AbstractString}; from, to = :si)
+    value_type = Symbol(value_type)
+    systems = (from = DeckUnitSystem(from), to = DeckUnitSystem(to))
+    return swap_unit_system(val, systems, value_type)
+end
+
+function convert_between_unit_systems(val, value_type, from, to)
+    return convert_between_unit_systems(val, value_type; from = from, to = to)
 end

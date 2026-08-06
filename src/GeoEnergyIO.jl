@@ -7,11 +7,12 @@ module GeoEnergyIO
     export cpgrid_from_horizons
     export get_data_file_cell_region
     export number_of_tables
+    export convert_between_unit_systems
 
     include("types.jl")
 
     include("InputParser/InputParser.jl")
-    import .InputParser: parse_data_file, parse_grdecl_file, get_data_file_cell_region, number_of_tables
+    import .InputParser: parse_data_file, parse_grdecl_file, get_data_file_cell_region, number_of_tables, DeckUnitSystem, deck_unit, convert_between_unit_systems
 
     include("CornerPointGrid/CornerPointGrid.jl")
     import .CornerPointGrid: mesh_from_grid_section, cpgrid_from_horizons

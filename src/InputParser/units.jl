@@ -59,7 +59,7 @@ function DeckUnitSystem(sys::AbstractString, T = Float64)
     return DeckUnitSystem(Symbol(lowercase(sys)), T)
 end
 
-function DeckUnitSystem(sys::Symbol = :si, T = Float64)
+function DeckUnitSystem(sys::Symbol, T = Float64)
     u = Jutul.all_units()
     m = u[:meter]
     K = u[:kelvin]

@@ -222,6 +222,39 @@ import Jutul.MeshQualityControl: check_normals
         @test GeoEnergyIO.CornerPointGrid.find_next_gap([1, 0, 0], 1) == (3, 3, true)
     end
 
+    @testset "corner point crossing nodes" begin
+        import GeoEnergyIO.CornerPointGrid: find_crossing_node
+
+        # Two bounded segments cross inside both segment extents.
+        pt = find_crossing_node(
+            [0.0, 0.0, 0.0],
+            [1.0, 0.0, 0.0],
+            [0.5, -1.0, 0.0],
+            [0.5, 1.0, 0.0],
+        )
+        @test pt ≈ [0.5, 0.0, 0.0]
+
+        # Tiny floating-point overshoot at an endpoint is accepted and snapped.
+        pt = find_crossing_node(
+            [0.0, 0.0, 0.0],
+            [1.0, 0.0, 0.0],
+            [-1e-12, -1.0, 0.0],
+            [-1e-12, 1.0, 0.0],
+        )
+        @test pt ≈ [0.0, 0.0, 0.0]
+
+        # Nearly parallel CPG face edges from a folded/pinched grid do not cross
+        # within their segment extents. The old infinite-line formula produced
+        # a node at z≈2.2e7 for this case.
+        pt = find_crossing_node(
+            [517.2413793103449, 827.5862068965517, 832.5650700477282],
+            [517.2413793103449, 775.8620689655172, 843.7944466341665],
+            [517.2413793103449, 827.5862068965517, 833.565070047728],
+            [517.2413793103449, 775.8620689655172, 844.7944461223784],
+        )
+        @test pt === nothing
+    end
+
     @testset "cpgrid_generation" begin
         nx = 10
         ny = 5

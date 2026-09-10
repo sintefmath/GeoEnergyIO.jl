@@ -137,33 +137,12 @@ function convert_ix_record(x::AbstractArray, unit_systems, meta, ::Union{Val{:Co
         constraints[constraint_name] = swap_unit_system(constraint_value, unit_systems, u)
     end
     if length(x) > 0
-        if any(v -> v isa Tuple, x)
-            # Well "WELL_NAME" {
-            #     Constraints = [
-            #         (100.0 LIQUID_PRODUCTION_RATE)
-            #         (0 WATER_INJECTION_RATE)
-            #     ]
-            # }
-            verb  = "ADD"
-            x = filter(!(v -> v isa IXArrayEndline), x)
-            for (val, constraint) in x
-                constraint = String(constraint)
-                set_constraint!(constraint, val)
+        has_endlines = any(x -> x isa IXArrayEndline, x)
+        has_tuples = any(x -> x isa Tuple, x)
+        if has_tuples
+            if has_endlines
+                x = filter(!(v -> v isa IXArrayEndline), x)
             end
-        elseif any(x -> x isa IXArrayEndline, x)
-            verb  = "ADD"
-            header, data = reshape_ix_matrix(x)
-            is_data = findfirst(x -> isequal("data", lowercase(x)), header)
-            is_prop = findfirst(x -> isequal("property", lowercase(x)), header)
-            if isnothing(is_data) || isnothing(is_prop)
-                error("Expected 'data' and 'property' columns in Constraints/HistoricalData record, found: $(header)")
-            end
-            for row in axes(data, 1)
-                constraint_value = data[row, is_data]
-                constraint_name = String(data[row, is_prop])
-                set_constraint!(constraint_name, constraint_value)
-            end
-        else
             if x[1] isa IXKeyword
                 verb = String(x[1])
                 remainder = x[2:end]
@@ -174,6 +153,19 @@ function convert_ix_record(x::AbstractArray, unit_systems, meta, ::Union{Val{:Co
             for k in remainder
                 constraint_value, constraint_name = k
                 constraint_name = String(constraint_name)
+                set_constraint!(constraint_name, constraint_value)
+            end
+        else
+            verb  = "ADD"
+            header, data = reshape_ix_matrix(x)
+            is_data = findfirst(x -> isequal("data", lowercase(x)), header)
+            is_prop = findfirst(x -> isequal("property", lowercase(x)), header)
+            if isnothing(is_data) || isnothing(is_prop)
+                error("Expected 'data' and 'property' columns in Constraints/HistoricalData record, found: $(header)")
+            end
+            for row in axes(data, 1)
+                constraint_value = data[row, is_data]
+                constraint_name = String(data[row, is_prop])
                 set_constraint!(constraint_name, constraint_value)
             end
         end

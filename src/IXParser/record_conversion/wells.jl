@@ -130,25 +130,6 @@ function convert_ix_record(x::IXEqualRecord, unit_systems, meta, ::Val{:Well})
     return Dict("wells" => out)
 end
 
-# function convert_ix_record(x::IXEqualRecord, unit_systems, meta, ::Union{Val{:Constraints}, Val{:HistoricalData}})
-#     constraints = Dict{String, Any}()
-#     # @info "???" x.value
-#     return x
-#     if length(x.value) > 0
-#         verb = String(x.value[1])
-#         for k in x.value[2:end]
-#             constraint_value, constraint_name = k
-#             constraint_name = String(constraint_name)
-#             u = get_unit_type_ix_keyword(unit_systems, constraint_name; throw = false)
-#             constraints[constraint_name] = swap_unit_system(constraint_value, unit_systems, u)
-#         end
-#         out = (verb = verb, constraints = constraints)
-#     else
-#         out = missing
-#     end
-#     return out
-# end
-
 function convert_ix_record(x::AbstractArray, unit_systems, meta, ::Union{Val{:Constraints}, Val{:HistoricalData}})
     constraints = OrderedDict{String, Any}()
     function set_constraint!(constraint_name, constraint_value)
@@ -156,7 +137,20 @@ function convert_ix_record(x::AbstractArray, unit_systems, meta, ::Union{Val{:Co
         constraints[constraint_name] = swap_unit_system(constraint_value, unit_systems, u)
     end
     if length(x) > 0
-        if any(x -> x isa IXArrayEndline, x)
+        if any(v -> v isa Tuple, x)
+            # Well "WELL_NAME" {
+            #     Constraints = [
+            #         (100.0 LIQUID_PRODUCTION_RATE)
+            #         (0 WATER_INJECTION_RATE)
+            #     ]
+            # }
+            verb  = "ADD"
+            x = filter(!(v -> v isa IXArrayEndline), x)
+            for (val, constraint) in x
+                constraint = String(constraint)
+                set_constraint!(constraint, val)
+            end
+        elseif any(x -> x isa IXArrayEndline, x)
             verb  = "ADD"
             header, data = reshape_ix_matrix(x)
             is_data = findfirst(x -> isequal("data", lowercase(x)), header)

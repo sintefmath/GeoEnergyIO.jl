@@ -55,7 +55,7 @@ function fault_to_faces(G::UnstructuredMesh, specs, lookups = missing, faultname
             ix_1 = 1
             ix_2 = 2
         else
-            error("Bad direction for fault $fault entry: $dir")
+            error("Bad direction for fault $faultname entry: $dir")
         end
         if length(dir) == 1 || dir[2] == '+'
             inc = 1

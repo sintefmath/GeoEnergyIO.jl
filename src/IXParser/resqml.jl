@@ -51,12 +51,14 @@ function convert_resqml_props(r, unit_systems = missing; verbose = false, strict
     uuids = String[]
     props = []
     for (k, v) in pairs(namespace_resqml)
-        is_discrete = startswith(k, "obj_DiscreteProperty")
-        is_continuous = startswith(k, "obj_ContinuousProperty") || startswith(k, "obj_CategoricalProperty")
-        if is_discrete || is_continuous
+        this_is_discrete = startswith(k, "obj_DiscreteProperty")
+        this_is_continuous = startswith(k, "obj_ContinuousProperty") || startswith(k, "obj_CategoricalProperty")
+        if this_is_discrete || this_is_continuous
             push!(uuids, split(k, "_")[end] |> splitext |> first)
             push!(props, v)
         end
+        is_discrete |= this_is_discrete
+        is_continuous |= this_is_continuous
     end
     if length(props) == 0
         println("No discrete or continuous property found in RESQML data entry")

@@ -861,8 +861,19 @@ function generate_pinch_map(pinch, primitives, lines, column_lines, columns)
                 depth_top = z_face(node_indices_top)
                 depth_bottom = z_face(node_indices_bottom)
                 start = last_inactive + 1
-                inactive_cells = abs.(col.cells[(before_inactive+1):last_inactive])
-                if depth_bottom - depth_top < thres || (gap && all(minpv_removed[inactive_cells]))
+                depth_diff = depth_bottom - depth_top
+                depth_is_under_threshold = depth_diff < thres
+                if gap && !depth_is_under_threshold
+                    inactive_cells = abs.(col.cells[(before_inactive+1):last_inactive])
+                    n_inactive_in_gap = length(inactive_cells)
+                    # This is a bit of an approximation, in practice we should
+                    # check that each of these cells is below the thickness...
+                    avg_thickness = depth_diff / n_inactive_in_gap
+                    gap_inactive = all(minpv_removed[inactive_cells]) && avg_thickness < thres
+                else
+                    gap_inactive = false
+                end
+                if depth_is_under_threshold || gap_inactive
                     pinch_top_to_bottom[top_cell] = bottom_cell
                     pinch_bottom_to_top[bottom_cell] = top_cell
                     num_added += 1

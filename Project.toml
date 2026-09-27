@@ -1,6 +1,6 @@
 name = "GeoEnergyIO"
 uuid = "3b1dd628-313a-45bb-9d8d-8f3c48dcb5d4"
-version = "1.1.36"
+version = "1.1.37"
 authors = ["Olav Møyner <olav.moyner@gmail.com> and contributors"]
 
 [deps]
@@ -33,7 +33,7 @@ Jutul = "0.2.21, 0.3, 0.4, 0.5"
 LazyArtifacts = "1"
 Lerche = "0.5.6"
 LinearAlgebra = "1"
-OrderedCollections = "1.6.2"
+OrderedCollections = "1.6.2, 2"
 Parsers = "2.7.1"
 PrecompileTools = "1.2.0"
 PythonCall = "0.9"

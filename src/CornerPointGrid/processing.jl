@@ -461,6 +461,10 @@ function grid_from_primitives(primitives; nnc = missing, pinch = missing)
 
             F_interior = (l, r, node_indices, rev) -> insert_face!(I_faces, B_faces, l, r, node_indices, is_boundary = false, is_vertical = true, is_idir = is_idir, face_type = conn_type, rev = rev)
             F_bnd = (l, r, node_indices, rev) -> insert_face!(I_faces, B_faces, l, r, node_indices, is_boundary = true, is_vertical = true, is_idir = is_idir, face_type = conn_type, rev = rev)
+            # Between two active columns, a boundary face whose active cell is
+            # in column b (right/upper) is that cell's left/lower side.
+            bnd_type_b = conn_type == :right ? :left : (conn_type == :upper ? :lower : conn_type)
+            F_bnd_b = (l, r, node_indices, rev) -> insert_face!(I_faces, B_faces, l, r, node_indices, is_boundary = true, is_vertical = true, is_idir = is_idir, face_type = conn_type, rev = rev, boundary_type = bnd_type_b)
 
             cell_top_bottom!(ord_a, col_a.cells, l1, l2)
             cell_top_bottom!(ord_b, col_b.cells, l1, l2)
@@ -487,7 +491,8 @@ function grid_from_primitives(primitives; nnc = missing, pinch = missing)
                     end
                     if col_is_bnd || pair_is_bnd
                         # Boundary if we are on a boundary column or one of the cells connected to the face is a boundary
-                        add_vertical_face_from_overlap!(extra_node_lookup, F_bnd, nodes, cell_pair, overlap, l1, l2, node_buffer, pair_is_bnd, is_boundary_col = col_is_bnd)
+                        F = (!col_is_bnd && l_bnd) ? F_bnd_b : F_bnd
+                        add_vertical_face_from_overlap!(extra_node_lookup, F, nodes, cell_pair, overlap, l1, l2, node_buffer, pair_is_bnd, is_boundary_col = col_is_bnd)
                     else
                         add_vertical_face_from_overlap!(extra_node_lookup, F_interior, nodes, cell_pair, overlap, l1, l2, node_buffer)
                     end
@@ -750,7 +755,7 @@ function add_face_from_nodes!(V, Vpos, nodes, flipped)
     push!(Vpos, length(nodes) + Vpos[end])
 end
 
-function insert_boundary_face!(B_faces, prev_cell, cell, nodes, is_vertical, is_idir, face_type, rev)
+function insert_boundary_face!(B_faces, prev_cell, cell, nodes, is_vertical, is_idir, face_type, rev; boundary_type = face_type)
     cell_is_boundary(x) = x < 1
     orient = cell_is_boundary(prev_cell) && !cell_is_boundary(cell)
     @assert orient || (cell_is_boundary(cell) && !cell_is_boundary(prev_cell)) "cell pair $((cell, prev_cell)) is not on boundary"
@@ -774,7 +779,7 @@ function insert_boundary_face!(B_faces, prev_cell, cell, nodes, is_vertical, is_
     else
         push!(B_faces.horizontal_tag, boundary_faceno)
     end
-    B_faces.type[boundary_faceno] = face_type
+    B_faces.type[boundary_faceno] = boundary_type
     if is_idir
         push!(B_faces.i_tag, boundary_faceno)
         @assert face_type in (:left, :right)
@@ -813,9 +818,9 @@ function insert_interior_face!(I_faces, prev_cell, cell, nodes, is_vertical, is_
     return I_faces
 end
 
-function insert_face!(I_faces, B_faces, prev_cell, cell, nodes; is_boundary, is_vertical, is_idir, face_type, rev)
+function insert_face!(I_faces, B_faces, prev_cell, cell, nodes; is_boundary, is_vertical, is_idir, face_type, rev, boundary_type = face_type)
     if is_boundary
-        insert_boundary_face!(B_faces, prev_cell, cell, nodes, is_vertical, is_idir, face_type, rev)
+        insert_boundary_face!(B_faces, prev_cell, cell, nodes, is_vertical, is_idir, face_type, rev, boundary_type = boundary_type)
     else
         @assert rev == false
         insert_interior_face!(I_faces, prev_cell, cell, nodes, is_vertical, is_idir, face_type)

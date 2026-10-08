@@ -308,6 +308,53 @@ import Jutul.MeshQualityControl: check_normals, si_unit
         check_normals(m)
     end
 
+    import Jutul: tpfv_geometry, get_mesh_entity_tag, BoundaryFaces
+    @testset "boundary face directions next to inactive cells" begin
+        # Every lateral boundary face must be tagged with the side of its cell
+        # it lies on, also where the cell faces an inactive cell of an active
+        # neighbouring column.
+        function directions_consistent(m)
+            geo = tpfv_geometry(m)
+            ok = true
+            for (dir, ax, sgn) in ((:left, 1, -1), (:right, 1, 1), (:lower, 2, -1), (:upper, 2, 1))
+                faces = get_mesh_entity_tag(m, BoundaryFaces(), :direction, dir, throw = false)
+                ismissing(faces) && continue
+                for f in faces
+                    c = m.boundary_faces.neighbors[f]
+                    d = geo.boundary_centroids[ax, f] - geo.cell_centroids[ax, c]
+                    ok = ok && sgn*d > 0
+                end
+            end
+            return ok
+        end
+        # Cartesian 2x2x2 grid of unit cells, cell (1, 1, 1) inactive
+        nx, ny, nz = 2, 2, 2
+        coord = Float64[]
+        for j in 0:ny, i in 0:nx
+            append!(coord, [i, j, 0.0, i, j, 2.0])
+        end
+        zcorn = Float64[k - 1 + t for i in 1:2nx, j in 1:2ny, t in 0:1, k in 1:nz]
+        actnum = trues(nx, ny, nz)
+        actnum[1, 1, 1] = false
+        grid = Dict("cartDims" => (nx, ny, nz), "COORD" => coord, "ZCORN" => vec(zcorn), "ACTNUM" => actnum)
+        m = mesh_from_grid_section(grid)
+        @test number_of_cells(m) == 7
+        @test directions_consistent(m)
+        check_normals(m)
+        # Faulted grid with inactive cells inside active columns
+        xrng = range(0.0, 200.0, 11)
+        yrng = range(0.0, 200.0, 11)
+        depths = [fill(2000.0, 11, 11), fill(2025.0, 11, 11), fill(2050.0, 11, 11)]
+        fault(x, y, z, x_c, y_c, i, j, k) = x_c > 100.0 ? z - 10.0 : z
+        gs = cpgrid_from_horizons(xrng, yrng, depths; transforms = [fault])
+        act = reshape(Bool.(gs["ACTNUM"]), gs["cartDims"]...)
+        act[3:2:9, 2:3:9, 1] .= false
+        act[4:3:10, 3:2:9, 2] .= false
+        gs["ACTNUM"] = act
+        m = mesh_from_grid_section(gs)
+        @test directions_consistent(m)
+        check_normals(m)
+    end
     @testset "convert_between_unit_systems" begin
         # 1 darcy should end up as 1000 mD in field units
         darcy = si_unit(:darcy)

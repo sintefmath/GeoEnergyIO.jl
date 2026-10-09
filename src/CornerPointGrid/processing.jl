@@ -463,14 +463,12 @@ function grid_from_primitives(primitives; nnc = missing, pinch = missing)
             F_bnd = (l, r, node_indices, rev) -> insert_face!(I_faces, B_faces, l, r, node_indices, is_boundary = true, is_vertical = true, is_idir = is_idir, face_type = conn_type, rev = rev)
             # Between two active columns, a boundary face whose active cell is
             # in column b (right/upper) is that cell's left/lower side.
-            # (a single assignment: assigned in each branch, the variable would
-            # be boxed when F_bnd_b captures it)
-            bnd_type_b = if conn_type == :right
-                :left
+            if conn_type == :right
+                bnd_type_b = :left
             elseif conn_type == :upper
-                :lower
+                bnd_type_b = :lower
             else
-                conn_type
+                bnd_type_b = conn_type
             end
             F_bnd_b = (l, r, node_indices, rev) -> insert_face!(I_faces, B_faces, l, r, node_indices, is_boundary = true, is_vertical = true, is_idir = is_idir, face_type = conn_type, rev = rev, boundary_type = bnd_type_b)
 

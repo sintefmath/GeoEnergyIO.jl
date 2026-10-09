@@ -351,6 +351,10 @@ function deck_unit(sys::DeckUnitSystem, ::Val{:critical_volume})
     return deck_unit(sys, :volume)/deck_unit(sys, :mol)
 end
 
+function deck_unit(sys::DeckUnitSystem, ::Val{:diffusivity})
+    return deck_unit(sys, :area)/deck_unit(sys, :time)
+end
+
 function deck_unit(sys::DeckUnitSystem, ::Val{:thermal_expansion_c1})
     return 1.0/deck_unit(sys, :absolute_temperature_numeric)
 end

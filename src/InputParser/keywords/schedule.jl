@@ -285,8 +285,13 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:WPIMULT})
 end
 
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:FBHPDEF})
-    parser_message(cfg, outer_data, "FBHPDEF", PARSER_JUTULDARCY_MISSING_SUPPORT)
-    read_record(f)
+    rec = read_record(f)
+    input_system = DeckUnitSystem(current_unit_system(outer_data))
+    pressure_unit = deck_unit(input_system, :pressure)
+    defaults = [convert_from_si(p, pressure_unit) for p in (1.01325e5, 6.895e8)]
+    pressures = parse_defaulted_line(rec, defaults)
+    swap_unit_system!(pressures, units, :pressure)
+    data["FBHPDEF"] = pressures
 end
 
 function convert_date_kw(t)

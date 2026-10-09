@@ -229,8 +229,12 @@ end
 
 function parse_keyword!(data, outer_data, units, cfg, f, v::Union{Val{:WSF}, Val{:GSF}})
     k = unpack_val(v)
-    parser_message(cfg, outer_data, "$k", PARSER_JUTULDARCY_MISSING_SUPPORT)
     sat_tab = parse_saturation_table(f, outer_data)
+    if k == :GSF
+        for tab in sat_tab
+            swap_unit_system_axes!(tab, units, (:identity, :identity, :pressure))
+        end
+    end
     data["$k"] = sat_tab
 end
 
@@ -521,15 +525,12 @@ const DIFFUSION_TYPE = Union{Val{:DIFCCOG}, Val{:DIFFCOIL}, Val{:DIFFCGAS}, Val{
 
 function parse_keyword!(data, outer_data, units, cfg, f, val::DIFFUSION_TYPE)
     k = unpack_val(val)
-    # TODO: Units.
     n = compositional_number_of_components(outer_data)
     out = zeros(n)
     val = parse_deck_vector(f)
     nv = length(val)
     @assert nv <= n "$k has more entries ($nv) than components ($n)"
     out[1:nv] = val
-    if !all(isequal(0), out)
-        parser_message(cfg, outer_data, "$k", PARSER_JUTULDARCY_MISSING_SUPPORT)
-    end
+    swap_unit_system!(out, units, :diffusivity)
     data["$k"] = out
 end

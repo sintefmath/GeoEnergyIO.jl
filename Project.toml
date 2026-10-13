@@ -40,7 +40,7 @@ PythonCall = "0.9"
 StaticArrays = "1.4.4"
 XML = "0.3.6, 0.4"
 ZipArchives = "2.5.1"
-julia = "1.8"
+julia = "1.10"
 
 [extras]
 PythonCall = "6099a3de-0909-46bc-b1f4-468b9a2dfc0d"

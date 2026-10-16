@@ -307,6 +307,50 @@ import Jutul.MeshQualityControl: check_normals, si_unit
         @test number_of_cells(m) == (nx - 1) * (ny - 1) * 2
         check_normals(m)
     end
+    @testset "cpgrid crossing at a shared node" begin
+        import GeoEnergyIO.CornerPointGrid: handle_crossing_node!
+        # Two lines sharing their end node 3: they meet at that node, and no
+        # new node is added. With these nearly parallel lines at UTM-size
+        # coordinates the computed crossing misses node 3 by more than the
+        # endpoint tolerance.
+        p3 = [454527.562, 7.3193955e6, 2809.27]
+        line_a = (points = ([454499.656, 7.3194625e6, 2758.564], p3), index = (1, 3))
+        line_b = (points = ([454499.656, 7.3194625e6, 2758.570], p3), index = (2, 3))
+        nodes = Vector{Vector{Float64}}()
+        lookup = Dict()
+        @test handle_crossing_node!(lookup, nodes, line_a, line_b) == 3
+        @test isempty(nodes) && isempty(lookup)
+
+        # Two columns whose thin layers (a few cm at one pillar) pinch out to a
+        # single node at the other, on tilted pillars at UTM-size coordinates.
+        # The layers' edges all meet at that node; previously each crossing
+        # added a near-duplicate of it (with warnings), distorting the faces.
+        function pinch_grid(tilt)
+            dz = [0.006, 0.024, 0.01, 0.016, 0.064, 0.065]
+            nx, ny, nz = 1, 2, length(dz) + 1
+            coord = Float64[]
+            for j in 0:ny, i in 0:nx
+                x, y = 454499.656 + 28.0 * i, 7.3194625e6 - 67.0 * i + 70.0 * (j - 1)
+                append!(coord, [x, y, 2700.0, x + tilt[1], y + tilt[2], 2900.0])
+            end
+            # layer interfaces on the first and the second pillar of each row
+            d1 = 2758.564 .+ [0.0; cumsum(dz); 50.0]
+            d2 = [fill(2809.27, nz); 2816.625]
+            zcorn = [(ii == 0 ? d1 : d2)[k + t]
+                     for k in 1:nz for t in 0:1 for j in 1:ny for jj in 0:1 for ii in 0:1]
+            return Dict{String, Any}("cartDims" => [nx, ny, nz], "COORD" => coord,
+                                     "ZCORN" => zcorn, "ACTNUM" => fill(true, nx, ny, nz))
+        end
+        function near_duplicate_nodes(m)
+            p = sort(m.node_points)
+            return count(i -> maximum(abs, p[i] - p[i - 1]) < 1e-6, 2:length(p))
+        end
+        m = @test_logs mesh_from_grid_section(pinch_grid((-7.3, 3.0)))
+        vertical = mesh_from_grid_section(pinch_grid((0.0, 0.0)))
+        @test number_of_cells(m) == 14
+        @test near_duplicate_nodes(m) == 0
+        @test length(m.node_points) == length(vertical.node_points)
+    end
 
     import Jutul: tpfv_geometry, get_mesh_entity_tag, BoundaryFaces
     @testset "boundary face directions next to inactive cells" begin

@@ -63,31 +63,14 @@ Index into ZCORN for a cell (linear index or `(i, j, k)`) and a corner
 `(i_upper, j_upper, k_upper)`, with each corner offset equal to zero or one.
 """
 function get_corner_index(cell, corner::NTuple, dims)
-    # Cell 1 [corner1, corner2], cell 2 [corner1, corner2], ..., cell n [corner1, corner2] repeated for nx in top plane
-    # Cell 1 [corner3, corner4], cell 2 [corner3, corner4], ..., cell n [corner3, corner4]
-    # Cell 1 [corner5, corner6], cell 2 [corner5, corner6], ..., cell n [corner5, corner6]
-    # Cell 1 [corner7, corner8], cell 2 [corner7, corner8], ..., cell n [corner7, corner8]
-
     if cell isa Integer
         i, j, k = linear_to_ijk(cell, dims)
     else
         i, j, k = cell
     end
     nx, ny, nz = dims
-    i_is_upper, j_is_upper, k_is_upper = corner
-
-    cell_i_offset = 2*(i-1)
-    cell_j_offset = 4*nx*(j-1)
-    cell_k_offset = 8*nx*ny*(k-1)
-
-    cell_offset = cell_i_offset + cell_j_offset + cell_k_offset
-
-    i_offset = i_is_upper+1
-    j_offset = j_is_upper*2*nx
-    k_offset = k_is_upper*4*nx*ny
-
-    ijk = i_offset + j_offset + k_offset
-    return cell_offset + ijk
+    di, dj, dk = corner
+    return LinearIndices((2nx, 2ny, 2nz))[2i-1+di, 2j-1+dj, 2k-1+dk]
 end
 
 function corner_index(cell, corner::NTuple, dims)

@@ -56,22 +56,26 @@ function interp_coord(p0::SVector{3, T}, p1::SVector{3, T}, z::V) where {T<:Real
     return interp_pt
 end
 
-function corner_index(cell, corner::NTuple, dims)
+"""
+    get_corner_index(cell, corner::NTuple, dims)
+
+Index into ZCORN for a cell (linear index or `(i, j, k)`) and a corner
+`(i_upper, j_upper, k_upper)`, with each corner offset equal to zero or one.
+"""
+function get_corner_index(cell, corner::NTuple, dims)
     # Cell 1 [corner1, corner2], cell 2 [corner1, corner2], ..., cell n [corner1, corner2] repeated for nx in top plane
     # Cell 1 [corner3, corner4], cell 2 [corner3, corner4], ..., cell n [corner3, corner4]
     # Cell 1 [corner5, corner6], cell 2 [corner5, corner6], ..., cell n [corner5, corner6]
     # Cell 1 [corner7, corner8], cell 2 [corner7, corner8], ..., cell n [corner7, corner8]
 
-    if cell isa Int
+    if cell isa Integer
         i, j, k = linear_to_ijk(cell, dims)
     else
         i, j, k = cell
-        cell = ijk_to_linear(i, j, k, cartdims)
     end
     nx, ny, nz = dims
     i_is_upper, j_is_upper, k_is_upper = corner
 
-    j_is_upper, i_is_upper, k_is_upper = corner
     cell_i_offset = 2*(i-1)
     cell_j_offset = 4*nx*(j-1)
     cell_k_offset = 8*nx*ny*(k-1)
@@ -84,6 +88,44 @@ function corner_index(cell, corner::NTuple, dims)
 
     ijk = i_offset + j_offset + k_offset
     return cell_offset + ijk
+end
+
+function corner_index(cell, corner::NTuple, dims)
+    Base.depwarn("corner_index uses (j, i, k) corner offsets; use get_corner_index with (i, j, k) offsets instead.", :corner_index)
+    return get_corner_index(cell, (corner[2], corner[1], corner[3]), dims)
+end
+
+function cell_corners(g, cell, dims = Tuple(g["cartDims"]), coord = reshape(g["COORD"], 6, :)')
+    ijk = cell isa Integer ? linear_to_ijk(cell, dims) : cell
+    nx, ny, = dims
+    zcorn = g["ZCORN"]
+    T = promote_type(eltype(g["COORD"]), eltype(zcorn))
+    return SVector{8, SVector{3, T}}(ntuple(8) do n
+        i, j, k = (n-1)%2, ((n-1)÷2)%2, (n-1)÷4
+        line = get_line(coord, ijk[1]+i, ijk[2]+j, nx+1, ny+1)
+        z = zcorn[get_corner_index(ijk, (i, j, k), dims)]
+        return interp_coord((x1 = line[1], x2 = line[2], equal_points = line[1] ≈ line[2]), z)
+    end)
+end
+
+"""Volume of a trilinear hexahedron, with corners ordered as `1 + i + 2j + 4k`."""
+function cell_volume(corners)
+    # Two Gauss points per direction integrate the Jacobian determinant exactly.
+    a = (1 - inv(sqrt(3.0)))/2
+    volume = zero(eltype(first(corners)))
+    origin = first(corners)
+    for u in (a, 1-a), v in (a, 1-a), w in (a, 1-a)
+        du = dv = dw = zero(origin)
+        for k in 0:1, j in 0:1, i in 0:1
+            p = corners[1+i+2j+4k] - origin
+            fu, fv, fw = i == 1 ? u : 1-u, j == 1 ? v : 1-v, k == 1 ? w : 1-w
+            du += (2i-1)*fv*fw*p
+            dv += fu*(2j-1)*fw*p
+            dw += fu*fv*(2k-1)*p
+        end
+        volume += dot(du, cross(dv, dw))
+    end
+    return abs(volume)/8
 end
 
 function get_effective_actnum(g)
@@ -111,7 +153,7 @@ end
 function handle_zero_effective_porosity!(actnum, g, minpv, minpv_for_cell)
     changed = fill(false, size(actnum))
     if haskey(g, "PORV")
-        porv = G["PORV"]
+        porv = g["PORV"]
         for i in eachindex(actnum)
             if actnum[i]
                 pv = porv[i]
@@ -159,42 +201,7 @@ function zcorn_volume(g, zcorn, coord, dims, linear_ix)
     if ismissing(zcorn)
         vol = 1.0
     else
-        nx, ny, = dims
-        i, j, = linear_to_ijk(linear_ix, dims)
-
-        get_zcorn(I1, I2, I3) = zcorn[corner_index(linear_ix, (I1, I2, I3), dims)]
-        get_pair(I, J) = (get_zcorn(I, J, 0), get_zcorn(I, J, 1))
-        function pillar_line(I, J)
-            x1, x2 = get_line(coord, i+I, j+J, nx+1, ny+1)
-            return (x1 = x1, x2 = x2, equal_points = false)
-        end
-
-        function interpolate_line(I, J, L)
-            pl = pillar_line(I, J)
-            return interp_coord(pl, L)
-        end
-
-        l_11, t_11 = get_pair(0, 0)
-        l_12, t_12 = get_pair(0, 1)
-        l_21, t_21 = get_pair(1, 0)
-        l_22, t_22 = get_pair(1, 1)
-
-        pt_11 = interpolate_line(0, 0, l_11)
-        pt_12 = interpolate_line(0, 1, l_12)
-        pt_21 = interpolate_line(1, 0, l_21)
-        pt_22 = interpolate_line(1, 1, l_22)
-
-        A_1 = norm(cross(pt_21 - pt_11, pt_12 - pt_11), 2)
-        A_2 = norm(cross(pt_21 - pt_22, pt_12 - pt_22), 2)
-        area = (A_1 + A_2)/2.0
-
-        d_11 = t_11 - l_11
-        d_12 = t_12 - l_12
-        d_21 = t_21 - l_21
-        d_22 = t_22 - l_22
-
-        d_avg = 0.25*(d_11 + d_12 + d_21 + d_22)
-        vol = d_avg*area
+        vol = cell_volume(cell_corners(g, linear_ix, dims, coord))
     end
     return vol
 end
@@ -211,8 +218,8 @@ function repair_zcorn!(zcorn, cartdims)
                     for I2 in (0, 1)
                         self = ijk_to_linear(i, j, k, cartdims)
                         next = ijk_to_linear(i, j, k+1, cartdims)
-                        ix_upper = corner_index(self, (I1, I2, 1), cartdims)
-                        ix_lower = corner_index(next, (I1, I2, 0), cartdims)
+                        ix_upper = get_corner_index(self, (I1, I2, 1), cartdims)
+                        ix_lower = get_corner_index(next, (I1, I2, 0), cartdims)
                         z_upper = zcorn[ix_upper]
                         z_lower = zcorn[ix_lower]
                         if z_lower < z_upper
@@ -234,8 +241,8 @@ function repair_zcorn!(zcorn, cartdims)
                 # Iterate over all four columns
                 for I1 in (0, 1)
                     for I2 in (0, 1)
-                        ix_upper = corner_index(ix, (I1, I2, 0), cartdims)
-                        ix_lower = corner_index(ix, (I1, I2, 1), cartdims)
+                        ix_upper = get_corner_index(ix, (I1, I2, 0), cartdims)
+                        ix_lower = get_corner_index(ix, (I1, I2, 1), cartdims)
                         z_upper = zcorn[ix_upper]
                         z_lower = zcorn[ix_lower]
                         if z_upper > z_lower

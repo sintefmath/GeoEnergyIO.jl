@@ -157,13 +157,12 @@ function cpgrid_from_horizons_add_layer!(zcorn, actnum, X, Y, top, bottom, D, k_
                 # @info cell
                 for i_upper in (0, 1)
                     for j_upper in (0, 1)
-                        # Some index issues here (j/i)
-                        z_t = top[i+j_upper, j+i_upper]
-                        z_d = bottom[i+j_upper, j+i_upper]
+                        z_t = top[i+i_upper, j+j_upper]
+                        z_d = bottom[i+i_upper, j+j_upper]
                         z_d = max(z_t, z_d)
                         Δz = (z_d - z_t)/num_vertical_cells_in_layer
-                        low_ix = corner_index(cell, (i_upper, j_upper, 0), D)
-                        hi_ix = corner_index(cell, (i_upper, j_upper, 1), D)
+                        low_ix = get_corner_index(cell, (i_upper, j_upper, 0), D)
+                        hi_ix = get_corner_index(cell, (i_upper, j_upper, 1), D)
 
                         z_low = z_t + (k_base-1)*Δz
                         z_high = z_t + k_base*Δz
@@ -171,8 +170,8 @@ function cpgrid_from_horizons_add_layer!(zcorn, actnum, X, Y, top, bottom, D, k_
                             actnum[i, j, k] = false
                             z_low = z_high = 0.0
                         else
-                            x = X[i + j_upper]
-                            y = Y[j + i_upper]
+                            x = X[i + i_upper]
+                            y = Y[j + j_upper]
                             for F_t in transforms
                                 z_low = F_t(x, y, z_low, x_cell, y_cell, i, j, k)
                                 z_high = F_t(x, y, z_high, x_cell, y_cell, i, j, k)

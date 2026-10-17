@@ -1,5 +1,6 @@
 using GeoEnergyIO
 using Test
+include("pinch_keyword.jl")
 
 import GeoEnergyIO: test_input_file_path
 import Jutul: number_of_cells, number_of_boundary_faces, number_of_faces, convert_from_si
@@ -127,6 +128,10 @@ import Jutul.MeshQualityControl: check_normals, si_unit
         @testset "$name" begin
             pth = test_input_file_path("grdecl", name)
             grdecl = parse_grdecl_file(pth)
+            if name in ("4_1_node_pinch.txt", "model3_20_20_50.txt")
+                # These reference counts include PINCH connections.
+                grdecl["PINCH"] = [0.001, "GAP", Inf, "TOPBOT", "TOP"]
+            end
             g = mesh_from_grid_section(grdecl)
             nc = number_of_cells(g)
             nf = number_of_faces(g)

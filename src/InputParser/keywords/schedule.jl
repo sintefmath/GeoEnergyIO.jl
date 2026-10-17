@@ -179,23 +179,22 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:WCONINJE})
     defaults = [d, d, "OPEN", d, -1.0, -1.0, NaN, -1.0, 0, 0.0, 0.0, 0, 0, 0]
     wells = get_wells(outer_data)
     out = parse_defaulted_group_well(f, defaults, wells, 1)
-    utypes = identity_unit_vector(defaults)
-    utypes[6] = :liquid_rate_reservoir
-    utypes[7] = :pressure
-    utypes[8] = :pressure
     for o in out
+        utypes = identity_unit_vector(defaults)
+        utypes[6] = :liquid_rate_reservoir
+        utypes[7] = :pressure
+        utypes[8] = :pressure
         for i in [5, 6, 8]
-            if o[i] <= 0
+            if o[i] <= 0 && !(i == 5 && o[4] == "RATE" && o[i] == 0)
                 o[i] = Inf
             end
         end
-        w = get_well(outer_data, o[1])
-        if w.preferred_phase == "GAS"
+        if o[2] == "GAS"
             utypes[5] = :gas_rate_surface
             utypes[10] = :u_rv
         else
             utypes[5] = :liquid_rate_surface
-            if w.preferred_phase == "OIL"
+            if o[2] == "OIL"
                 utypes[12] = :u_rs
             end
         end
@@ -209,19 +208,15 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:WCONINJH})
     defaults = [d, d, "OPEN", 0.0, 0.0, 0.0, 0, 0.0, 0.0, 0.0, 0.0, "RATE"]
     wells = get_wells(outer_data)
     out = parse_defaulted_group_well(f, defaults, wells, 1)
-    utypes = identity_unit_vector(defaults)
-    utypes[5] = :pressure
-    utypes[6] = :pressure
     for o in out
-        w = get_well(outer_data, o[1])
-        if w.preferred_phase == "GAS"
+        utypes = identity_unit_vector(defaults)
+        utypes[5] = :pressure
+        utypes[6] = :pressure
+        utypes[8] = :u_rv
+        if o[2] == "GAS"
             utypes[4] = :gas_rate_surface
-            utypes[8] = :u_rv
         else
             utypes[4] = :liquid_rate_surface
-            if w.preferred_phase == "OIL"
-                utypes[8] = :u_rs
-            end
         end
         swap_unit_system_axes!(o, units, utypes)
     end

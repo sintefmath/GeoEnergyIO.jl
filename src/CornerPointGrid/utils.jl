@@ -97,23 +97,40 @@ end
 
 """Volume of a trilinear hexahedron, with corners ordered as `1 + i + 2j + 4k`."""
 function cell_volume(corners)
-    # Two Gauss points per direction integrate the Jacobian determinant exactly.
-    a = (1 - inv(sqrt(3.0)))/2
-    volume = zero(eltype(first(corners)))
-    origin = first(corners)
-    for u in (a, 1-a), v in (a, 1-a), w in (a, 1-a)
-        u_weights, v_weights, w_weights = (1-u, u), (1-v, v), (1-w, w)
-        du = dv = dw = zero(origin)
-        for k in 0:1, j in 0:1, i in 0:1
-            p = corners[1+i+2j+4k] - origin
-            fu, fv, fw = u_weights[i+1], v_weights[j+1], w_weights[k+1]
-            du += (2i-1)*fv*fw*p
-            dv += fu*(2j-1)*fw*p
-            dw += fu*fv*(2k-1)*p
-        end
-        volume += dot(du, cross(dv, dw))
+    # The suffixes are logical (i, j, k) offsets: i varies fastest, then j, then k.
+    p000, p100, p010, p110, p001, p101, p011, p111 = corners
+
+    # Trilinear interpolation maps the unit cube (u, v, w) to the physical cell.
+    # Its Jacobian determinant gives the local volume scaling. Two Gauss points
+    # in each direction integrate this determinant exactly on the unit cube.
+    gauss_offset = 1/(2*sqrt(3.0))
+    gauss_points = (0.5 - gauss_offset, 0.5 + gauss_offset)
+    quadrature_weight = 1/8 # Each of the three one-dimensional weights is 1/2.
+    signed_volume = zero(eltype(p000))
+    for u in gauss_points, v in gauss_points, w in gauss_points
+        # Each derivative interpolates the four cell edges in that direction.
+        # Using edge differences also avoids cancellation at large coordinates.
+        dx_du = (1-v)*(1-w)*(p100 - p000) +
+                v*(1-w)*(p110 - p010) +
+                (1-v)*w*(p101 - p001) +
+                v*w*(p111 - p011)
+
+        dx_dv = (1-u)*(1-w)*(p010 - p000) +
+                u*(1-w)*(p110 - p100) +
+                (1-u)*w*(p011 - p001) +
+                u*w*(p111 - p101)
+
+        dx_dw = (1-u)*(1-v)*(p001 - p000) +
+                u*(1-v)*(p101 - p100) +
+                (1-u)*v*(p011 - p010) +
+                u*v*(p111 - p110)
+
+        # The derivatives are the three columns of the Jacobian matrix.
+        jacobian_determinant = dot(dx_du, cross(dx_dv, dx_dw))
+        signed_volume += quadrature_weight*jacobian_determinant
     end
-    return abs(volume)/8
+    # Corner ordering can reverse orientation without changing physical volume.
+    return abs(signed_volume)
 end
 
 function get_effective_actnum(g)

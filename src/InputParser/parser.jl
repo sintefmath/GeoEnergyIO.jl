@@ -198,17 +198,8 @@ function parse_data_file!(outer_data, filename, data = outer_data;
                 data = new_section(outer_data, m)
                 skip_mode = m in skip
             elseif m == :INCLUDE
-                next = readline(f)
-                if occursin("--", next)
-                    # Strip comments
-                    next = next[1:findfirst("--", next)[1]-1]
-                end
-                next = strip(next)
-                if endswith(next, '/')
-                    next = rstrip(next, '/')
-                else
-                    readline(f)
-                end
+                next = join(read_record(f; include_path = true), " ")
+                isempty(next) && throw(ArgumentError("INCLUDE record is missing a file name."))
                 next = substitute_paths(next, outer_data)
                 include_path = clean_include_path(basedir, next)
                 parser_message(cfg, outer_data, "$m", "Including file: $include_path. Basedir: $basedir with INCLUDE = $next", color = :green)

@@ -14,7 +14,11 @@ using Test, GeoEnergyIO
                 write(path,"RUNSPEC\nFIELD\nSCHEDULE\nWELSPECS\n 'I' 'G' 1 1 1 '$preferred' /\n/\n$keyword\n$records/\nTSTEP\n1 /\nEND\n")
                 d = parse_data_file(path;silent=true)
                 values = first(d["SCHEDULE"]["STEPS"])[keyword]
-                col = keyword == "WCONINJE" ? 5 : 4
+                if keyword == "WCONINJE"
+                    col = 5
+                else
+                    col = 4
+                end
                 rates[preferred] = [r[col] for r in values]
             end
         end

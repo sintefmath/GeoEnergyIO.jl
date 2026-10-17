@@ -27,19 +27,14 @@ function read_record(f; fix = true, include_path = false)
         if !isnothing(cpos)
             line = line[1:prevind(line, cpos)]
         end
-        line = strip(line)
-        if !startswith(line, "--")
-            line = String(line)
-            ix = find_unquoted(line, "/"; include_path = include_path)
-            if !isnothing(ix)
-                # TODO: Think this is OK for parsing ASCII.
-                line = line[1:prevind(line, ix)]
-                active = false
-            end
-            line::String
-            if length(line) > 0
-                push!(split_lines, line)
-            end
+        line = String(strip(line))
+        ix = find_unquoted(line, "/"; include_path = include_path)
+        if !isnothing(ix)
+            line = line[1:prevind(line, ix)]
+            active = false
+        end
+        if !isempty(line)
+            push!(split_lines, line)
         end
     end
     return split_lines

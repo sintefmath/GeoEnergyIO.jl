@@ -4,22 +4,36 @@ end
 
 const DECK_SPLIT_REGEX = r"[ \t,]+"
 
-function read_record(f; fix = true)
+function find_unquoted(line, delimiter; include_path = false)
+    quoted = false
+    for i in eachindex(line)
+        if line[i] == '\''
+            quoted = !quoted
+        elseif !quoted && startswith(SubString(line, i), delimiter)
+            if !include_path || i == firstindex(line) || isspace(line[prevind(line, i)])
+                return i
+            end
+        end
+    end
+    return nothing
+end
+
+function read_record(f; fix = true, include_path = false)
     split_lines = Vector{String}()
     active = true
     while !eof(f) && active
         line = readline(f)
-        cpos = findfirst("--", line)
+        cpos = find_unquoted(line, "--")
         if !isnothing(cpos)
-            line = line[1:(first(cpos)-1)]
+            line = line[1:prevind(line, cpos)]
         end
         line = strip(line)
         if !startswith(line, "--")
             line = String(line)
-            if contains(line, '/')
+            ix = find_unquoted(line, "/"; include_path = include_path)
+            if !isnothing(ix)
                 # TODO: Think this is OK for parsing ASCII.
-                ix = findfirst('/', line)
-                line = line[1:ix-1]
+                line = line[1:prevind(line, ix)]
                 active = false
             end
             line::String

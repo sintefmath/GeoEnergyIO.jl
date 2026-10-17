@@ -425,7 +425,23 @@ function parse_keyword!(data, outer_data, units, cfg, f, v::Val{T}) where T
 
     if !found
         section = outer_data["CURRENT_SECTION"]
-        if startswith(kw_str, "TVDP")
+        if startswith(kw_str, "TVDPF")
+            values = parse_deck_vector(f)
+            if !isempty(values) && all(iszero, values)
+                # Some exported decks write one zero per layer for a zero profile.
+                # This is unambiguous even when it is not a depth/concentration table.
+                data[kw_str] = [0.0 0.0; 1.0 0.0]
+                if isodd(length(values))
+                    parser_message(cfg, outer_data, kw_str, "Interpreting an all-zero record as a uniform zero tracer profile.", important = true)
+                end
+            else
+                @assert iseven(length(values)) && length(values) >= 4 "$kw_str requires depth/concentration pairs."
+                table = permutedims(reshape(values, 2, :))
+                swap_unit_system_axes!(table, units, (:length, :id))
+                @assert all(diff(table[:, 1]) .> 0) "$kw_str depths must be increasing."
+                data[kw_str] = table
+            end
+        elseif startswith(kw_str, "TVDP")
             parser_message(cfg, outer_data, kw_str, PARSER_MISSING_SUPPORT)
             read_record(f)
         elseif section == :REGIONS
@@ -651,6 +667,9 @@ end
 
 function replace_quotes(str::String)
     if '\'' in str
+        # Eclipse names are commonly padded to eight characters inside quotes.
+        # Remove padding before protecting any interior spaces from tokenization.
+        str = replace(str, r"'[^']*'" => token -> "'" * strip(token[2:end-1]) * "'")
         v = collect(str)
         in_quote = false
         new_char = Char[]

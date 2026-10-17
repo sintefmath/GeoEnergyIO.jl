@@ -66,6 +66,11 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:COMPDAT})
     utypes[12] = :time_over_volume
     utypes[14] = :length
     for cd in compdat
+        # A zero connection factor requests a calculated well index, just as a
+        # defaulted field does. It does not close the connection.
+        if cd[8] == 0.0
+            cd[8] = NaN
+        end
         swap_unit_system_axes!(cd, units, utypes)
     end
     push_and_create!(data, "COMPDAT", compdat)
@@ -431,6 +436,14 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:WTEMP})
         swap_unit_system_axes!(wt, units, (:id, :relative_temperature))
     end
     push_and_create!(data, "WTEMP", wtemp)
+end
+
+function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:WTRACER})
+    records = parse_defaulted_group_well(f, ["", "", 0.0, NaN, ""], get_wells(outer_data))
+    for rec in records
+        @assert isfinite(rec[3]) && rec[3] >= 0 "WTRACER concentration must be nonnegative."
+    end
+    push_and_create!(data, "WTRACER", records)
 end
 
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:WELSEGS})

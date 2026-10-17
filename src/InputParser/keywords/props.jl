@@ -337,17 +337,29 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:SPECHEAT})
     data["SPECHEAT"] = speacheat
 end
 
+function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:TRACER})
+    records = parse_defaulted_group(f, ["", "", "", "", 0, ""])
+    names = String[]
+    for rec in records
+        name, phase = rec[1:2]
+        @assert !isempty(name) "TRACER requires a name."
+        @assert !(name in names) "Duplicate TRACER name $name."
+        @assert phase in ("WAT", "WATER", "OIL", "GAS") "Unknown TRACER phase $phase."
+        push!(names, name)
+    end
+    data["TRACER"] = records
+end
+
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:SPECROCK})
     nreg = number_of_tables(outer_data, :satnum)
     specrock = parse_region_matrix_table(f, nreg)
     for tab in specrock
-        rec = read_record(f)
-        swap_unit_system_axes!(tab, units, (:relative_temperature, :mass_heat_capacity))
+        swap_unit_system_axes!(tab, units, (:relative_temperature, :volume_heat_capacity))
     end
     data["SPECROCK"] = specrock
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, v::Union{Val{:WATVISCT}, Val{:OILVISCT}})
+function parse_keyword!(data, outer_data, units, cfg, f, v::Union{Val{:WATVISCT}, Val{:OILVISCT}, Val{:GASVISCT}})
     k = unpack_val(v)
     nreg = number_of_tables(outer_data, :pvtnum)
     visct = parse_region_matrix_table(f, nreg)

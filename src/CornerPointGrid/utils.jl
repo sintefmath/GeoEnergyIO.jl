@@ -91,12 +91,16 @@ function get_corner_index(cell, corner::NTuple, dims)
 end
 
 function corner_index(cell, corner::NTuple, dims)
-    Base.depwarn("corner_index uses (j, i, k) corner offsets; use get_corner_index with (i, j, k) offsets instead.", :corner_index)
+    Base.depwarn("corner_index is deprecated and uses (j, i, k) corner offsets; use get_corner_index with (i, j, k) offsets instead.", :corner_index)
     return get_corner_index(cell, (corner[2], corner[1], corner[3]), dims)
 end
 
 function cell_corners(g, cell, dims = Tuple(g["cartDims"]), coord = reshape(g["COORD"], 6, :)')
-    ijk = cell isa Integer ? linear_to_ijk(cell, dims) : cell
+    if cell isa Integer
+        ijk = linear_to_ijk(cell, dims)
+    else
+        ijk = cell
+    end
     nx, ny, = dims
     zcorn = g["ZCORN"]
     T = promote_type(eltype(g["COORD"]), eltype(zcorn))
@@ -115,10 +119,11 @@ function cell_volume(corners)
     volume = zero(eltype(first(corners)))
     origin = first(corners)
     for u in (a, 1-a), v in (a, 1-a), w in (a, 1-a)
+        u_weights, v_weights, w_weights = (1-u, u), (1-v, v), (1-w, w)
         du = dv = dw = zero(origin)
         for k in 0:1, j in 0:1, i in 0:1
             p = corners[1+i+2j+4k] - origin
-            fu, fv, fw = i == 1 ? u : 1-u, j == 1 ? v : 1-v, k == 1 ? w : 1-w
+            fu, fv, fw = u_weights[i+1], v_weights[j+1], w_weights[k+1]
             du += (2i-1)*fv*fw*p
             dv += fu*(2j-1)*fw*p
             dw += fu*fv*(2k-1)*p

@@ -10,6 +10,6 @@ using Test, GeoEnergyIO, Jutul
         present && (grid["PINCH"] = [0.001,"GAP",Inf,"TOPBOT","TOP"])
         mesh = mesh_from_grid_section(grid;process_pinch=enabled)
         @test number_of_cells(mesh) == 2
-        @test number_of_faces(mesh) == (present && enabled ? 1 : 0)
+        @test number_of_faces(mesh) == Int(present && enabled)
     end
 end

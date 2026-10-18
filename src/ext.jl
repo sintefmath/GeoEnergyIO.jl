@@ -1,200 +1,74 @@
+# Public compatibility entry points. The pure Julia implementation is the
+# default; the optional Python backend remains available for comparison.
 function check_pythoncall(; throw = true)
     present = !isnothing(Base.get_extension(GeoEnergyIO, :GeoEnergyIOPythonCallExt))
-    if throw
-        if !present
-            println("PythonCall is not loaded. This is needed for reading of output files via resdata.")
-            println("To fix, install and load PythonCall by running the following commands:")
-            println("\tusing Pkg; Pkg.add(\"PythonCall\"); using PythonCall")
-            println("It is also recommended to set the following if your only use of PythonCall is GeoEnergyIO:")
-            println("\tENV[\"JULIA_CONDAPKG_ENV\"] = \"@resdata\"")
-            error("PythonCall was not available.")
-        end
-    end
+    throw && !present && error("The Python backend requires loading PythonCall and resdata. Use backend=:julia for the built-in reader.")
     return present
 end
 
-"""
-    restart = read_restart(fn)
-    restart, raw_restart = read_restart(fn, extra_out = true)
-
-Read a restart file from `fn`. This should be the base path (i.e. without the
-`.RSRT` extension). The results are given as a Vector of Dicts.
-
-# Keyword arguments
-
-- `extra_out`: If true, return the raw Python object as well as the parsed
-  data. Default is false.
-- `actnum=missing`: ACTNUM array that can be used to reduce the outputs to the
-  active cells.
-- `egrid=missing`: EGRID object needed to read the restarts. Will be read from
-  the same path as `fn` if not provided.
-
-# Notes
-
-This function requires the `resdata` Python package to be installed, which will
-be automatically added to your environment if you first install PythonCall and
-put `using PythonCall` in your script or REPL.
-
-The main class to lookup on the Python side of things is `ResdataRestartFile`.
-"""
-function read_restart(arg...; kwarg...)
-    check_pythoncall()
-    return read_restart_impl(arg...; kwarg...)
-end
-
-function read_restart_impl
-
+function io_backend(backend)
+    backend in (:julia, :python) || throw(ArgumentError("backend must be :julia or :python"))
+    backend == :python && check_pythoncall()
+    return backend
 end
 
 """
-    init = read_init(fn)
-    init, raw_init = read_init(fn, extra_out = true)
+    read_restart(path; backend=:julia, kw...)
 
-Read a init file from `fn`. This should be the base path (i.e. without the
-`.RSRT` extension). The results are given as a Dict.
-
-# Keyword arguments
-
-- `extra_out`: If true, return the raw Python object as well as the parsed
-  data. Default is false.
-- `actnum=missing`: ACTNUM array that can be used to reduce the outputs to the
-  active cells.
-
-# Notes
-
-This function requires the `resdata` Python package to be installed, which will
-be automatically added to your environment if you first install PythonCall and
-put `using PythonCall` in your script or REPL.
-
-The main class to lookup on the Python side of things is `ResdataFile`.
+Read industry standard format restart files using the built-in Julia reader.
+See [`StandardIO.input.read_restart`](@ref) for options and return values.
 """
-function read_init(arg...; kwarg...)
-    check_pythoncall()
-    return read_init_impl(arg...; kwarg...)
-end
-
-function read_init_impl
-
+function read_restart(args...; backend = :julia, kw...)
+    io_backend(backend)
+    return backend == :julia ? StandardIO.read_restart(args...; kw...) : read_restart_impl(args...; kw...)
 end
 
 """
-    egrid = read_egrid(pth)
-    egrid, raw_egrid = read_egrid(pth, extra_out = true)
+    read_init(path; backend=:julia, kw...)
 
-Read the EGRID file from `pth`. The results are given as a Dict and can be
-passed further on to `mesh_from_grid_section` to construct a Jutul mesh.
-
-# Notes
-
-This function requires the `resdata` Python package to be installed, which will
-be automatically added to your environment if you first install PythonCall and
-put `using PythonCall` in your script or REPL.
-
-Uses primarily `resdata.grid.Grid`.
+Read industry standard format INIT arrays. See [`StandardIO.input.read_init`](@ref).
 """
-function read_egrid(arg...; kwarg...)
-    check_pythoncall()
-    return read_egrid_impl(arg...; kwarg...)
-end
-
-function read_egrid_impl
-
+function read_init(args...; backend = :julia, kw...)
+    io_backend(backend)
+    return backend == :julia ? StandardIO.read_init(args...; kw...) : read_init_impl(args...; kw...)
 end
 
 """
-    summary = read_summary(pth)
-    summary, raw_summary = read_summary(pth, extra_out = true)
+    read_egrid(path; backend=:julia, kw...)
 
-Read the SUMMARY file from `pth`. The results are given as a Dict.
-
-# Notes
-
-This function requires the `resdata` Python package to be installed, which will
-be automatically added to your environment if you first install PythonCall and
-put `using PythonCall` in your script or REPL.
-
-Uses primarily `resdata.summary.Summary`.
+Read an industry standard format grid into a deck GRID dictionary.
+See [`StandardIO.input.read_egrid`](@ref). The Julia reader returns SI geometry.
 """
-function read_summary(arg...; kwarg...)
-    check_pythoncall()
-    return read_summary_impl(arg...; kwarg...)
-end
-
-function read_summary_impl
-
+function read_egrid(args...; backend = :julia, kw...)
+    io_backend(backend)
+    return backend == :julia ? StandardIO.read_egrid(args...; kw...) : read_egrid_impl(args...; kw...)
 end
 
 """
-    write_jutuldarcy_summary(filename, smry_jutul; unified = true)
+    read_summary(path; backend=:julia, format=:legacy, kw...)
 
-Experimental function to write a summary file from JutulDarcy results.
+Read industry standard format summary files. Use `format=:jutuldarcy` for the
+dictionary format used by JutulDarcy's `summary_result`.
+See [`StandardIO.input.read_summary`](@ref).
 """
-function write_jutuldarcy_summary(filename, smry_jutul; unified = true)
-    check_pythoncall()
-    return write_jutuldarcy_summary_impl(filename, smry_jutul, unified = unified)
+function read_summary(args...; backend = :julia, kw...)
+    io_backend(backend)
+    return backend == :julia ? StandardIO.read_summary(args...; kw...) : read_summary_impl(args...; kw...)
 end
 
-function write_jutuldarcy_summary_impl
-
+"Write a JutulDarcy summary dictionary as industry standard format files, using Julia by default."
+function write_jutuldarcy_summary(args...; backend = :julia, kw...)
+    io_backend(backend)
+    return backend == :julia ? StandardIO.write_jutuldarcy_summary(args...; kw...) : write_jutuldarcy_summary_impl(args...; kw...)
 end
 
-"""
-    write_egrid(case::JutulCase, pth)
+# These hooks are implemented by the legacy Python extension only.
+function read_restart_impl end
+function read_init_impl end
+function read_egrid_impl end
+function read_summary_impl end
+function write_egrid_impl end
+function write_jutuldarcy_summary_impl end
 
-Write an EGRID file from a JutulCase from JutulDarcy.jl. This is a convenience
-function that will extract the reservoir domain and input data from the case. It
-is assumed that the case has been set up from a data file so that the mesh
-matches the GRID section.
-"""
-function write_egrid(case::JutulCase, pth)
-    reservoir = reservoir_domain(case)
-    data = case.input_data
-    return write_egrid(reservoir, data, pth)
-end
-
-"""
-    write_egrid(reservoir::DataDomain, data::Dict, pth)
-
-Write EGRID from a reservoir/DataDomain from JutulDarcy.jl that has been
-constructed from a data file.
-"""
-function write_egrid(reservoir::DataDomain, data::AbstractDict, pth)
-    G = physical_representation(reservoir)
-    return write_egrid(G, data, pth)
-end
-
-"""
-    write_egrid(G::UnstructuredMesh, data::Dict, pth)
-
-Write EGRID from UnstructuredMesh that was constructed from the GRID section of
-the data file.
-"""
-function write_egrid(G::UnstructuredMesh, data::AbstractDict, pth)
-    if haskey(data, "GRID")
-        data = data["GRID"]
-    end
-    data = copy(data)
-    nx, ny, nz = G.structure.I
-    # ACTNUM could be different from what's in DATA due to pinch and so on. We
-    # reconstruct it from the actually active cells.
-    actnum = zeros(Bool, nx*ny*nz)
-    actnum[G.cell_map] .= true
-    data["ACTNUM"] = actnum
-    return write_egrid(data, pth)
-end
-
-"""
-    write_egrid(data::AbstractDict, pth)
-
-Write EGRID from a Dict that has been parsed from a data file. Can be either the
-GRID section or the full data file.
-"""
-function write_egrid(data::AbstractDict, pth)
-    # This is the gateway to the Python side of things.
-    check_pythoncall()
-    return write_egrid_impl(data, pth)
-end
-
-function write_egrid_impl
-
-end
+"Read restart solution arrays as JutulDarcy state dictionaries using a case's phase ordering (requires JutulDarcy)."
+function read_jutuldarcy_states end

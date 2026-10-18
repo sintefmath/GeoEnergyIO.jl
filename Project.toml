@@ -20,9 +20,11 @@ XML = "72c71f33-b9b6-44de-8c94-c961784809e2"
 ZipArchives = "49080126-0e18-4c2a-b176-c102e4b3760c"
 
 [weakdeps]
+JutulDarcy = "82210473-ab04-4dce-b31b-11573c4f8e0a"
 PythonCall = "6099a3de-0909-46bc-b1f4-468b9a2dfc0d"
 
 [extensions]
+GeoEnergyIOJutulDarcyExt = "JutulDarcy"
 GeoEnergyIOPythonCallExt = "PythonCall"
 
 [compat]
@@ -30,6 +32,7 @@ Artifacts = "1"
 DelimitedFiles = "1.6.7"
 HDF5 = "0.17"
 Jutul = "0.2.21, 0.3, 0.4, 0.5"
+JutulDarcy = "0.3, 0.4"
 LazyArtifacts = "1"
 Lerche = "0.5.6"
 LinearAlgebra = "1"

@@ -1,6 +1,7 @@
 using GeoEnergyIO
 using Test
 include("corner_geometry.jl")
+include("parser_records.jl")
 include("injection_units.jl")
 
 import GeoEnergyIO: test_input_file_path

@@ -214,9 +214,6 @@ const REGION_TYPE = Union{Val{:FIPNUM}, Val{:PVTNUM}, Val{:SATNUM}, Val{:EQLNUM}
 
 function parse_keyword!(data, outer_data, units, cfg, f, v::REGION_TYPE)
     k = unpack_val(v)
-    if k == :FLUXNUM
-        parser_message(cfg, outer_data, "FLUXNUM", PARSER_JUTULDARCY_MISSING_SUPPORT)
-    end
     parse_and_set_grid_data!(data, outer_data, units, cfg, f, k, T = Int)
 end
 

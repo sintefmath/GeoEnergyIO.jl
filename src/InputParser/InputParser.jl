@@ -13,7 +13,9 @@ module InputParser
         # Keywords with a single line
         skip_kw!(:PETOPTS, 1)
         skip_kw!(:PARALLEL, 1)
+        skip_kw!(:MULTSAVE, 1)
         skip_kw!(:VECTABLE, 1)
+        skip_kw!(:MULTSAVE, 1)
         skip_kw!(:WHISTCTL, 1, PARSER_JUTULDARCY_MISSING_SUPPORT)
         skip_kw!(:MEMORY, 1)
         skip_kw!(:OPTIONS3, 1)
@@ -31,6 +33,7 @@ module InputParser
         skip_kw!(:NOWARNEP, 0)
         skip_kw!(:NOHYKR, 0)
         skip_kw!(:NOMIX, 0)
+        skip_kw!(:FILLEPS, 0)
         skip_kw!(:NPROCX, 0)
         skip_kw!(:NPROCY, 0)
         skip_kw!(:NONNC, 0)
@@ -43,7 +46,7 @@ module InputParser
         skip_kw!(:EQLOPTS, 1, PARSER_MISSING_SUPPORT)
         skip_kw!(:TRACERS, 1, PARSER_MISSING_SUPPORT)
         skip_kw!(:PIMTDIMS, 1, PARSER_MISSING_SUPPORT)
-        skip_kw!(:LIFTOPT, 1, PARSER_JUTULDARCY_MISSING_SUPPORT)
+        skip_kw!(:FLUXNUM, 1, PARSER_MISSING_SUPPORT)
         skip_kw!(:OPTIONS, 1, PARSER_MISSING_SUPPORT)
         skip_kw!(:ZIPPY2, 1, PARSER_MISSING_SUPPORT)
         skip_kw!(:DRSDT, 1, PARSER_MISSING_SUPPORT)
@@ -77,7 +80,6 @@ module InputParser
                 :GCONINJE,
                 :WTEST,
                 :WLIST,
-                :WLIFTOPT,
             ]
             skip_kw!(kw, Inf, PARSER_MISSING_SUPPORT)
         end

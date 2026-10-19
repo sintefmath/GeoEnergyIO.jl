@@ -6,6 +6,8 @@ include("corner_geometry.jl")
 include("parser_records.jl")
 include("injection_units.jl")
 
+include("thermal.jl")
+
 import GeoEnergyIO: test_input_file_path
 import Jutul: number_of_cells, number_of_boundary_faces, number_of_faces, convert_from_si
 import Jutul.MeshQualityControl: check_normals, si_unit

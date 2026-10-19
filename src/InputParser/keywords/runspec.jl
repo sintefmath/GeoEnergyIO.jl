@@ -56,9 +56,20 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:POLYMER})
 end
 
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:TEMP})
-    # TODO: We treat this as an alias, not sure if this is correct.
+    # Enable thermal setup, retaining TEMP so the simulator can omit pressure
+    # work in the transported energy for the temperature-model formulation.
     data["THERMAL"] = true
     data["TEMP"] = true
+end
+
+function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:TRACERS})
+    defaults = [0, 0, 0, 0, "NODIFF", 12, 1, "NO", NaN, NaN, 1.0, 0]
+    rec = parse_defaulted_line(read_record(f), defaults)
+    if rec[5] != "NODIFF"
+        parser_message(cfg, outer_data, "TRACERS", PARSER_JUTULDARCY_PARTIAL_SUPPORT,
+            "Numerical dispersion control is not implemented; tracers use the simulator's transport discretization.")
+    end
+    data["TRACERS"] = rec
 end
 
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:OIL})

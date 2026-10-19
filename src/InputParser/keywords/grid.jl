@@ -177,7 +177,7 @@ function unit_type(::MULTXYZ_TYPE)
     return :id
 end
 
-const THERMAL_CONDUCTIVITY_TYPE = Union{Val{:THCONR}, Val{:THCROCK}, Val{:THCWATER}, Val{:THCGAS}, Val{:THCSOLID}, Val{:THCAVE}}
+const THERMAL_CONDUCTIVITY_TYPE = Union{Val{:THCONR}, Val{:THCROCK}, Val{:THCWATER}, Val{:THCOIL}, Val{:THCGAS}, Val{:THCSOLID}, Val{:THCAVE}}
 
 function parse_keyword!(data, outer_data, units, cfg, f, v::THERMAL_CONDUCTIVITY_TYPE)
     k = unpack_val(v)
@@ -203,7 +203,7 @@ function parse_keyword!(data, outer_data, units, cfg, f, v::Union{Val{:YMODULE}}
     parse_and_set_grid_data!(data, outer_data, units, cfg, f, k, unit = :gigapascal)
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, v::Union{Val{:POELCOEF}, Val{:THELCOEF}, Val{:THERMEXR}, Val{:THCONR}})
+function parse_keyword!(data, outer_data, units, cfg, f, v::Union{Val{:POELCOEF}, Val{:THELCOEF}, Val{:THERMEXR}})
     k = unpack_val(v)
     vals = parse_grid_vector(f, get_cartdims(outer_data), Float64)
     parser_message(cfg, outer_data, "$k", PARSER_PARTIAL_SUPPORT)

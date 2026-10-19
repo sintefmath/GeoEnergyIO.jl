@@ -1,0 +1,63 @@
+-- Minimal parser fixture: the keyword immediately after SPECROCK must survive.
+RUNSPEC
+DIMENS
+ 2 1 1 /
+METRIC
+WATER
+TEMP
+TRACERS
+ 0 1 /
+DISPDIMS
+ 1 2 1 /
+GRID
+DX
+ 2*10 /
+DY
+ 2*10 /
+DZ
+ 2*5 /
+TOPS
+ 2*1000 /
+THCONR
+ 2*86.4 /
+PROPS
+TRACER
+ INJ WAT /
+/
+SPECHEAT
+ 0 1 4 2
+ 100 2 5 3 /
+SPECROCK
+ 0 2200
+ 100 2300 /
+WATVISCT
+ 20 1.2
+ 100 0.4 /
+GASVISCT
+ 20 0.02
+ 100 0.03 /
+SOLUTION
+TBLKFINJ
+ 0.25 0.5 /
+TVDPFINJ
+ 1000 0
+ 1100 1 /
+RTEMPVD
+ 1000 50
+ 1100 60 /
+SCHEDULE
+WELSPECS
+ I G 1 1 1* WAT /
+/
+COMPDAT
+ 'I       ' 1 1 1 1 OPEN 0 0 0.3 /
+/
+WTRACER
+ I INJ 0.75 /
+/
+WTEMP
+ I 20 /
+/
+TSTEP
+ 1 /
+END

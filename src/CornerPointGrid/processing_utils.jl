@@ -237,6 +237,16 @@ function push_crossing_node!(node_pos, extra_node_lookup, nodes, line_a, line_b)
 end
 
 function handle_crossing_node!(extra_node_lookup, nodes, line_a, line_b)
+    # Two lines sharing an end node can only meet there. Return that node
+    # directly: the computed crossing may miss it by more than the tolerance
+    # below (rounding with large coordinates, or nearly parallel lines such as
+    # thin layers pinching out to one node), which would add a duplicate node
+    # and distort the faces through it.
+    for i in line_a.index, j in line_b.index
+        if i == j
+            return i
+        end
+    end
     pt = find_crossing_node(line_a.points, line_b.points)
     isnothing(pt) && return nothing
     # The crossing node might coincide with the endpoints of the a/b lines. We

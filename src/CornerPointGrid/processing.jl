@@ -968,7 +968,8 @@ function add_extra_nodes_to_horizontal_edge(node_indices::NTuple{4, Int}, extra_
         ni = node_indices[i]
         nj = node_indices[j]
         el = tuple_sort((ni, nj))
-        rev = el[1] == ni
+        # Stored from el[1] to el[2]: reversed when the face runs from nj to ni
+        rev = el[1] != ni
         v = get(extra_edge_node_map, el, missing)
         return (v, rev)
     end

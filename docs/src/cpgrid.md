@@ -187,6 +187,8 @@ fig
 ## Utilities
 
 ```@docs
+GeoEnergyIO.CornerPointGrid.get_corner_index
+GeoEnergyIO.CornerPointGrid.cell_volume
 get_data_file_cell_region
 number_of_tables
 ```

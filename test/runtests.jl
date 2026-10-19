@@ -1,5 +1,7 @@
 using GeoEnergyIO
 using Test
+include("parser_records.jl")
+include("injection_units.jl")
 
 import GeoEnergyIO: test_input_file_path
 import Jutul: number_of_cells, number_of_boundary_faces, number_of_faces, convert_from_si
@@ -350,6 +352,41 @@ import Jutul.MeshQualityControl: check_normals, si_unit
         @test number_of_cells(m) == 14
         @test near_duplicate_nodes(m) == 0
         @test length(m.node_points) == length(vertical.node_points)
+    end
+
+    @testset "cpgrid extra nodes on horizontal edges in order" begin
+        import Jutul: tpfv_geometry, cell_ijk
+        import LinearAlgebra: cross, norm
+        # Two columns of planar layers tilted oppositely across the row (4 m
+        # from front to back), with 1 m layers: each layer's edges at the shared
+        # pillars cross several of the other column's, so the top and bottom
+        # faces get several extra nodes per edge. They must run in order along
+        # the edge, else the face outline doubles back and its area is wrong.
+        nx, ny, nz = 2, 1, 6
+        off = (((0.0, 4.0), (0.0, 4.0)), ((4.0, 0.0), (4.0, 0.0)))
+        coord = Float64[]
+        for j in 0:ny, i in 0:nx
+            append!(coord, [100.0 * i, 100.0 * j, 0.0, 100.0 * i, 100.0 * j, 2000.0])
+        end
+        zcorn = [1000.0 + (k - 1 + t) + off[i][ii + 1][jj + 1]
+                 for k in 1:nz for t in 0:1 for jj in 0:1 for i in 1:nx for ii in 0:1]
+        g = Dict{String, Any}("cartDims" => [nx, ny, nz], "COORD" => coord,
+                              "ZCORN" => zcorn, "ACTNUM" => fill(true, nx, ny, nz))
+        m = mesh_from_grid_section(g)
+        geo = tpfv_geometry(m)
+        pts = m.node_points
+        # A face's vector area: an outline doubling back along an edge cancels
+        # out of it, but not out of the face's computed area
+        function vector_area(nodes)
+            p = pts[nodes]
+            s = sum(cross(p[k], p[mod1(k + 1, length(p))]) for k in eachindex(p))
+            return norm(s) / 2
+        end
+        horizontal = [f for (f, (l, r)) in enumerate(m.faces.neighbors)
+                      if cell_ijk(m, l)[1:2] == cell_ijk(m, r)[1:2]]
+        @test any(length(m.faces.faces_to_nodes[f]) >= 6 for f in horizontal)
+        @test all(isapprox(geo.areas[f], vector_area(collect(m.faces.faces_to_nodes[f]));
+                           rtol = 1e-6) for f in horizontal)
     end
 
     import Jutul: tpfv_geometry, get_mesh_entity_tag, BoundaryFaces

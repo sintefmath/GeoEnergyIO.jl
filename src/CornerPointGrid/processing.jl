@@ -129,9 +129,8 @@ function cpgrid_primitives(coord, zcorn, cartdims; actnum = missing, ztol = DEFA
                         ix = ijk_to_linear(i, j, k, cartdims)
                         active_cell_index = cell_index(i, j, k, actnum)
                         for I3 in (0, 1)
-                            zcorn_ix = corner_index(ix, (I1, I2, I3), cartdims)
+                            zcorn_ix = get_corner_index(ix, (I2, I1, I3), cartdims)
                             c = zcorn[zcorn_ix]
-                            # Note reversed indices, this is a bit of a mess
                             push!(L.z, c)
                             push!(L.cells, active_cell_index)
                         end

@@ -22,7 +22,7 @@ indicating if a cell is to be included in the processed mesh.
   argument to this function is an already parsed data structure, the ZCORN array
   will be mutated during fixing to avoid a copy.
 - `process_pinch::Bool` only applies when the grid is defined using COORD/ZCORN
-  arrays. If set to `true`, PINCH will be applied to remove very thin cells, and
+  arrays and the PINCH keyword is present. If set to `true`, PINCH will be applied to remove very thin cells, and
   provide new vertical connections where such cells have been removed.
 - `ztol::Real` only applies when the grid is defined using COORD/ZCORN arrays.
   This is the tolerance for determining if two z-coordinates in a corner-point
@@ -92,7 +92,7 @@ function mesh_from_zcorn_and_coord(grid;
         repair_zcorn!(zcorn, cartdims)
     end
     primitives = cpgrid_primitives(coord, zcorn, cartdims, actnum = actnum, ztol = ztol)
-    if process_pinch
+    if process_pinch && haskey(grid, "PINCH")
         pinch = pinch_primitives(grid, minpv_removed)
     else
         pinch = missing
@@ -102,9 +102,9 @@ function mesh_from_zcorn_and_coord(grid;
 end
 
 function pinch_primitives(grid, minpv_removed)
-    pinch = get(grid, "PINCH", [0.001, "GAP", Inf, "TOPBOT", "TOP"])
+    pinch = grid["PINCH"]
     if ismissing(minpv_removed)
-        minpv_removed = fill(false, size(actnum))
+        minpv_removed = fill(false, Tuple(grid["cartDims"]))
     end
     return (pinch = pinch, minpv_removed = minpv_removed)
 end

@@ -41,7 +41,8 @@ module InputParser
         skip_kw!(:UNIFSAVE, 0)
         skip_kw!(:SATOPTS, 1, PARSER_MISSING_SUPPORT)
         skip_kw!(:EQLOPTS, 1, PARSER_MISSING_SUPPORT)
-        skip_kw!(:TRACERS, 1, PARSER_MISSING_SUPPORT)
+        skip_kw!(:DISPDIMS, 1, PARSER_JUTULDARCY_MISSING_SUPPORT)
+        skip_kw!(:NOGGF, 0)
         skip_kw!(:PIMTDIMS, 1, PARSER_MISSING_SUPPORT)
         skip_kw!(:LIFTOPT, 1, PARSER_JUTULDARCY_MISSING_SUPPORT)
         skip_kw!(:OPTIONS, 1, PARSER_MISSING_SUPPORT)
@@ -69,11 +70,9 @@ module InputParser
                 :PSPLITY,
                 :PSPLITZ,
                 :COMPLUMP,
-                :TRACER,
                 :THPRES,
                 :PIMULTAB,
                 :VFPPROD,
-                :WTRACER,
                 :GCONINJE,
                 :WTEST,
                 :WLIST,

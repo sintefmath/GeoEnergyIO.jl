@@ -1,6 +1,6 @@
 module RESQML
     using GeoEnergyIO, HDF5
-    import GeoEnergyIO.CornerPointGrid: corner_index, ijk_to_linear
+    import GeoEnergyIO.CornerPointGrid: get_corner_index, ijk_to_linear
 
     function linear_index(i, j, nx, ny)
         return (j - 1) * nx + i
@@ -93,8 +93,8 @@ module RESQML
                         for cell_k in 1:nz
                             cell = ijk_to_linear(cell_i, cell_j, cell_k, cartDims)
                             for k_offset in (0, 1)
-                                corner = (j_offset, i_offset, k_offset)
-                                zcorn_ix = corner_index(cell, corner, cartDims)
+                                corner = (i_offset, j_offset, k_offset)
+                                zcorn_ix = get_corner_index(cell, corner, cartDims)
                                 pd = pillar_depths[pillar_depths_ix..., cell_k + k_offset]
                                 zcorn[zcorn_ix] = pd 
                             end

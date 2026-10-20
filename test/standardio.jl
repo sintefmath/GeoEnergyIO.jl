@@ -116,7 +116,7 @@ end
             @test back["VALUES"]["GROUP"] == summary["VALUES"]["GROUP"]
             @test back["UNITS"]["WBHP"]["A_LONG_WELL_NAME"] == "PSIA"
             @test raw.spec[findfirst(k -> k.name == "WGNAMES", raw.spec)].type == "C016"
-            @test length(written.data) == (unified ? 1 : 2)
+            @test length(written.data) == ifelse(unified, 1, 2)
             flat = read_summary(path*".SMSPEC")
             @test flat["WBHP"]["A_LONG_WELL_NAME"] == [100, 200]
             @test flat["START_DATE"] == summary["TIME"].start_date

@@ -22,12 +22,12 @@ function read_egrid(path::AbstractString; extra_out = false, units = :si, verbos
     nx, ny, nz = dims
     length(coord) == 6*(nx+1)*(ny+1) || throw(ArgumentError("COORD length does not match GRIDHEAD"))
     length(zcorn) == 8*prod(dims) || throw(ArgumentError("ZCORN length does not match GRIDHEAD"))
-    actnum = haskey(raw, "ACTNUM") ? raw["ACTNUM"] : ones(Int32, prod(dims))
+    actnum = get(raw, "ACTNUM", ones(Int32, prod(dims)))
     length(actnum) == prod(dims) || throw(ArgumentError("ACTNUM length does not match GRIDHEAD"))
-    label = haskey(raw, "GRIDUNIT") ? uppercase(first(raw["GRIDUNIT"])) : "METRES"
+    label = uppercase(first(get(raw, "GRIDUNIT", ["METRES"])))
     factor = grid_length_factor(label)
     units in (:si, :native) || throw(ArgumentError("units must be :si or :native"))
-    scale = units == :si ? factor : 1.0
+    scale = ifelse(units == :si, factor, 1.0)
     out = Dict{String, Any}(
         "cartDims" => collect(dims), "SPECGRID" => collect(dims),
         "ACTNUM" => reshape(actnum .!= 0, dims),
@@ -37,19 +37,23 @@ function read_egrid(path::AbstractString; extra_out = false, units = :si, verbos
         haskey(raw, key) && (out[key] = copy(raw[key]))
     end
     if haskey(out, "MAPAXES") && units == :si
-        maplabel = haskey(raw, "MAPUNITS") ? first(raw["MAPUNITS"]) : label
+        maplabel = first(get(raw, "MAPUNITS", [label]))
         out["MAPAXES"] = Float64.(out["MAPAXES"]).*grid_length_factor(maplabel)
         out["MAPUNITS"] = ["METRES"]
     end
     units == :si && (out["GRIDUNIT"] = ["METRES", ""])
     verbose && println("Read EGRID $dims with $(count(!iszero, actnum)) active cells")
-    return extra_out ? (out, raw) : out
+    return ifelse(extra_out, (out, raw), out)
 end
 
 function grid_length_factor(label)
     label = uppercase(strip(label))
-    label in ("METRES", "METERS", "M", "") && return 1.0
-    label in ("FEET", "FT") && return 0.3048
-    label in ("CM", "CENTIMET") && return 0.01
+    if label in ("METRES", "METERS", "M", "")
+        return 1.0
+    elseif label in ("FEET", "FT")
+        return 0.3048
+    elseif label in ("CM", "CENTIMET")
+        return 0.01
+    end
     throw(ArgumentError("Unknown EGRID length unit '$label'"))
 end

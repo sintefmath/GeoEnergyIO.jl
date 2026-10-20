@@ -1,5 +1,7 @@
 function summary_identity(keyword, name, num, dims; lgr = "", local_ijk = nothing)
-    isempty(keyword) && return nothing
+    if isempty(keyword)
+        return nothing
+    end
     if !isempty(lgr) && lgr != ":+:+:+:+"
         if startswith(keyword, "LW")
             return "$lgr:$name"
@@ -15,7 +17,9 @@ function summary_identity(keyword, name, num, dims; lgr = "", local_ijk = nothin
     elseif c in ('C', 'S')
         return "$name:$num"
     elseif c == 'B'
-        num > 0 || return string(num)
+        if num <= 0
+            return string(num)
+        end
         ijk = Tuple(CartesianIndices(dims)[num])
         return join(ijk, ',')
     elseif c in ('R', 'A') && keyword != "RUNSUM"
@@ -28,7 +32,8 @@ end
     read_summary(path; format=:legacy, extra_out=false)
 
 Read SMSPEC with unified UNSMRY or separate Snnnn data. The default dictionary
-matches the existing reader (`s["WOPR"]["PROD"]`, `s["FOPT"]`, `START_DATE`).
+contains arrays by keyword and identity (`s["WOPR"]["PROD"]`, `s["FOPT"]`).
+`START_DATE` contains the start date.
 `format=:structured` returns `DIMENS`, `TIME`, `VALUES` and `UNIT_SYSTEM`,
 with FIELD, WELLS, GROUP and other collections. TIME contains a start date
 and elapsed seconds; value arrays retain their declared units.
@@ -45,17 +50,24 @@ function read_summary(path::AbstractString; extra_out = false, verbose = false, 
     ncol = Int(h[1])
     dims = Tuple(Int.(h[2:4]))
     keys = spec["KEYWORDS"]
-    names = haskey(spec, "WGNAMES") ? spec["WGNAMES"] : spec["NAMES"]
-    # Older writers omit NUMS when there are only field and well variables.
-    nums = haskey(spec, "NUMS") ? spec["NUMS"] : zeros(Int32, ncol)
+    if haskey(spec, "WGNAMES")
+        names = spec["WGNAMES"]
+    else
+        names = spec["NAMES"]
+    end
+    nums = get(spec, "NUMS", zeros(Int32, ncol))
     units = spec["UNITS"]
     all(==(ncol), length.((keys, names, nums, units))) || throw(ArgumentError("SMSPEC column arrays have inconsistent lengths"))
     starts = spec["STARTDAT"]
     length(starts) >= 3 || throw(ArgumentError("Truncated STARTDAT"))
-    start = DateTime(starts[3], starts[2], starts[1], length(starts) >= 4 ? starts[4] : 0,
-        length(starts) >= 5 ? starts[5] : 0) + Millisecond(length(starts) >= 6 ? div(starts[6], 1000) : 0)
+    start = DateTime(starts[3], starts[2], starts[1], get(starts, 4, 0),
+        get(starts, 5, 0)) + Millisecond(div(get(starts, 6, 0), 1000))
     unified = file_path(base, "UNSMRY")
-    files = isfile(unified) ? [unified] : split_files(base, "S")
+    if isfile(unified)
+        files = [unified]
+    else
+        files = split_files(base, "S")
+    end
     isempty(files) && throw(ArgumentError("No summary data found for $base"))
     raw = read_binary.(files)
     rows = Vector{Float64}[]
@@ -72,8 +84,16 @@ function read_summary(path::AbstractString; extra_out = false, verbose = false, 
         key = keys[i]
         isempty(key) && continue
         values = [r[i] for r in rows]
-        lgr = haskey(spec, "LGRS") ? spec["LGRS"][i] : ""
-        local_ijk = haskey(spec, "NUMLX") ? (spec["NUMLX"][i], spec["NUMLY"][i], spec["NUMLZ"][i]) : nothing
+        if haskey(spec, "LGRS")
+            lgr = spec["LGRS"][i]
+        else
+            lgr = ""
+        end
+        if haskey(spec, "NUMLX")
+            local_ijk = (spec["NUMLX"][i], spec["NUMLY"][i], spec["NUMLZ"][i])
+        else
+            local_ijk = nothing
+        end
         identity = summary_identity(key, names[i], nums[i], dims; lgr, local_ijk)
         valid = !(first(key) in ('W', 'G', 'N', 'C', 'S') && names[i] in ("", ":+:+:+:+"))
         push!(columns, (keyword = key, name = names[i], number = Int(nums[i]), unit = units[i],
@@ -87,10 +107,8 @@ function read_summary(path::AbstractString; extra_out = false, verbose = false, 
             get!(unitmap, key, Dict{String, Any}())[identity] = units[i]
         end
     end
-    code = haskey(spec, "INTEHEAD") ? Int(first(spec["INTEHEAD"])) : 1
+    code = Int(first(get(spec, "INTEHEAD", [1])))
     label = get(Dict(1 => "METRIC", 2 => "FIELD", 3 => "LAB", 4 => "PVT-M"), code, "UNKNOWN")
-    # Metadata are included in the canonical format; legacy arrays keep the
-    # established flat structure used by existing plotting scripts.
     if format == :structured
         vals = Dict{String, Any}("FIELD" => Dict{String, Any}(), "WELLS" => Dict{String, Any}(), "GROUP" => Dict{String, Any}())
         for col in columns
@@ -109,7 +127,8 @@ function read_summary(path::AbstractString; extra_out = false, verbose = false, 
         else
             col = columns[timecol]
             timeunit = uppercase(col.unit)
-            scale = timeunit in ("HOURS", "HR") ? 3600.0 : timeunit in ("SECONDS", "SEC", "S") ? 1.0 : 86400.0
+            scale = ifelse(timeunit in ("HOURS", "HR"), 3600.0,
+                ifelse(timeunit in ("SECONDS", "SEC", "S"), 1.0, 86400.0))
             seconds = col.values.*scale
         end
         out = Dict{String, Any}("DIMENS" => dims, "UNIT_SYSTEM" => label,
@@ -119,5 +138,5 @@ function read_summary(path::AbstractString; extra_out = false, verbose = false, 
         out = flat
     end
     verbose && println("Read $ncol summary columns at $(length(rows)) timesteps")
-    return extra_out ? (out, (spec = spec, data = raw)) : out
+    return ifelse(extra_out, (out, (spec = spec, data = raw)), out)
 end

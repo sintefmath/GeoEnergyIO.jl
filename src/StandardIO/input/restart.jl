@@ -1,5 +1,7 @@
 function active_mask(actnum)
-    (ismissing(actnum) || isnothing(actnum)) && return nothing
+    if ismissing(actnum) || isnothing(actnum)
+        return nothing
+    end
     return vec(actnum) .!= 0
 end
 
@@ -20,7 +22,13 @@ function array_dictionary(raw; actnum = missing, units = :native)
         if !(kw.name in NON_CELL_ARRAYS) && !isnothing(mask) && length(v) == length(mask)
             v = v[mask]
         end
-        v = eltype(v) <: AbstractFloat ? Float64.(v) : eltype(v) <: Signed ? Int64.(v) : copy(v)
+        if eltype(v) <: AbstractFloat
+            v = Float64.(v)
+        elseif eltype(v) <: Signed
+            v = Int64.(v)
+        else
+            v = copy(v)
+        end
         if units == :si && eltype(v) <: AbstractFloat
             v = convert_array(kw.name, v, file_units(raw); to_si = true)
         end
@@ -32,25 +40,25 @@ end
 """
     read_init(path; actnum=missing, units=:native, extra_out=false)
 
-Read INIT arrays into a dictionary. A path with or without `.INIT` is accepted.
-Full-grid cell arrays are reduced by the optional ACTNUM mask; already-active
-arrays and headers are retained. `units=:si` converts known physical arrays to
-SI units. The optional second output is an
-`KeywordFile`, retaining types and all repeated keywords.
+Read INIT arrays into a dictionary. ACTNUM masks reduce full-grid cell arrays.
+`units=:si` converts known physical quantities to SI. `extra_out=true` also
+returns the ordered `KeywordFile`.
 """
 function read_init(path::AbstractString; extra_out = false, actnum = missing, units = :native, verbose = false)
     raw = read_binary(file_path(path, "INIT"))
     out = array_dictionary(raw; actnum, units)
     verbose && println("Read $(length(raw)) INIT keywords")
-    return extra_out ? (out, raw) : out
+    return ifelse(extra_out, (out, raw), out)
 end
 
 function restart_date(h)
-    length(h) >= 67 || return missing
+    if length(h) < 67
+        return missing
+    end
     try
-        hour = length(h) >= 207 ? h[207] : 0
-        minute = length(h) >= 208 ? h[208] : 0
-        micro = length(h) >= 411 ? h[411] : 0
+        hour = get(h, 207, 0)
+        minute = get(h, 208, 0)
+        micro = get(h, 411, 0)
         return DateTime(h[67], h[66], h[65], hour, minute) + Millisecond(div(micro, 1000))
     catch e
         e isa ArgumentError || rethrow()
@@ -77,8 +85,8 @@ end
                  units=:native, extra_out=false)
 
 Read unified UNRST or separate Xnnnn restart files as a vector of dictionaries,
-with `report_step`, `days`, and `date` metadata. `steps` selects report *positions*
-(as in the historical reader). Gaps in separate file numbering are supported.
+with `report_step`, `days`, and `date` metadata. `steps` selects report positions.
+Gaps in separate file numbering are supported.
 An EGRID is optional; pass `actnum` to reduce full-grid cell arrays explicitly.
 """
 function read_restart(path::AbstractString; extra_out = false, actnum = missing,
@@ -118,12 +126,16 @@ function read_restart(path::AbstractString; extra_out = false, actnum = missing,
             else
                 step["days"] = missing
             end
-            date = haskey(block, "INTEHEAD") ? restart_date(block["INTEHEAD"]) : missing
-            step["date"] = ismissing(date) ? missing : string(date)
+            if haskey(block, "INTEHEAD")
+                date = restart_date(block["INTEHEAD"])
+            else
+                date = missing
+            end
+            step["date"] = ifelse(ismissing(date), missing, string(date))
             push!(out, step)
             extra_out && push!(rawout, block)
             verbose && println("Read restart report $(step["report_step"])")
         end
     end
-    return extra_out ? (out, rawout) : out
+    return ifelse(extra_out, (out, rawout), out)
 end

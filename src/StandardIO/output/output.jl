@@ -1,7 +1,7 @@
 module output
     using Dates
     using ..StandardIO: KeywordFile, BinaryKeyword, write_binary, write_keyword,
-        output_path, case_base, unit_code, unit_system, convert_array, summary_group
+        output_path, case_base, unit_code, unit_system, summary_group
     import Jutul
     include("grid.jl")
     include("restart.jl")

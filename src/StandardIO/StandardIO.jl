@@ -6,7 +6,6 @@ Pure Julia readers and writers for unformatted industry standard format keyword 
 without discarding repeated keywords or unknown simulator-specific arrays.
 """
 module StandardIO
-    using Dates
     import ..InputParser: DeckUnitSystem
     include("binary.jl")
     include("units.jl")

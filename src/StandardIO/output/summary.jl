@@ -1,12 +1,17 @@
 function summary_quantity(key)
-    suffix = length(key) > 1 ? key[2:end] : ""
-    suffix in ("PR", "PRH", "PRP", "BHP", "THP") && return (:pressure, false)
-    if occursin(r"^[OWGL][PI][RT]$", suffix)
-        return (first(suffix) == 'G' ? :gas_volume_surface : :liquid_volume_surface, last(suffix) == 'R')
+    if length(key) > 1
+        suffix = key[2:end]
+    else
+        suffix = ""
+    end
+    if suffix in ("PR", "PRH", "PRP", "BHP", "THP")
+        return (:pressure, false)
+    elseif occursin(r"^[OWGL][PI][RT]$", suffix)
+        return (ifelse(first(suffix) == 'G', :gas_volume_surface, :liquid_volume_surface), last(suffix) == 'R')
     elseif suffix in ("WIP", "OIP", "GIP")
-        return (first(suffix) == 'G' ? :gas_volume_surface : :liquid_volume_surface, false)
+        return (ifelse(first(suffix) == 'G', :gas_volume_surface, :liquid_volume_surface), false)
     elseif suffix in ("WIPR", "OIPR", "GIPR")
-        return (first(suffix) == 'G' ? :gas_volume_reservoir : :liquid_volume_reservoir, false)
+        return (ifelse(first(suffix) == 'G', :gas_volume_reservoir, :liquid_volume_reservoir), false)
     elseif suffix in ("GOR", "GLR")
         return (:u_rs, false)
     elseif suffix == "WGR"
@@ -20,30 +25,32 @@ end
 function summary_factor(key, units)
     kind, rate = summary_quantity(key)
     isnothing(kind) && throw(ArgumentError("Cannot convert summary variable $key between unit systems; provide values in the declared output units"))
-    kind == :id && return 1.0
+    if kind == :id
+        return 1.0
+    end
     system = unit_system(units)
-    return getproperty(system, kind)/(rate ? system.time : 1.0)
+    return getproperty(system, kind)/ifelse(rate, system.time, 1.0)
 end
 
 function summary_unit(key, units)
     field = Symbol(lowercase(string(units))) == :field
     lab = Symbol(lowercase(string(units))) == :lab
-    time = lab ? "HR" : "DAY"
-    liquid = field ? "STB" : lab ? "SCC" : "SM3"
-    gas = field ? "MSCF" : lab ? "SCC" : "SM3"
+    time = ifelse(lab, "HR", "DAY")
+    liquid = ifelse(field, "STB", ifelse(lab, "SCC", "SM3"))
+    gas = ifelse(field, "MSCF", ifelse(lab, "SCC", "SM3"))
     if key == "TIME"
-        return lab ? "HOURS" : "DAYS"
+        return ifelse(lab, "HOURS", "DAYS")
     elseif key == "YEARS"
         return "YEARS"
     end
     kind, rate = summary_quantity(key)
     if kind == :pressure
-        return field ? "PSIA" : lab ? "ATMA" : "BARSA"
+        return ifelse(field, "PSIA", ifelse(lab, "ATMA", "BARSA"))
     elseif kind in (:gas_volume_surface, :liquid_volume_surface)
-        label = kind == :gas_volume_surface ? gas : liquid
-        return rate ? "$label/$time" : label
+        label = ifelse(kind == :gas_volume_surface, gas, liquid)
+        return ifelse(rate, "$label/$time", label)
     elseif kind in (:gas_volume_reservoir, :liquid_volume_reservoir)
-        return field ? "RB" : lab ? "RCC" : "RM3"
+        return ifelse(field, "RB", ifelse(lab, "RCC", "RM3"))
     elseif kind == :u_rs
         return "$gas/$liquid"
     elseif kind == :u_rv
@@ -58,7 +65,9 @@ function summary_columns(summary, units)
     if haskey(summary, "COLUMNS")
         return map(summary["COLUMNS"]) do col
             group = summary_group(col)
-            isnothing(group) && return col
+            if isnothing(group)
+                return col
+            end
             category, identity = group
             dest = vals[category]
             isnothing(identity) || (dest = dest[identity])
@@ -72,7 +81,11 @@ function summary_columns(summary, units)
         umap = get(summary, "UNITS", Dict())
         if haskey(umap, key)
             u = umap[key]
-            unit = u isa AbstractDict ? get(u, string(name), unit) : u
+            if u isa AbstractDict
+                unit = get(u, string(name), unit)
+            else
+                unit = u
+            end
         end
         push!(cols, (keyword = key, name = string(name), number = number, unit = unit, values = values))
     end
@@ -106,7 +119,11 @@ function write_summary(summary::AbstractDict, path::AbstractString; unified = tr
     dims = Tuple(Int.(summary["DIMENS"]))
     length(dims) == 3 && all(>(0), dims) || throw(ArgumentError("DIMENS must contain three positive dimensions"))
     source_units = Symbol(lowercase(string(get(summary, "UNIT_SYSTEM", "METRIC"))))
-    units = isnothing(units) ? (source_units == :si ? :metric : source_units) : Symbol(lowercase(string(units)))
+    if isnothing(units)
+        units = ifelse(source_units == :si, :metric, source_units)
+    else
+        units = Symbol(lowercase(string(units)))
+    end
     code = unit_code(units)
     t = summary["TIME"].seconds
     isempty(t) && throw(ArgumentError("Summary must contain at least one timestep"))
@@ -144,9 +161,14 @@ function write_summary(summary::AbstractDict, path::AbstractString; unified = tr
         BinaryKeyword("STARTDAT", Int32[day(start), month(start), year(start), hour(start), minute(start), second(start)*1000000 + millisecond(start)*1000])
     ]
     if any(c -> hasproperty(c, :lgr) && !isempty(c.lgr), cols)
-        push!(spec, BinaryKeyword("LGRS", [hasproperty(c, :lgr) ? c.lgr : "" for c in cols]))
+        push!(spec, BinaryKeyword("LGRS", [get(c, :lgr, "") for c in cols]))
         for (axis, key) in enumerate(("NUMLX", "NUMLY", "NUMLZ"))
-            push!(spec, BinaryKeyword(key, Int32[hasproperty(c, :local_ijk) && !isnothing(c.local_ijk) ? c.local_ijk[axis] : 0 for c in cols]))
+            local_indices = Int32[if isnothing(get(c, :local_ijk, nothing))
+                    0
+                else
+                    c.local_ijk[axis]
+                end for c in cols]
+            push!(spec, BinaryKeyword(key, local_indices))
         end
     end
     specpath = write_binary(output_path(base, "SMSPEC"), spec; endian)

@@ -1,8 +1,11 @@
-# Run explicitly in an environment containing GeoEnergyIO and the supplied data:
-# julia --project test/standardio_opm.jl /path/to/opm-tests
+# julia --project test/standardio_opm.jl <opm-tests directory>
 using GeoEnergyIO, Test, Dates
 
-root = isempty(ARGS) ? get(ENV, "OPM_TESTS_PATH", joinpath(@__DIR__, "..", "..", "opm-tests")) : first(ARGS)
+root = get(ENV, "OPM_TESTS_PATH", "")
+if !isempty(ARGS)
+    root = first(ARGS)
+end
+isempty(root) && error("Pass the OPM sample directory as an argument or set OPM_TESTS_PATH")
 isdir(root) || error("OPM sample directory not found: $root")
 limit = parse(Int, get(ENV, "STANDARDIO_SAMPLE_MAX_BYTES", string(4*1024^2)))
 

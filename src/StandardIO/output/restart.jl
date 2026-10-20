@@ -67,7 +67,11 @@ function write_restart(steps::AbstractVector, path::AbstractString; unified = tr
     for (ix, step) in enumerate(steps)
         kws = restart_block(step, ix)
         seq = findfirst(k -> k.name == "SEQNUM", kws)
-        report = isnothing(seq) ? ix : Int(only(kws[seq].data))
+        if isnothing(seq)
+            report = ix
+        else
+            report = Int(only(kws[seq].data))
+        end
         pth = output_path(base, "X$(lpad(report, 4, '0'))")
         push!(paths, write_binary(pth, [kw for kw in kws if kw.name != "SEQNUM"]; endian))
     end

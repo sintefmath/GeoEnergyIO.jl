@@ -29,8 +29,10 @@ end
 fake_grid(n::Integer) = rectangular_grid(ones(n), [1.0], [1.0])
 
 function corner_point_data(data)
-    data = haskey(data, "GRID") ? data["GRID"] : data
-    haskey(data, "COORD") && return data
+    data = get(data, "GRID", data)
+    if haskey(data, "COORD")
+        return data
+    end
     # The deck parser supports separable DX/DY/DZ and DXV/DYV/DZV grids.
     dims = grid_dims(data)
     deltas = map(enumerate(("DX", "DY", "DZ"))) do (axis, name)
@@ -38,7 +40,7 @@ function corner_point_data(data)
             v = vec(data[name*"V"])
         else
             a = reshape(data[name], dims)
-            indices = ntuple(d -> d == axis ? Colon() : 1, 3)
+            indices = ntuple(d -> ifelse(d == axis, Colon(), 1), 3)
             v = vec(a[indices...])
             for ix in CartesianIndices(a)
                 a[ix] ≈ v[ix[axis]] || throw(ArgumentError("Nonseparable $name cannot be converted to EGRID"))
@@ -58,8 +60,13 @@ function corner_point_data(data)
         x = cumsum(deltas[1]) .- deltas[1]./2
         y = cumsum(deltas[2]) .- deltas[2]./2
         top = reshape(tops[1:nx*ny], nx, ny)
-        interp = nx == 1 ? ((a,b) -> Jutul.LinearInterpolant(y, vec(top))(b)) :
-            ny == 1 ? ((a,b) -> Jutul.LinearInterpolant(x, vec(top))(a)) : Jutul.BilinearInterpolant(x, y, top)
+        if nx == 1
+            interp = (a,b) -> Jutul.LinearInterpolant(y, vec(top))(b)
+        elseif ny == 1
+            interp = (a,b) -> Jutul.LinearInterpolant(x, vec(top))(a)
+        else
+            interp = Jutul.BilinearInterpolant(x, y, top)
+        end
         heights = zeros(nx+1, ny+1)
         c = reshape(out["COORD"], 6, nx+1, ny+1)
         for j in 1:ny+1, i in 1:nx+1
@@ -95,12 +102,12 @@ function write_egrid(data::AbstractDict, path::AbstractString; units = :metric, 
     length(actnum) == prod(dims) || throw(ArgumentError("Invalid ACTNUM length"))
     input_units in (:si, :native) || throw(ArgumentError("input_units must be :si or :native"))
     code = unit_code(units)
-    factor = input_units == :si ? unit_system(units).length : 1.0
+    factor = ifelse(input_units == :si, unit_system(units).length, 1.0)
     filehead = zeros(Int32, 100)
     filehead[1:7] = [3, 2007, 0, 0, 0, 0, 1]
     gridhead = zeros(Int32, 100)
     gridhead[1:4] = [1, nx, ny, nz]
-    label = code == 2 ? "FEET" : code == 3 ? "CM" : "METRES"
+    label = ifelse(code == 2, "FEET", ifelse(code == 3, "CM", "METRES"))
     kws = BinaryKeyword[BinaryKeyword("FILEHEAD", filehead)]
     if haskey(data, "MAPAXES")
         push!(kws, BinaryKeyword("MAPUNITS", [label]))

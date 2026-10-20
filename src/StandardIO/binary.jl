@@ -26,11 +26,11 @@ function BinaryKeyword(name::AbstractString, data::AbstractArray; type = nothing
         elseif T <: Integer
             type = "INTE"
         elseif T <: AbstractFloat
-            type = T == Float32 ? "REAL" : "DOUB"
+            type = ifelse(T == Float32, "REAL", "DOUB")
         elseif T <: AbstractString
             width = maximum(ncodeunits, data; init = 8)
             width <= 999 || throw(ArgumentError("industry standard format strings cannot exceed 999 bytes"))
-            type = width == 8 ? "CHAR" : "C$(lpad(width, 3, '0'))"
+            type = ifelse(width == 8, "CHAR", "C$(lpad(width, 3, '0'))")
         else
             throw(ArgumentError("Cannot infer industry standard format type for $T; supply type explicitly"))
         end
@@ -39,15 +39,23 @@ function BinaryKeyword(name::AbstractString, data::AbstractArray; type = nothing
 end
 
 function keyword_type(type::AbstractString)
-    type == "INTE" && return (Int32, 4)
-    type == "REAL" && return (Float32, 4)
-    type == "DOUB" && return (Float64, 8)
-    type == "LOGI" && return (Bool, 4)
-    type == "CHAR" && return (String, 8)
-    type == "MESS" && return (UInt8, 0)
-    if occursin(r"^C[0-9]{3}$", type)
+    if type == "INTE"
+        return (Int32, 4)
+    elseif type == "REAL"
+        return (Float32, 4)
+    elseif type == "DOUB"
+        return (Float64, 8)
+    elseif type == "LOGI"
+        return (Bool, 4)
+    elseif type == "CHAR"
+        return (String, 8)
+    elseif type == "MESS"
+        return (UInt8, 0)
+    elseif occursin(r"^C[0-9]{3}$", type)
         width = parse(Int, type[2:4])
-        width > 0 && return (String, width)
+        if width > 0
+            return (String, width)
+        end
     end
     throw(ArgumentError("Unsupported industry standard format keyword type '$type'"))
 end
@@ -63,16 +71,25 @@ Base.getindex(f::KeywordFile, i::Int) = f.keywords[i]
 Base.IndexStyle(::Type{KeywordFile}) = IndexLinear()
 Base.haskey(f::KeywordFile, name::AbstractString) = any(k -> k.name == name, f)
 function Base.getindex(f::KeywordFile, name::AbstractString)
+    data = get(f, name, nothing)
+    if isnothing(data)
+        throw(KeyError(name))
+    end
+    return data
+end
+function Base.get(f::KeywordFile, name::AbstractString, default)
     ix = findfirst(k -> k.name == name, f)
-    isnothing(ix) && throw(KeyError(name))
+    if isnothing(ix)
+        return default
+    end
     return f[ix].data
 end
 keyword_values(f::KeywordFile, name::AbstractString) = [k.data for k in f if k.name == name]
 
-byteorder(x, endian) = endian == :big ? ntoh(x) : ltoh(x)
+byteorder(x, endian) = ifelse(endian == :big, ntoh(x), ltoh(x))
 function check_endian(endian; auto = false)
     endian in (:big, :little) || (auto && endian == :auto) ||
-        throw(ArgumentError("endian must be :big, :little$(auto ? " or :auto" : "")"))
+        throw(ArgumentError("endian must be :big, :little$(ifelse(auto, " or :auto", ""))"))
 end
 
 function read_marker(io, endian)
@@ -102,11 +119,18 @@ function read_binary(io::IO; endian = :auto)
     check_endian(endian; auto = true)
     keywords = BinaryKeyword[]
     if endian == :auto
-        eof(io) && return KeywordFile(keywords)
+        if eof(io)
+            return KeywordFile(keywords)
+        end
         pos = position(io)
         marker = read(io, UInt32)
-        endian = ntoh(marker) == 16 ? :big : ltoh(marker) == 16 ? :little :
+        if ntoh(marker) == 16
+            endian = :big
+        elseif ltoh(marker) == 16
+            endian = :little
+        else
             throw(ArgumentError("Not an unformatted industry standard format file: expected a 16-byte keyword header at byte $pos"))
+        end
         seek(io, pos)
     end
     while !eof(io)
@@ -117,8 +141,7 @@ function read_binary(io::IO; endian = :auto)
         type = String(header[13:16])
         T, width = keyword_type(type)
         type == "MESS" && n != 0 && throw(ArgumentError("Nonempty MESS keyword $name"))
-        # Grow only as validated payload records arrive, rather than trusting a
-        # potentially corrupt element count and allocating the whole array.
+        # Allocate from validated payload sizes.
         data = Vector{T}()
         while length(data) < n
             bytes = read_record(io, endian; limit = min(Int64(n-length(data))*width, typemax(Int32)))
@@ -128,9 +151,13 @@ function read_binary(io::IO; endian = :auto)
                     push!(data, rstrip(String(bytes[off:off+width-1]), [' ', '\0']))
                 end
             else
-                U = width == 8 ? UInt64 : UInt32
+                U = ifelse(width == 8, UInt64, UInt32)
                 bits = byteorder.(reinterpret(U, bytes), endian)
-                vals = T == Bool ? bits .!= 0 : reinterpret(T, bits)
+                if T == Bool
+                    vals = bits .!= 0
+                else
+                    vals = reinterpret(T, bits)
+                end
                 append!(data, vals)
             end
         end
@@ -154,15 +181,17 @@ function write_keyword(io, kw::BinaryKeyword, endian)
     write(header, rpad(kw.name, 8), byteorder(UInt32(n), endian), kw.type)
     write_record(io, take!(header), endian)
     T, width = keyword_type(kw.type)
-    chunk = T == String ? 105 : 1000
+    chunk = ifelse(T == String, 105, 1000)
     for first in 1:chunk:n
         vals = @view kw.data[first:min(first+chunk-1, n)]
         if T == String
             bytes = collect(codeunits(join(rpad.(vals, width))))
         else
             # industry standard format uses -1 for LOGI true (some producers use 1); accept both.
-            vals = T == Bool ? Int32[ifelse(v, -1, 0) for v in vals] : vals
-            U = width == 8 ? UInt64 : UInt32
+            if T == Bool
+                vals = Int32[ifelse(v, -1, 0) for v in vals]
+            end
+            U = ifelse(width == 8, UInt64, UInt32)
             bytes = byteorder.(reinterpret(U, vals), endian)
         end
         write_record(io, bytes, endian)
@@ -177,9 +206,20 @@ Write a `KeywordFile`, vector of `BinaryKeyword`s or dictionary of arrays.
 Repeated keywords require the ordered representation. Files use standard
 1000-element numeric and 105-element string payload blocks.
 """
-function write_binary(io::IO, keywords; endian = keywords isa KeywordFile ? keywords.endian : :big)
+function write_binary(io::IO, keywords; endian = nothing)
+    if isnothing(endian)
+        if keywords isa KeywordFile
+            endian = keywords.endian
+        else
+            endian = :big
+        end
+    end
     check_endian(endian)
-    entries = keywords isa AbstractDict ? (BinaryKeyword(string(k), v) for (k, v) in pairs(keywords)) : keywords
+    if keywords isa AbstractDict
+        entries = (BinaryKeyword(string(k), v) for (k, v) in pairs(keywords))
+    else
+        entries = keywords
+    end
     for kw in entries
         write_keyword(io, kw, endian)
     end
@@ -191,17 +231,21 @@ function write_binary(path::AbstractString, keywords; kw...)
 end
 
 function file_path(path, extension)
-    endswith(uppercase(path), ".$extension") && return String(path)
+    if endswith(uppercase(path), ".$extension")
+        return String(path)
+    end
     upper = "$path.$extension"
     lower = "$path.$(lowercase(extension))"
-    return isfile(upper) ? upper : isfile(lower) ? lower : upper
+    return ifelse(isfile(upper), upper, ifelse(isfile(lower), lower, upper))
 end
 
 function output_path(path, extension)
-    endswith(uppercase(path), ".$extension") && return String(path)
+    if endswith(uppercase(path), ".$extension")
+        return String(path)
+    end
     name = basename(path)
     lower = any(islowercase, name) && !any(isuppercase, name)
-    return "$path.$(lower ? lowercase(extension) : extension)"
+    return "$path.$(ifelse(lower, lowercase(extension), extension))"
 end
 
 function case_base(path)
@@ -215,7 +259,7 @@ end
 
 function split_files(base, letter)
     dir, name = splitdir(base)
-    dir = isempty(dir) ? "." : dir
+    dir = ifelse(isempty(dir), ".", dir)
     isdir(dir) || throw(ArgumentError("Directory not found: $dir"))
     files = filter(readdir(dir; join = true)) do f
         stem, ext = splitext(basename(f))

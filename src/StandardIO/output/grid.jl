@@ -79,12 +79,10 @@ end
 
 """
     write_egrid(data, path; units=:metric, input_units=:si)
-    write_egrid(case::JutulCase, path; kw...)
 
-Write a deck GRID dictionary, a whole deck, or a JutulDarcy case to EGRID.
-Deck geometry uses SI units by default. Cases without input grid geometry use
-a synthetic `(number_of_cells, 1, 1)` grid in active-cell order. Pass the raw
-`KeywordFile` to `write_binary` to preserve local grids and other records.
+Write a deck GRID dictionary or a whole deck to EGRID. Deck geometry uses SI
+units by default. Pass a raw `KeywordFile` to `write_binary` to preserve local
+grids and other records.
 """
 function write_egrid(data::AbstractDict, path::AbstractString; units = :metric, input_units = :si, endian = :big)
     data = corner_point_data(data)
@@ -118,43 +116,6 @@ function write_egrid(data::AbstractDict, path::AbstractString; units = :metric, 
     return write_binary(output_path(path, "EGRID"), kws; endian)
 end
 
-reservoir_model(case::Jutul.JutulCase) = case.model isa Jutul.MultiModel ? case.model[:Reservoir] : case.model
-
-function case_start_date(case::Jutul.JutulCase)
-    !isnothing(case.start_date) && return DateTime(case.start_date)
-    data = case.input_data
-    if data isa AbstractDict && haskey(data, "RUNSPEC")
-        start = get(data["RUNSPEC"], "START", nothing)
-        !isnothing(start) && !ismissing(start) && return DateTime(start)
-    end
-    return DateTime(1970)
-end
-
-function case_grid(case::Jutul.JutulCase)
-    domain = reservoir_model(case).data_domain
-    mesh = Jutul.physical_representation(domain)
-    data = case.input_data
-    if data isa AbstractDict
-        grid = get(data, "GRID", data)
-        if haskey(grid, "COORD") || haskey(grid, "DX") || haskey(grid, "DXV")
-            grid = Dict{String, Any}(corner_point_data(grid))
-            dims = grid_dims(grid)
-            grid["ACTNUM"] = get(grid, "ACTNUM", trues(dims))
-            if mesh isa Jutul.UnstructuredMesh && mesh.structure isa CartesianIndex
-                Tuple(mesh.structure.I) == dims || throw(ArgumentError("Input grid dimensions differ from case mesh"))
-                mask = falses(prod(dims))
-                mask[mesh.cell_map] .= true
-                grid["ACTNUM"] = mask
-            end
-            count(!iszero, grid["ACTNUM"]) == Jutul.number_of_cells(mesh) ||
-                throw(ArgumentError("Input grid active-cell count differs from case mesh"))
-            return grid
-        end
-    end
-    return fake_grid(Jutul.number_of_cells(mesh))
-end
-
-write_egrid(case::Jutul.JutulCase, path::AbstractString; kw...) = write_egrid(case_grid(case), path; kw...)
 function write_egrid(domain::Jutul.DataDomain, data::AbstractDict, path::AbstractString; kw...)
     return write_egrid(Jutul.physical_representation(domain), data, path; kw...)
 end

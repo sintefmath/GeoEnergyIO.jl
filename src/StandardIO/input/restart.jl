@@ -35,7 +35,7 @@ end
 Read INIT arrays into a dictionary. A path with or without `.INIT` is accepted.
 Full-grid cell arrays are reduced by the optional ACTNUM mask; already-active
 arrays and headers are retained. `units=:si` converts known physical arrays to
-the SI conventions used in JutulDarcy. The optional second output is an
+SI units. The optional second output is an
 `KeywordFile`, retaining types and all repeated keywords.
 """
 function read_init(path::AbstractString; extra_out = false, actnum = missing, units = :native, verbose = false)
@@ -121,7 +121,7 @@ function read_restart(path::AbstractString; extra_out = false, actnum = missing,
             date = haskey(block, "INTEHEAD") ? restart_date(block["INTEHEAD"]) : missing
             step["date"] = ismissing(date) ? missing : string(date)
             push!(out, step)
-            push!(rawout, block)
+            extra_out && push!(rawout, block)
             verbose && println("Read restart report $(step["report_step"])")
         end
     end

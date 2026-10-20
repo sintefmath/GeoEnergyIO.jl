@@ -22,12 +22,11 @@ module GeoEnergyIO
 
     include("StandardIO/StandardIO.jl")
     using .StandardIO: BinaryKeyword, KeywordFile, read_binary, write_binary, keyword_values
-    using .StandardIO: write_init, write_restart, write_egrid, write_summary, write_jutuldarcy_results
+    using .StandardIO: write_init, write_restart, write_egrid, write_summary
     export StandardIO, BinaryKeyword, KeywordFile, read_binary, write_binary, keyword_values
     export write_init, write_restart, write_egrid, write_summary, write_jutuldarcy_summary
-    export write_jutuldarcy_results, read_jutuldarcy_states
 
-    import Jutul: JutulCase, UnstructuredMesh, DataDomain, physical_representation
+    import Jutul: UnstructuredMesh, DataDomain, physical_representation
     export read_restart, read_init, read_egrid, read_summary
     include("ext.jl")
 

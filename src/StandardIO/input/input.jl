@@ -1,7 +1,7 @@
 module input
     using Dates
     using ..StandardIO: KeywordFile, BinaryKeyword, read_binary, keyword_values,
-        file_path, case_base, split_files, file_units, unit_system, convert_array
+        file_path, case_base, split_files, file_units, unit_system, convert_array, summary_group
     include("grid.jl")
     include("restart.jl")
     include("summary.jl")

@@ -17,19 +17,19 @@ grid = read_egrid("CASE")                # SI geometry; accepted by mesh_from_gr
 mesh = mesh_from_grid_section(grid)
 init = read_init("CASE"; units = :si, actnum = grid["ACTNUM"])
 steps = read_restart("CASE"; units = :si, steps = [1, 3])
-summary = read_summary("CASE"; format = :jutuldarcy)
+summary = read_summary("CASE"; format = :structured)
 ```
 
 INIT and restart readers retain native output units by default, matching the
 existing API. Set `units=:si` to convert known pressure, temperature,
 permeability, geometry, volume, ratio, density, viscosity and transmissibility
-arrays to JutulDarcy conventions. Unknown arrays retain their file values.
+arrays to SI units. Unknown arrays retain their file values.
 The EGRID reader defaults to metres; use `units=:native` for original geometry.
 ACTNUM masks reduce full-grid cell arrays and leave already-active arrays alone.
 
 Summary values retain the unit system in SMSPEC. The default summary layout is
 the existing flat dictionary, for example `summary["WOPR"]["PRODUCER"]`.
-`format=:jutuldarcy` returns `DIMENS`, `UNIT_SYSTEM`, `TIME` (seconds and start
+`format=:structured` returns `DIMENS`, `UNIT_SYSTEM`, `TIME` (seconds and start
 date), and `VALUES` with FIELD, WELLS, GROUP and other categories. `UNITS` and
 `COLUMNS` retain the original column metadata.
 
@@ -46,7 +46,7 @@ read_egrid
 read_summary
 ```
 
-The file-specific reader options are documented below.
+The file-specific interfaces provide these options:
 
 ```@docs
 GeoEnergyIO.StandardIO.input.read_restart
@@ -55,42 +55,28 @@ GeoEnergyIO.StandardIO.input.read_egrid
 GeoEnergyIO.StandardIO.input.read_summary
 ```
 
-## Writing JutulDarcy results
+## Writing dictionaries and keyword files
 
-When JutulDarcy is loaded, its extension adds case/result adapters. The combined
-export uses `summary_result(case, result, units)` and SI reservoir state arrays:
-
-```julia
-using GeoEnergyIO, JutulDarcy
-files = write_jutuldarcy_results(case, result, "RESULT"; units = :metric)
-
-# Individual outputs:
-write_egrid(case, "RESULT")
-write_init(case, "RESULT")
-write_restart(case, result, "RESULT")
-write_jutuldarcy_summary("RESULT", case, result)
-
-# Read solution arrays back into the case's phase ordering and SI units:
-states = read_jutuldarcy_states("RESULT", case)
-state0 = setup_reservoir_state(case.model; states[end]...)
-```
-
-EGRID uses the grid stored in `case.input_data`, with ACTNUM reconstructed from
-the processed mesh. Parsed COORD/ZCORN and separable DX/DY/DZ or DXV/DYV/DZV
-geometry are accepted. Without input geometry, a synthetic one-metre cell row
-with dimensions `(number_of_cells, 1, 1)` preserves active-cell ordering.
-
-Summary dictionaries from `summary_result` can also be written directly:
+The file writers accept grid and summary dictionaries, INIT arrays, and restart
+dictionaries or ordered keyword blocks:
 
 ```julia
-summary = JutulDarcy.summary_result(case, result, :field)
-write_summary(summary, "RESULT"; unified = false)
+grid = read_egrid("CASE")
+write_egrid(grid, "COPY")
+init, raw_init = read_init("CASE"; extra_out = true)
+write_init(raw_init, "COPY")
+steps, raw_steps = read_restart("CASE"; extra_out = true)
+write_restart(raw_steps, "COPY")
+summary = read_summary("CASE"; format = :structured)
+write_summary(summary, "COPY"; unified = false)
 ```
 
 Writers support metric, field and laboratory units. Summary arrays use their
-declared `UNIT_SYSTEM`; `TIME.seconds` always uses seconds. SI dictionaries such
-as `result.summary` are converted to metric by default. Set `units=:field` (or
-another output system) to convert recognized JutulDarcy summary quantities.
+declared `UNIT_SYSTEM`; `TIME.seconds` always uses seconds. Dictionaries with
+`UNIT_SYSTEM="SI"` are converted to metric by default. Set `units=:field` (or
+another output system) to convert recognized summary quantities.
+When re-exporting a structured summary, `VALUES` supplies the current arrays;
+`COLUMNS` preserves their original ordering and identities.
 Long well names use Cnnn strings. Writers do not modify input arrays.
 
 ```@docs
@@ -98,8 +84,6 @@ GeoEnergyIO.StandardIO.output.write_egrid
 GeoEnergyIO.StandardIO.output.write_init
 GeoEnergyIO.StandardIO.output.write_restart
 GeoEnergyIO.StandardIO.output.write_summary
-GeoEnergyIO.write_jutuldarcy_summary
-GeoEnergyIO.read_jutuldarcy_states
 ```
 
 ## Generic keyword files
@@ -138,9 +122,16 @@ automatically. Formatted text output, arrays larger than the signed 32-bit
 element-count limit, and PVT-M physical unit conversion are not supported.
 
 The optional legacy Python/resdata readers remain available with
-`backend=:python` after loading PythonCall:
+`backend=:python` after loading PythonCall. The public readers use
+`backend=:julia` by default and accept the options documented above:
 
 ```julia
 using PythonCall
 legacy_summary = read_summary("CASE"; backend = :python)
+```
+
+The existing summary compatibility entry point is also retained:
+
+```@docs
+GeoEnergyIO.write_jutuldarcy_summary
 ```

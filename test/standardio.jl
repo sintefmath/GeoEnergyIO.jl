@@ -108,7 +108,7 @@ end
         for unified in (true, false)
             path = base*"_summary_$unified"
             written = write_summary(summary, path; unified)
-            back, raw = read_summary(path; format = :jutuldarcy, extra_out = true)
+            back, raw = read_summary(path; format = :structured, extra_out = true)
             @test back["DIMENS"] == (2, 1, 2)
             @test back["TIME"] == summary["TIME"]
             @test back["VALUES"]["FIELD"] == summary["VALUES"]["FIELD"]
@@ -120,8 +120,9 @@ end
             flat = read_summary(path*".SMSPEC")
             @test flat["WBHP"]["A_LONG_WELL_NAME"] == [100, 200]
             @test flat["START_DATE"] == summary["TIME"].start_date
+            back["VALUES"]["FIELD"]["FOPT"] = [4.0, 9.0]
             write_summary(back, path*"_copy")
-            @test read_summary(path*"_copy")["FOPT"] == [3, 7]
+            @test read_summary(path*"_copy")["FOPT"] == [4, 9]
         end
         @test isequal(summary, original)
         lower = joinpath(dir, "lower_case")
@@ -133,7 +134,7 @@ end
             "TIME" => (start_date = nothing, seconds = [86400.0]),
             "VALUES" => Dict("FIELD" => Dict("FPRH" => [1e7], "FOIP" => [10.0], "FOPR" => [0.001])))
         write_summary(si_summary, base*"_si")
-        si_back = read_summary(base*"_si"; format = :jutuldarcy)
+        si_back = read_summary(base*"_si"; format = :structured)
         @test si_back["VALUES"]["FIELD"]["FPRH"] ≈ [100.0]
         @test si_back["VALUES"]["FIELD"]["FOPR"] ≈ [86.4] rtol=1e-6
         @test si_back["UNITS"]["FOIP"] == "SM3"

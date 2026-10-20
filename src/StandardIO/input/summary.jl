@@ -24,30 +24,20 @@ function summary_identity(keyword, name, num, dims; lgr = "", local_ijk = nothin
     return nothing
 end
 
-function summary_category(key)
-    startswith(key, "W") && return "WELLS"
-    startswith(key, "G") && return "GROUP"
-    startswith(key, "R") && return "REGIONS"
-    startswith(key, "B") && return "BLOCKS"
-    startswith(key, "C") && return "COMPLETIONS"
-    startswith(key, "S") && return "SEGMENTS"
-    startswith(key, "A") && return "AQUIFERS"
-    return "MISC"
-end
-
 """
     read_summary(path; format=:legacy, extra_out=false)
 
 Read SMSPEC with unified UNSMRY or separate Snnnn data. The default dictionary
 matches the existing reader (`s["WOPR"]["PROD"]`, `s["FOPT"]`, `START_DATE`).
-`format=:jutuldarcy` returns JutulDarcy's `DIMENS`, `TIME`, `VALUES` and
-`UNIT_SYSTEM` representation, with FIELD, WELLS and GROUP collections.
+`format=:structured` returns `DIMENS`, `TIME`, `VALUES` and `UNIT_SYSTEM`,
+with FIELD, WELLS, GROUP and other collections. TIME contains a start date
+and elapsed seconds; value arrays retain their declared units.
 `extra_out` returns `(summary, (spec=KeywordFile, data=Vector{KeywordFile}))`.
 Summary values retain the units declared by SMSPEC. Restart-chain history is
 not merged automatically; each case's own data are read.
 """
 function read_summary(path::AbstractString; extra_out = false, verbose = false, format = :legacy)
-    format in (:legacy, :jutuldarcy) || throw(ArgumentError("format must be :legacy or :jutuldarcy"))
+    format in (:legacy, :structured) || throw(ArgumentError("format must be :legacy or :structured"))
     base = case_base(path)
     spec = read_binary(file_path(base, "SMSPEC"))
     h = spec["DIMENS"]
@@ -76,7 +66,7 @@ function read_summary(path::AbstractString; extra_out = false, verbose = false, 
     end
     flat = Dict{String, Any}("START_DATE" => start)
     unitmap = Dict{String, Any}()
-    # Preserve column identities and units for lossless high-level re-export.
+    # Preserve column identities and units for high-level re-export.
     columns = NamedTuple[]
     for i in 1:ncol
         key = keys[i]
@@ -101,22 +91,15 @@ function read_summary(path::AbstractString; extra_out = false, verbose = false, 
     label = get(Dict(1 => "METRIC", 2 => "FIELD", 3 => "LAB", 4 => "PVT-M"), code, "UNKNOWN")
     # Metadata are included in the canonical format; legacy arrays keep the
     # established flat structure used by existing plotting scripts.
-    if format == :jutuldarcy
+    if format == :structured
         vals = Dict{String, Any}("FIELD" => Dict{String, Any}(), "WELLS" => Dict{String, Any}(), "GROUP" => Dict{String, Any}())
         for col in columns
-            col.valid || continue
-            key = col.keyword
-            if startswith(key, "F")
-                vals["FIELD"][key] = col.values
-            elseif first(key) in ('W', 'G')
-                cat = summary_category(key)
-                get!(vals[cat], col.name, Dict{String, Any}())[key] = col.values
-            elseif key ∉ ("TIME", "YEARS", "DAY", "MONTH", "YEAR")
-                cat = summary_category(key)
-                dest = get!(vals, cat, Dict{String, Any}())
-                id = col.identity
-                isnothing(id) ? (dest[key] = col.values) : (get!(dest, id, Dict{String, Any}())[key] = col.values)
-            end
+            group = summary_group(col)
+            isnothing(group) && continue
+            category, identity = group
+            dest = get!(vals, category, Dict{String, Any}())
+            isnothing(identity) || (dest = get!(dest, identity, Dict{String, Any}()))
+            dest[col.keyword] = col.values
         end
         timecol = findfirst(c -> c.keyword == "TIME", columns)
         if isnothing(timecol)

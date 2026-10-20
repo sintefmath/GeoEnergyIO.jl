@@ -24,7 +24,7 @@ limit = parse(Int, get(ENV, "STANDARDIO_SAMPLE_MAX_BYTES", string(4*1024^2)))
     @test length(init["PORO"]) == 175
     @test all(>(0), init["PERMX"])
     @test maximum(init["PERMX"]) < 1e-9
-    smry = read_summary(file; format = :jutuldarcy)
+    smry = read_summary(file; format = :structured)
     @test smry["UNIT_SYSTEM"] == "FIELD"
     @test smry["TIME"].start_date == DateTime(2022, 11, 16)
     @test issorted(smry["TIME"].seconds)
@@ -63,7 +63,7 @@ end
             elseif ext == ".SMSPEC"
                 base = splitext(file)[1]
                 if isfile("$base.UNSMRY") && filesize("$base.UNSMRY") <= limit
-                    read_summary(file; format = :jutuldarcy)
+                    read_summary(file; format = :structured)
                 end
             end
             counts[ext] = get(counts, ext, 0) + 1

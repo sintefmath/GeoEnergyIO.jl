@@ -156,7 +156,7 @@ function write_keyword(io, kw::BinaryKeyword, endian)
     T, width = keyword_type(kw.type)
     chunk = T == String ? 105 : 1000
     for first in 1:chunk:n
-        vals = kw.data[first:min(first+chunk-1, n)]
+        vals = @view kw.data[first:min(first+chunk-1, n)]
         if T == String
             bytes = collect(codeunits(join(rpad.(vals, width))))
         else
@@ -173,13 +173,13 @@ end
 """
     write_binary(path_or_io, keywords; endian=:big)
 
-Write an `KeywordFile`, vector of `BinaryKeyword`s or dictionary of arrays.
+Write a `KeywordFile`, vector of `BinaryKeyword`s or dictionary of arrays.
 Repeated keywords require the ordered representation. Files use standard
 1000-element numeric and 105-element string payload blocks.
 """
 function write_binary(io::IO, keywords; endian = keywords isa KeywordFile ? keywords.endian : :big)
     check_endian(endian)
-    entries = keywords isa AbstractDict ? [BinaryKeyword(string(k), v) for (k, v) in pairs(keywords)] : keywords
+    entries = keywords isa AbstractDict ? (BinaryKeyword(string(k), v) for (k, v) in pairs(keywords)) : keywords
     for kw in entries
         write_keyword(io, kw, endian)
     end

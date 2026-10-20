@@ -6,60 +6,56 @@ function check_pythoncall(; throw = true)
     return present
 end
 
-function io_backend(backend)
+function call_io_backend(julia_impl, python_impl, args...; backend = :julia, kw...)
     backend in (:julia, :python) || throw(ArgumentError("backend must be :julia or :python"))
     backend == :python && check_pythoncall()
-    return backend
+    impl = backend == :julia ? julia_impl : python_impl
+    return impl(args...; kw...)
 end
 
 """
     read_restart(path; backend=:julia, kw...)
 
-Read industry standard format restart files using the built-in Julia reader.
-See [`StandardIO.input.read_restart`](@ref) for options and return values.
+Read restart files. See [`StandardIO.input.read_restart`](@ref) for options.
 """
-function read_restart(args...; backend = :julia, kw...)
-    io_backend(backend)
-    return backend == :julia ? StandardIO.read_restart(args...; kw...) : read_restart_impl(args...; kw...)
-end
+read_restart(args...; kw...) = call_io_backend(StandardIO.read_restart, read_restart_impl, args...; kw...)
 
 """
     read_init(path; backend=:julia, kw...)
 
-Read industry standard format INIT arrays. See [`StandardIO.input.read_init`](@ref).
+Read INIT arrays. See [`StandardIO.input.read_init`](@ref) for options.
 """
-function read_init(args...; backend = :julia, kw...)
-    io_backend(backend)
-    return backend == :julia ? StandardIO.read_init(args...; kw...) : read_init_impl(args...; kw...)
-end
+read_init(args...; kw...) = call_io_backend(StandardIO.read_init, read_init_impl, args...; kw...)
 
 """
     read_egrid(path; backend=:julia, kw...)
 
-Read an industry standard format grid into a deck GRID dictionary.
-See [`StandardIO.input.read_egrid`](@ref). The Julia reader returns SI geometry.
+Read grid geometry. See [`StandardIO.input.read_egrid`](@ref) for options.
 """
-function read_egrid(args...; backend = :julia, kw...)
-    io_backend(backend)
-    return backend == :julia ? StandardIO.read_egrid(args...; kw...) : read_egrid_impl(args...; kw...)
+read_egrid(args...; kw...) = call_io_backend(StandardIO.read_egrid, read_egrid_impl, args...; kw...)
+
+"""
+    read_summary(path; backend=:julia, kw...)
+
+Read summary files. See [`StandardIO.input.read_summary`](@ref) for options.
+"""
+read_summary(args...; kw...) = call_io_backend(StandardIO.read_summary, read_summary_impl, args...; kw...)
+
+"""
+    write_jutuldarcy_summary(path, summary; backend=:julia, kw...)
+
+Compatibility wrapper for [`write_summary`](@ref), returning
+`(directory, basename, data_extension)`. New code can use `write_summary`
+directly to obtain the paths of all written files.
+"""
+function write_jutuldarcy_summary(path::AbstractString, summary::AbstractDict; backend = :julia, kw...)
+    return call_io_backend(write_summary_compat, write_jutuldarcy_summary_impl, path, summary; backend, kw...)
 end
 
-"""
-    read_summary(path; backend=:julia, format=:legacy, kw...)
-
-Read industry standard format summary files. Use `format=:jutuldarcy` for the
-dictionary format used by JutulDarcy's `summary_result`.
-See [`StandardIO.input.read_summary`](@ref).
-"""
-function read_summary(args...; backend = :julia, kw...)
-    io_backend(backend)
-    return backend == :julia ? StandardIO.read_summary(args...; kw...) : read_summary_impl(args...; kw...)
-end
-
-"Write a JutulDarcy summary dictionary as industry standard format files, using Julia by default."
-function write_jutuldarcy_summary(args...; backend = :julia, kw...)
-    io_backend(backend)
-    return backend == :julia ? StandardIO.write_jutuldarcy_summary(args...; kw...) : write_jutuldarcy_summary_impl(args...; kw...)
+function write_summary_compat(path, summary; kw...)
+    written = StandardIO.write_summary(summary, path; kw...)
+    dir, name = splitdir(abspath(StandardIO.case_base(path)))
+    return (dir, name, splitext(first(written.data))[2])
 end
 
 # These hooks are implemented by the legacy Python extension only.
@@ -69,6 +65,3 @@ function read_egrid_impl end
 function read_summary_impl end
 function write_egrid_impl end
 function write_jutuldarcy_summary_impl end
-
-"Read restart solution arrays as JutulDarcy state dictionaries using a case's phase ordering (requires JutulDarcy)."
-function read_jutuldarcy_states end

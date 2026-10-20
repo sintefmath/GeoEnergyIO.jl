@@ -54,8 +54,17 @@ end
 
 function summary_columns(summary, units)
     # Readers preserve all column metadata, including uncommon summary types.
-    haskey(summary, "COLUMNS") && return NamedTuple[summary["COLUMNS"]...]
     vals = summary["VALUES"]
+    if haskey(summary, "COLUMNS")
+        return map(summary["COLUMNS"]) do col
+            group = summary_group(col)
+            isnothing(group) && return col
+            category, identity = group
+            dest = vals[category]
+            isnothing(identity) || (dest = dest[identity])
+            return merge(col, (values = dest[col.keyword],))
+        end
+    end
     cols = NamedTuple[]
     function add(key, values, name = ":+:+:+:+"; number = 0)
         key = uppercase(string(key))
@@ -81,14 +90,15 @@ function summary_columns(summary, units)
 end
 
 """
-    write_jutuldarcy_summary(path, summary; unified=true)
     write_summary(summary, path; unified=true)
 
-Write SMSPEC and UNSMRY (or separate Snnnn files) from `summary_result(case,
-result)` or `read_summary(...; format=:jutuldarcy)`. TIME.seconds is in SI;
-    value arrays use UNIT_SYSTEM, as produced by summary_result. SI summaries
-    (including result.summary) are converted to metric by default. Set `units`
-    to choose a different output system for recognized JutulDarcy quantities.
+Write SMSPEC and UNSMRY (or separate Snnnn files) from a structured summary
+dictionary, as returned by `read_summary(...; format=:structured)`. Required
+entries are DIMENS, UNIT_SYSTEM, TIME (start_date and seconds), and VALUES
+(FIELD, WELLS and GROUP collections). SI values are converted to metric by
+default. Set `units` to choose another system for recognized quantities.
+When COLUMNS metadata is present, values are taken from the VALUES dictionary
+while preserving column order and identities.
 Long well names use the Cnnn string format. Input arrays are not mutated.
 """
 function write_summary(summary::AbstractDict, path::AbstractString; unified = true, endian = :big, units = nothing)
@@ -164,10 +174,3 @@ function write_summary(summary::AbstractDict, path::AbstractString; unified = tr
     end
 end
 write_summary(path::AbstractString, summary::AbstractDict; kw...) = write_summary(summary, path; kw...)
-function write_jutuldarcy_summary(path::AbstractString, summary::AbstractDict; kw...)
-    written = write_summary(summary, path; kw...)
-    base = case_base(path)
-    dir, name = splitdir(abspath(base))
-    ext = splitext(first(written.data))[2]
-    return (dir, name, ext)
-end

@@ -17,6 +17,21 @@ import GeoEnergyIO.InputParser as IP
         end
     end
     @test IP.read_record(IOBuffer("sub/X.INC / note\n");include_path=true) == ["sub/X.INC "]
+    @test IP.read_record(IOBuffer("'sub/X.INC'/\nNEXT\n");include_path=true) == ["'sub/X.INC'"]
+    @test IP.read_record(IOBuffer("sub/X.INC/\nNEXT\n");include_path=true) == ["sub/X.INC"]
+    # Consecutive INCLUDE records without a space before the terminator
+    for record in ("'X.INC'/", "X.INC/")
+        mktempdir() do dir
+            for kw in ("GAS","OIL","WATER")
+                write(joinpath(dir,"$kw.INC"),"$kw\n")
+            end
+            path = joinpath(dir,"CASE.DATA")
+            includes = join("INCLUDE\n"*replace(record,"X"=>kw)*"\n" for kw in ("GAS","OIL","WATER"))
+            write(path,"RUNSPEC\n"*includes)
+            d = parse_data_file(path;silent=true)
+            @test all(kw -> haskey(d["RUNSPEC"],kw), ("GAS","OIL","WATER"))
+        end
+    end
     for (keyword,record) in ((:LIFTOPT," 1000 0 1* /\n"),(:WLIFTOPT," 'W' YES 1 1 1 /\n/\n"))
         cfg = IP.ParserVerbosityConfig()
         io = IOBuffer(record*"TSTEP\n1 /\n")

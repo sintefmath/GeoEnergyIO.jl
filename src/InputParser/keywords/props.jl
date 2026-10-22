@@ -39,16 +39,10 @@ end
 
 function parse_keyword!(data, outer_data, units, cfg, f, val::Union{Val{:OMEGAA}, Val{:OMEGAB}})
     k = unpack_val(val)
-    out = []
-    for i in 1:number_of_tables(outer_data, :eosnum)
-        push!(out, parse_deck_vector(f))
-    end
-    parser_message(cfg, outer_data, "$k", PARSER_JUTULDARCY_MISSING_SUPPORT)
-    data["$k"] = out
+    data["$k"] = parse_compositional_helper!(f, outer_data, data, "$k")
 end
 
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:LBCCOEF})
-    parser_message(cfg, outer_data, "LBCCOEF", PARSER_JUTULDARCY_MISSING_SUPPORT)
     rec = read_record(f)
     defaults = [0.1023, 0.023364, 0.058533, -0.040758, 0.0093324]
     data["LBCCOEF"] = parse_defaulted_line(rec, defaults)
@@ -80,10 +74,10 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:BIC})
     data["BIC"] = out
 end
 
-function parse_compositional_helper!(f, outer_data, data, k)
+function parse_compositional_helper!(f, outer_data, data, k; table_type = :eosnum)
     n = compositional_number_of_components(outer_data)
     out = Vector{Float64}[]
-    for i in 1:number_of_tables(outer_data, :eosnum)
+    for i in 1:number_of_tables(outer_data, table_type)
         val = parse_deck_vector(f)
         @assert length(val) == n "One $k should be provided per component (expected $n, was $(length(val)))."
         push!(out, val)
@@ -101,6 +95,10 @@ end
 
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:SSHIFT})
     data["SSHIFT"] = parse_compositional_helper!(f, outer_data, data, "SSHIFT")
+end
+
+function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:SSHIFTS})
+    data["SSHIFTS"] = parse_compositional_helper!(f, outer_data, data, "SSHIFTS"; table_type = :surface_eosnum)
 end
 
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:PARACHOR})

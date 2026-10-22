@@ -10,7 +10,13 @@ function find_unquoted(line, delimiter; include_path = false)
         if line[i] == '\''
             quoted = !quoted
         elseif !quoted && startswith(SubString(line, i), delimiter)
-            if !include_path || i == firstindex(line) || isspace(line[prevind(line, i)])
+            if !include_path || i == firstindex(line) || i == lastindex(line)
+                return i
+            end
+            # Unquoted paths can contain '/', so the terminator must follow
+            # whitespace or a closing quote, as in 'FILE.INC'/
+            prev = line[prevind(line, i)]
+            if isspace(prev) || prev == '\''
                 return i
             end
         end

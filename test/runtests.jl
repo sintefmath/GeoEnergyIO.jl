@@ -1,5 +1,10 @@
 using GeoEnergyIO
 using Test
+
+@testset "InputParser method ambiguities" begin
+    @test isempty(Test.detect_ambiguities(GeoEnergyIO.InputParser))
+end
+
 include("pinch_keyword.jl")
 include("tuning.jl")
 include("corner_geometry.jl")

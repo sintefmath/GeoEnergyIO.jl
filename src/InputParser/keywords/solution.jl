@@ -160,7 +160,6 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:ZMFVD})
 end
 
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:COMPVD})
-    parser_message(cfg, outer_data, "COMPVD", PARSER_JUTULDARCY_MISSING_SUPPORT)
     n = number_of_tables(outer_data, :eqlnum)
     out = []
     ncomp = compositional_number_of_components(outer_data)

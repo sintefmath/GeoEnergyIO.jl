@@ -84,11 +84,11 @@ function parse_defaulted_group_well(f, defaults, wells, namepos = 1)
     return out
 end
 
-function parse_defaulted_group(f, defaults)
+function parse_defaulted_group(f, defaults; kwarg...)
     out = []
     line = read_record(f)
     while length(line) > 0
-        parsed = parse_defaulted_line(line, defaults)
+        parsed = parse_defaulted_line(line, defaults; kwarg...)
         push!(out, parsed)
         line = read_record(f)
     end
@@ -515,6 +515,7 @@ Number of declared tables for given type `t`. Should be one of the following:
  - `:pvtnum` (PVT function region)
  - `:eqlnum` (equilibriation region)
  - `:eosnum` (equation-of-state region)
+ - `:surface_eosnum` (surface equation-of-state region)
 """
 function number_of_tables(outer_data, t::Symbol)
     rs = outer_data["RUNSPEC"]
@@ -539,6 +540,10 @@ function number_of_tables(outer_data, t::Symbol)
         else
             return 1
         end
+    elseif t == :surface_eosnum
+        # A defaulted surface EOS count inherits the reservoir EOS count.
+        n = haskey(rs, "TABDIMS") ? rs["TABDIMS"][10] : -1
+        return n < 0 ? number_of_tables(outer_data, :eosnum) : n
     elseif t == :nplmix
         if haskey(rs, "REGDIMS")
             return rs["REGDIMS"][10]

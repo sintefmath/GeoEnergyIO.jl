@@ -11,6 +11,7 @@ function welspecs_to_well(ws)
     name = ws[1]::AbstractString
     # TODO: Parse more fields.
     w = (
+        group = ws[2],
         head = (ws[3], ws[4]),
         ref_depth = ws[5],
         preferred_phase = ws[6],
@@ -32,6 +33,7 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:WELSPECS})
     defaults = [d,     d,  -1,  -1, NaN,       d,     0.0, "STD", "SHUT", "YES",   0, "SEG",    0,  d,  d, "STD", 0]
     utypes =   [:id, :id, :id, :id, :length, :id, :length,   :id,    :id,   :id, :id,   :id, :id, :id, :id, :id, :id]
     wspecs = parse_defaulted_group(f, defaults)
+    push_and_create!(data, "WELSPECS", wspecs)
     wells = get_wells(outer_data)
     for ws in wspecs
         swap_unit_system_axes!(ws, units, utypes)
@@ -412,6 +414,12 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:WINJGAS})
     wells = get_wells(outer_data)
     d = parse_defaulted_group_well(f, defaults, wells, 1)
     push_and_create!(data, "WINJGAS", d)
+end
+
+function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:GINJGAS})
+    defaults = ["Default", "GRUP", "Default", "Default", 0]
+    records = parse_defaulted_group(f, defaults; allow_wildcard = [false, true, true, true, true])
+    push_and_create!(data, "GINJGAS", records)
 end
 
 

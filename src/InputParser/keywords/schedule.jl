@@ -359,10 +359,12 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:TUNING})
     utypes = identity_unit_vector(defaults)
     utypes[[1, 2, 3, 4, 10]] .= :time
     swap_unit_system_axes!(values, units, utypes)
-    data["TUNING"] = values
-    skip_records(f, 2)
+    convergence_defaults = [0.1, 1e-3, 1e-7, 1e-4, 10.0, 1e-2, 1e-6, 1e-3, 1e-3, 0.025, NaN, 0.01, 1.0]
+    convergence = parse_defaulted_line(read_record(f), convergence_defaults)
+    data["TUNING"] = [values, convergence]
+    skip_records(f, 1)
     parser_message(cfg, outer_data, "TUNING", PARSER_JUTULDARCY_PARTIAL_SUPPORT,
-        "Only initial TSINIT, TSMAXZ, TSMINZ and TSFMAX timestep settings are used by JutulDarcy.")
+        "Only initial TSINIT, TSMAXZ, TSMINZ, TSFMAX, TSFMIN, TSFCNV, TRGCNV and TRGMBE settings are used by JutulDarcy.")
 end
 
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:TUNINGDP})

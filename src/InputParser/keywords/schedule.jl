@@ -138,6 +138,49 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:WCONPROD})
     push_and_create!(data, "WCONPROD", wconprod)
 end
 
+function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:GCONPROD})
+    defaults = Any["Default", "NONE", Inf, Inf, Inf, Inf, "NONE", "YES",
+        NaN, "", "NONE", "NONE", "NONE", Inf, NaN, NaN, NaN, NaN, NaN, NaN, "NONE"]
+    records = parse_defaulted_group(f, defaults; allow_wildcard = [false; fill(true, length(defaults) - 1)])
+    utypes = identity_unit_vector(defaults)
+    utypes[3:6] = [:liquid_rate_surface, :liquid_rate_surface, :gas_rate_surface, :liquid_rate_surface]
+    utypes[14] = :liquid_rate_reservoir
+    for rec in records
+        swap_unit_system_axes!(rec, units, utypes)
+    end
+    push_and_create!(data, "GCONPROD", records)
+end
+
+function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:GCONINJE})
+    defaults = Any["Default", "Default", "NONE", Inf, Inf, NaN, NaN, "YES", 0.0, "", "", "", NaN]
+    records = parse_defaulted_group(f, defaults; allow_wildcard = [false; fill(true, length(defaults) - 1)])
+    for rec in records
+        utypes = identity_unit_vector(defaults)
+        utypes[4] = rec[2] == "GAS" ? :gas_rate_surface : :liquid_rate_surface
+        utypes[5] = :liquid_rate_reservoir
+        utypes[13] = :gas_rate_surface
+        swap_unit_system_axes!(rec, units, utypes)
+    end
+    push_and_create!(data, "GCONINJE", records)
+end
+
+function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:WGRUPCON})
+    # Guide-rate units depend on the selected phase; the scaling factor is dimensionless.
+    records = parse_defaulted_group_well(f, Any["Default", "YES", -1.0, "", 1.0], get_wells(outer_data))
+    for rec in records
+        if rec[4] in ("OIL", "WAT", "WATER", "LIQ", "GAS", "RES", "RAT")
+            utypes = identity_unit_vector(rec)
+            utypes[3] = rec[4] == "GAS" ? :gas_rate_surface :
+                rec[4] == "RES" ? :liquid_rate_reservoir : :liquid_rate_surface
+            # Preserve the negative sentinel for a defaulted potential guide rate.
+            if rec[3] >= 0
+                swap_unit_system_axes!(rec, units, utypes)
+            end
+        end
+    end
+    push_and_create!(data, "WGRUPCON", records)
+end
+
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:WCONHIST})
     d = "Default"
     defaults = [d, "OPEN", d, 0.0, 0.0, 0.0, 0, d, 0.0, 0.0, 0.0]

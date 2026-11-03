@@ -16,6 +16,7 @@ makedocs(;
         "Home" => "index.md",
         "parser.md",
         "cpgrid.md",
+        "standard_io.md",
         "resdata.md",
     ],
 )

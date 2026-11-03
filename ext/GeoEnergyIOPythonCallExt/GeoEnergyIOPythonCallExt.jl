@@ -354,7 +354,7 @@ module GeoEnergyIOPythonCallExt
         resdatamod = pyimport("resdata")
         resfilemod = pyimport("resdata.resfile")
 
-        specgrid = data["SPECGRID"]
+        specgrid = collect(GeoEnergyIO.StandardIO.output.grid_dims(data))
         coord = data["COORD"]
         zcorn = data["ZCORN"]
         actnum = data["ACTNUM"]
@@ -365,7 +365,7 @@ module GeoEnergyIOPythonCallExt
         for (i, v) in enumerate(actnum)
             actnum_py[i-1] = v
         end
-        egrid = gridmod.Grid.create(PyArray(specgrid), zcorn_py, coord_py, actnum_py)
+        egrid = gridmod.Grid.create(pytuple(specgrid), zcorn_py, coord_py, actnum_py)
         egrid.save_EGRID(pth)
         return abspath(pth)
     end

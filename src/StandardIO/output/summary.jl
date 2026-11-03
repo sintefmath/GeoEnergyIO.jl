@@ -107,7 +107,7 @@ end
 
 Write SMSPEC and UNSMRY (or separate Snnnn files) from a structured summary
 dictionary, as returned by `read_summary(...; format=:structured)`. Required
-entries are DIMENS, UNIT_SYSTEM, TIME (start_date and seconds), and VALUES
+entries are DIMENS, UNIT_SYSTEM, TIME (`start_date` and seconds), and VALUES
 (FIELD, WELLS and GROUP collections). SI values are converted to metric by
 default. Set `units` to choose another system for recognized quantities.
 When COLUMNS metadata is present, values are taken from the VALUES dictionary

@@ -9,8 +9,9 @@ Module for parsing and processing various types of input files used in geo-energ
 Currently contains several features:
 
 - Parser for .DATA reservoir simulation cases. The format originated with the Eclipse reservoir simulator produced by SLB and is now used by many reservoir simulators. The most useful publicly available description of one such dialect is found in the [OPM Flow manual](https://opm-project.org/?page_id=955).
+- A parser for a subset of the .AFI file format. Currently limited to either inline or embedded RESQML specifications for the grid and cell properties.
 - A corner-point grid processor that converts parsed GRDECL files into unstructured meshes that handles general faults through the unstructured mesh from [Jutul.jl](https://github.com/sintefmath/Jutul.jl).
-- Support for reading and writing output files from Eclipse-type output (summary, EGRID, restarts) via the [resdata Python library](https://github.com/equinor/resdata).
+- Support for reading and writing output files from Eclipse-type output (summary, EGRID, restarts). Can use the [resdata Python library](https://github.com/equinor/resdata) as a backend.
 - A corner-point generator with support for faults and pinch that makes `GRID` sections from geological horizons and transformations.
 
 Here is an example mesh parsed from the [OLYMPUS Optimization Benchmark Challenge](https://doi.org/10.1007/s10596-020-10003-4):

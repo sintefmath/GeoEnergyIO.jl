@@ -40,15 +40,17 @@ module GeoEnergyIO
     using PrecompileTools
     @compile_workload begin
         try
-            spe1_pth = test_input_file_path("SPE1", "SPE1.DATA")
-            spe1 = parse_data_file(spe1_pth)
-            mesh_from_grid_section(spe1)
-            spe9_pth = test_input_file_path("SPE9", "SPE9.DATA")
-            spe9 = parse_data_file(spe9_pth)
-            mesh_from_grid_section(spe9)
-            pth = test_input_file_path("grdecl", "raised_col_sloped.txt")
-            grdecl = parse_grdecl_file(pth)
-            mesh_from_grid_section(grdecl)
+            redirect_stdio(stdout = devnull, stderr = devnull) do
+                spe1_pth = test_input_file_path("SPE1", "SPE1.DATA")
+                spe1 = parse_data_file(spe1_pth)
+                mesh_from_grid_section(spe1)
+                spe9_pth = test_input_file_path("SPE9", "SPE9.DATA")
+                spe9 = parse_data_file(spe9_pth)
+                mesh_from_grid_section(spe9)
+                pth = test_input_file_path("grdecl", "raised_col_sloped.txt")
+                grdecl = parse_grdecl_file(pth)
+                mesh_from_grid_section(grdecl)
+            end
         catch e
             @warn "Precompilation failed with exception $e"
         end

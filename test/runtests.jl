@@ -10,6 +10,7 @@ include("tuning.jl")
 include("corner_geometry.jl")
 include("parser_records.jl")
 include("injection_units.jl")
+include("group_controls.jl")
 include("compositional_keywords.jl")
 
 include("thermal.jl")

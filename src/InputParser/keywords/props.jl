@@ -55,6 +55,13 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:STCOND})
     data["STCOND"] = std
 end
 
+function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:FACTLI})
+    n = number_of_tables(outer_data, :eqlnum)
+    values = parse_defaulted_line(read_record(f), fill(1.0, n))
+    all(x -> isfinite(x) && x > 0, values) || throw(ArgumentError("FACTLI factors must be finite and positive."))
+    data["FACTLI"] = values
+end
+
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:BIC})
     n = compositional_number_of_components(outer_data)
     out = []
@@ -91,6 +98,19 @@ end
 
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:ZCRIT})
     data["ZCRIT"] = parse_compositional_helper!(f, outer_data, data, "ZCRIT")
+end
+
+function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:TBOIL})
+    # Normal boiling points are absolute temperatures, like TCRIT.
+    data["TBOIL"] = parse_compositional_helper!(f, outer_data, data, "TBOIL")
+    for values in data["TBOIL"]
+        swap_unit_system!(values, units, :absolute_temperature)
+    end
+end
+
+function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:PARACHOR})
+    data["PARACHOR"] = parse_compositional_helper!(f, outer_data, data, "PARACHOR")
+    parser_message(cfg, outer_data, "PARACHOR", PARSER_JUTULDARCY_MISSING_SUPPORT)
 end
 
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:SSHIFT})

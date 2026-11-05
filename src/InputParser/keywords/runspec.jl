@@ -10,6 +10,12 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:NOECHO})
     # Do nothing
 end
 
+function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:IMPES})
+    data["IMPES"] = true
+    parser_message(cfg, outer_data, "IMPES", PARSER_JUTULDARCY_MISSING_SUPPORT,
+        "JutulDarcy uses its configured time discretization; this deck selector is retained as metadata.")
+end
+
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:ECHO})
     # Do nothing
 end
@@ -377,4 +383,15 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:MISCIBLE})
     tdims = [1, 20, "NONE"]
     parser_message(cfg, outer_data, "MISCIBLE", PARSER_JUTULDARCY_MISSING_SUPPORT)
     data["MISCIBLE"] = parse_defaulted_line(rec, tdims)
+end
+
+function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:LICENSES})
+    # Simulator license requests are metadata, terminated by an empty record.
+    records = Vector{String}[]
+    record = read_record(f)
+    while !isempty(record)
+        push!(records, record)
+        record = read_record(f)
+    end
+    data["LICENSES"] = records
 end

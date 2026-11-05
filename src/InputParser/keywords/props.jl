@@ -108,11 +108,6 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:TBOIL})
     end
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:PARACHOR})
-    data["PARACHOR"] = parse_compositional_helper!(f, outer_data, data, "PARACHOR")
-    parser_message(cfg, outer_data, "PARACHOR", PARSER_JUTULDARCY_MISSING_SUPPORT)
-end
-
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:SSHIFT})
     data["SSHIFT"] = parse_compositional_helper!(f, outer_data, data, "SSHIFT")
 end

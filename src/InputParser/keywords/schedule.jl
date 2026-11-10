@@ -366,7 +366,7 @@ function convert_date_kw(t)
         elseif s == "NOV"
             return 11
         else
-            @assert s == "DEC" "Did not understand month format $s"
+            s == "DEC" || s == "DES" || error("Did not understand month format $s")
             return 12
         end
     end

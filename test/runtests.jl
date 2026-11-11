@@ -14,6 +14,7 @@ include("group_controls.jl")
 include("compositional_keywords.jl")
 
 include("thermal.jl")
+include("wsegvalv.jl")
 
 import GeoEnergyIO: test_input_file_path
 import Jutul: number_of_cells, number_of_boundary_faces, number_of_faces, convert_from_si

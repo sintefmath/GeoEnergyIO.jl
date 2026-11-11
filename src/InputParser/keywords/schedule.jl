@@ -560,7 +560,7 @@ end
 
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:WSEGVALV})
     d = "Default"
-    defaults = [d, -1, NaN, NaN, -1, -1, -1, -1, "OPEN", -1]
+    defaults = [d, -1, NaN, NaN, -1.0, -1.0, -1.0, -1.0, "OPEN", -1.0]
     @assert length(defaults) == 10
     wells = get_wells(outer_data)
     compdat = parse_defaulted_group_well(f, defaults, wells, 1)
@@ -576,7 +576,6 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:WSEGVALV})
         swap_unit_system_axes!(cd, units, utypes)
     end
     push_and_create!(data, "WSEGVALV", compdat)
-    parser_message(cfg, outer_data, "WSEGVALV", PARSER_JUTULDARCY_MISSING_SUPPORT)
 end
 
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:COMPSEGS})

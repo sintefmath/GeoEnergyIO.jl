@@ -39,3 +39,19 @@ import GeoEnergyIO.CornerPointGrid as CPG
     @test CPG.cell_volume(p) ≈ 1 + 0.6/2 + 0.8/4
     @test CPG.cell_volume([q .+ 1e5 for q in p]) ≈ 1.5
 end
+
+@testset "Crossings on skew pillars" begin
+    crossing = CPG.find_crossing_node
+    # The edge depths cross at t=1/2, z=2. The pillars at that depth
+    # are (0,0,2) and (10,2,2), so the bilinear crossing is (5,1,2).
+    a = [0.0, 0.0, 0.0]
+    b = [10.0, 4.0, 4.0]
+    c = [0.0, 0.0, 4.0]
+    d = [10.0, 0.0, 0.0]
+    @test crossing(a, b, c, d) ≈ [5, 1, 2]
+    @test crossing(c, d, a, b) ≈ crossing(a, b, c, d)
+    @test crossing(b, a, d, c) ≈ crossing(a, b, c, d)
+    @test crossing(a, b, c, d) .+ [1e5, 2e5, 0] ≈
+        crossing(a .+ [1e5, 2e5, 0], b .+ [1e5, 2e5, 0], c .+ [1e5, 2e5, 0], d .+ [1e5, 2e5, 0])
+    @test crossing(a, b, c .+ [0, 0, 10], d .+ [0, 0, 10]) === nothing
+end

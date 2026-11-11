@@ -267,6 +267,24 @@ function find_crossing_node(l1, l2)
 end
 
 function find_crossing_node(x1, x2, x3, x4)
+    # The two edges run between the same pair of pillars. On skew pillars they
+    # cross in pillar coordinates, rather than as straight lines in 3D. First
+    # find their common lateral parameter and depth, then interpolate each
+    # pillar at that depth to recover the point on the bilinear surface.
+    z1, z2, z3, z4 = x1[3], x2[3], x3[3], x4[3]
+    denom = (z2 - z1) - (z4 - z3)
+    if abs(denom) >= 1e-12 && abs(z3 - z1) >= 1e-12 && abs(z4 - z2) >= 1e-12
+        t = _bounded_segment_parameter((z3 - z1)/denom)
+        isnothing(t) && return nothing
+        z = (1-t)*z1 + t*z2
+        pillar1 = x1 + ((z-z1)/(z3-z1))*(x3-x1)
+        pillar2 = x2 + ((z-z2)/(z4-z2))*(x4-x2)
+        return (1-t)*pillar1 + t*pillar2
+    end
+    return find_straight_crossing_node(x1, x2, x3, x4)
+end
+
+function find_straight_crossing_node(x1, x2, x3, x4)
     # Segment (x1 -> x2) crossing segment (x3 -> x4). This function must not
     # create infinite-line intersections outside the segment extents: nearly
     # parallel CPG edges can otherwise produce nodes millions of segment lengths

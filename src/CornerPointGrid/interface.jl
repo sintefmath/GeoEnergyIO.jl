@@ -106,7 +106,11 @@ function pinch_primitives(grid, minpv_removed)
     if ismissing(minpv_removed)
         minpv_removed = fill(false, Tuple(grid["cartDims"]))
     end
-    return (pinch = pinch, minpv_removed = minpv_removed)
+    # Keep properties on inactive cells: PINCH ALL must respect sealing layers
+    # that are absent from the final mesh.
+    permz = get(grid, "PERMZ", get(grid, "PERMX", nothing))
+    multz = get(grid, "MULTZ", nothing)
+    return (; pinch, minpv_removed, permz, multz, zcorn = grid["ZCORN"], cartdims = grid["cartDims"])
 end
 
 function mesh_from_dxdydz_and_tops(grid; actnum = get_effective_actnum(grid))

@@ -9,7 +9,7 @@ function convert_ix_record(x::IXStandardRecord, unit_systems, meta, ::Val{:WellD
     for rec in x.body
         kw = rec.keyword
         if kw == "WellToCellConnections"
-            set_ix_array_values!(well[kw], rec)
+            set_ix_array_values!(well[kw], rec; sparse_well_updates = true)
         elseif rec isa IXFunctionCall
             push!(well["Functions"], rec)
         elseif rec isa IXEqualRecord

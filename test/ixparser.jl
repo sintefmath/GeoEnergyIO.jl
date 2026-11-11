@@ -486,6 +486,21 @@ import GeoEnergyIO.IXParser:
         @test s.body[2].keyword == "AllowCrossFlow"
         @test s.body[2].value == true
 
+        sparse = parse_ix_record("""
+            WellDef "WNAME" {
+                WellToCellConnections {
+                    Status[3]=CLOSED
+                    PiMultiplier[1]=1
+                    PiMultiplier[3]=0.6
+                }
+            }
+            """)
+        ix = GeoEnergyIO.IXParser
+        units = ix.get_unit_system_pair(:si, :si; ix_dict = ix.conversion_ix_dict())
+        connections = only(ix.convert_ix_records([sparse], "test", units)).value["WellToCellConnections"]
+        @test isequal(connections["Status"], [missing, missing, ix.IX_CLOSED])
+        @test isequal(connections["PiMultiplier"], [1.0, missing, 0.6])
+
         teststr = """
         Well "W1" "W2""W3"  {
             HistoricalControlModes=[RES_VOLUME_PRODUCTION_RATE ]

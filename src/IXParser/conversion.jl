@@ -279,7 +279,7 @@ function strip_ix_endlines(m)
     return m[start:stop]
 end
 
-function set_ix_array_values!(dest, v::Vector; T = missing)
+function set_ix_array_values!(dest, v::Vector; T = missing, sparse_well_updates = false)
     convert_t(x::AbstractArray, T::Type) = T.(x)
     convert_t(x::AbstractArray{<:AbstractString}, T::Type) = x
     convert_t(x::Number, T::Type) = convert(T, x)
@@ -303,9 +303,28 @@ function set_ix_array_values!(dest, v::Vector; T = missing)
             for (i, er) in enumerate(v)
                 h = er.keyword
                 if er isa IXAssignmentRecord
-                    dest_h = get(dest, h, missing)
                     ix = er.index
                     insert_val = convert_t(er.value, T)
+                    dest_h = get(dest, h, missing)
+                    if sparse_well_updates && h in ("PiMultiplier", "Status")
+                        # Gaps in indexed updates leave the existing connections unchanged.
+                        if h == "PiMultiplier"
+                            insert_val = Float64(insert_val)
+                        end
+                        if ismissing(dest_h)
+                            dest_h = Vector{Union{Missing, typeof(insert_val)}}()
+                        elseif !(Missing <: eltype(dest_h) && insert_val isa eltype(dest_h))
+                            dest_h = convert(Vector{Union{Missing, typeof(insert_val)}}, dest_h)
+                        end
+                        dest[h] = dest_h
+                        n_current = length(dest_h)
+                        if n_current < ix
+                            resize!(dest_h, ix)
+                            dest_h[n_current+1:end] .= missing
+                        end
+                        dest_h[ix] = insert_val
+                        continue
+                    end
                     if h == "PiMultiplier"
                         default = 1.0
                     elseif h == "Status"
@@ -341,8 +360,8 @@ function set_ix_array_values!(dest, v::Vector; T = missing)
     return dest
 end
 
-function set_ix_array_values!(dest, rec::IXEqualRecord)
-    return set_ix_array_values!(dest, rec.value)
+function set_ix_array_values!(dest, rec::IXEqualRecord; kwarg...)
+    return set_ix_array_values!(dest, rec.value; kwarg...)
 end
 
 function get_unit_system_pair(from::Symbol, target::Symbol; kwarg...)

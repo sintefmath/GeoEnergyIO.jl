@@ -838,10 +838,12 @@ function generate_pinch_map(pinch, primitives, lines, column_lines, columns)
 
     if !ismissing(pinch)
         # Loop over columns, look for gaps
-        (; pinch, minpv_removed) = pinch
+        (; pinch, minpv_removed, permz, multz, zcorn, cartdims) = pinch
         gap = uppercase(pinch[2]::AbstractString) == "GAP"
         @assert length(pinch) == 5
         thres = pinch[1]
+        max_gap = pinch[3]
+        all_trans = uppercase(pinch[4]) == "ALL"
         num_added = 0
         for (cl, col) in zip(column_lines, columns)
             number_of_cells_in_column = length(col.cells)
@@ -867,23 +869,24 @@ function generate_pinch_map(pinch, primitives, lines, column_lines, columns)
                 bottom_pos = map(l -> first(find_cell_bounds(bottom_cell, l)), current_column_lines)
                 node_indices_bottom = map((line, i) -> line.nodes[i], current_column_lines, bottom_pos)
                 z(i) = primitives.nodes[i][3]
-                z_face(ix) = (z(ix[1]) + z(ix[2]) + z(ix[3]) + z(ix[4]))/4.0
-                depth_top = z_face(node_indices_top)
-                depth_bottom = z_face(node_indices_bottom)
                 start = last_inactive + 1
-                depth_diff = depth_bottom - depth_top
-                depth_is_under_threshold = depth_diff < thres
-                if gap && !depth_is_under_threshold
-                    inactive_cells = abs.(col.cells[(before_inactive+1):last_inactive])
-                    n_inactive_in_gap = length(inactive_cells)
-                    # This is a bit of an approximation, in practice we should
-                    # check that each of these cells is below the thickness...
-                    avg_thickness = depth_diff / n_inactive_in_gap
-                    gap_inactive = all(minpv_removed[inactive_cells]) && avg_thickness < thres
-                else
-                    gap_inactive = false
+                # The maximum empty gap is measured at the closest pair of
+                # corners. Test each removed cell against the pinch threshold;
+                # GAP additionally allows thicker MINPV-deactivated cells.
+                empty_gap = minimum(z(b) - z(a) for (a, b) in zip(node_indices_top, node_indices_bottom))
+                allowed = empty_gap < max_gap
+                for pos in (before_inactive+1):last_inactive
+                    cell = -col.cells[pos]
+                    thickness = sum(zcorn[get_corner_index(cell, (i, j, 1), cartdims)] -
+                                    zcorn[get_corner_index(cell, (i, j, 0), cartdims)]
+                                    for i in 0:1, j in 0:1)/4
+                    allowed &= thickness <= thres || (gap && minpv_removed[cell])
+                    if all_trans
+                        allowed &= isnothing(permz) || permz[cell] != 0
+                        allowed &= isnothing(multz) || multz[cell] != 0
+                    end
                 end
-                if depth_is_under_threshold || gap_inactive
+                if allowed
                     pinch_top_to_bottom[top_cell] = bottom_cell
                     pinch_bottom_to_top[bottom_cell] = top_cell
                     num_added += 1

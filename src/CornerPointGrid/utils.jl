@@ -164,7 +164,9 @@ function handle_zero_effective_porosity!(actnum, g, minpv, minpv_for_cell)
                 pv = porv[i]
                 if pv < minpv_for_cell(i)
                     actnum[i] = false
-                    changed[i] = true
+                    # Zero-PV cells are already inactive before MINPV/PINCH
+                    # processing. Only positive-PV removals qualify for GAP.
+                    changed[i] = pv > 0
                 end
             end
         end
@@ -183,18 +185,18 @@ function handle_zero_effective_porosity!(actnum, g, minpv, minpv_for_cell)
         else
             ntg = ones(size(actnum))
         end
-        deactivate_minpv!(actnum, changed, g, poro, ntg, zcorn, coord, cartdims, minpv)
+        deactivate_minpv!(actnum, changed, g, poro, ntg, zcorn, coord, cartdims, minpv_for_cell)
     end
     return (actnum, changed)
 end
 
-function deactivate_minpv!(actnum, changed, g, poro, ntg, zcorn, coord, cartdims, minpv)
+function deactivate_minpv!(actnum, changed, g, poro, ntg, zcorn, coord, cartdims, minpv_for_cell)
     for i in eachindex(actnum)
         if actnum[i]
             vol = zcorn_volume(g, zcorn, coord, cartdims, i)
             pv = poro[i]*ntg[i]*vol
-            if pv < minpv
-                changed[i] = true
+            if pv < minpv_for_cell(i)
+                changed[i] = pv > 0
                 actnum[i] = false
             end
         end

@@ -314,7 +314,9 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:PINCH})
     rec = read_record(f)
     tdims = [0.001, "GAP", Inf, "TOPBOT", "TOP"]
     parser_message(cfg, outer_data, "PINCH", PARSER_JUTULDARCY_PARTIAL_SUPPORT)
-    data["PINCH"] = parse_defaulted_line(rec, tdims)
+    parsed = parse_defaulted_line(rec, tdims)
+    swap_unit_system_axes!(parsed, units, [:length, :id, :length, :id, :id])
+    data["PINCH"] = parsed
 end
 
 function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:FAULTS})

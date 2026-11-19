@@ -824,11 +824,14 @@ function insert_interior_face!(I_faces, prev_cell, cell, nodes, is_vertical, is_
 end
 
 function insert_face!(I_faces, B_faces, prev_cell, cell, nodes; is_boundary, is_vertical, is_idir, face_type, rev, boundary_type = face_type)
-    if is_boundary
-        insert_boundary_face!(B_faces, prev_cell, cell, nodes, is_vertical, is_idir, face_type, rev, boundary_type = boundary_type)
-    else
-        @assert rev == false
-        insert_interior_face!(I_faces, prev_cell, cell, nodes, is_vertical, is_idir, face_type)
+    nodes = unique(nodes)
+    if length(nodes) > 2
+        if is_boundary
+            insert_boundary_face!(B_faces, prev_cell, cell, nodes, is_vertical, is_idir, face_type, rev, boundary_type = boundary_type)
+        else
+            @assert rev == false
+            insert_interior_face!(I_faces, prev_cell, cell, nodes, is_vertical, is_idir, face_type)
+        end
     end
 end
 

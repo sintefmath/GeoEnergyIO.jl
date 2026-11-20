@@ -8,10 +8,8 @@ number of expected records:
   - 0 means that the keyword to skip has no data (for example "WATER" with no
     data to follow)
   - 1 means that the keyword has a single record terminated by `/`
-  - Any other number means a fixed number of lines, without termination by empty
-    record.
   - Inf means that the keyword has any number of records, terminated by a record
-    without entries.
+    without entries. Other counts besides 0 and 1 also use this behavior.
 """
 function skip_kw!(kw::Symbol, num = 0, msg = nothing)
     push!(KEYWORD_SKIP_LIST, (kw, num, msg))

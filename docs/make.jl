@@ -15,6 +15,7 @@ makedocs(;
     pages=[
         "Home" => "index.md",
         "parser.md",
+        "Deck keyword reference" => "keywords.md",
         "cpgrid.md",
         "standard_io.md",
         "resdata.md",

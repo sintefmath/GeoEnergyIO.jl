@@ -1,61 +1,71 @@
+@keyword :PROPS (:RPTPROPS, :FULLIMP) RecordKeyword support = :ignored
+
+@keyword :PROPS :FILLEPS FlagKeyword
+
 function finish_current_section!(data, units, cfg, outer_data, ::Val{:PROPS})
-    
+
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:RPTPROPS})
-    read_record(f)
+@keyword :PROPS :CNAMES RecordKeyword
+
+function keyword_defaults(::RecordKeyword{:CNAMES}, outer_data, units)
+    return fill("", compositional_number_of_components(outer_data))
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:FULLIMP})
-    read_record(f)
-end
-
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:CNAMES})
-    n = compositional_number_of_components(outer_data)
-    templ = fill("", n)
+function parse_keyword!(data, outer_data, units, cfg, f, definition::RecordKeyword{:CNAMES})
+    templ = keyword_defaults(definition, outer_data, units)
     rec = read_record(f)
     data["CNAMES"] = parse_defaulted_line(rec, templ)
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:EOS})
+@keyword :PROPS :EOS RecordsKeyword defaults = ["PR"] records = :regional
+
+function parse_keyword!(data, outer_data, units, cfg, f, definition::RecordsKeyword{:EOS})
     out = String[]
     for i in 1:number_of_tables(outer_data, :eosnum)
         rec = read_record(f)
-        v = only(parse_defaulted_line(rec, ["PR"]))
+        v = only(parse_defaulted_line(rec, keyword_defaults(definition)))
         push!(out, v)
     end
     data["EOS"] = out
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:NCOMPS})
+@keyword :PROPS :NCOMPS RecordKeyword
+
+function parse_keyword!(data, outer_data, units, cfg, f, ::RecordKeyword{:NCOMPS})
     rec = read_record(f)
     data["NCOMPS"] = parse(Int, only(rec))
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:SALINITY})
+@keyword :PROPS :SALINITY RecordKeyword defaults = [0.0]
+
+function parse_keyword!(data, outer_data, units, cfg, f, definition::RecordKeyword{:SALINITY})
     rec = read_record(f)
-    data["SALINITY"] = only(parse_defaulted_line(rec, [0.0]))
+    data["SALINITY"] = only(parse_defaulted_line(rec, keyword_defaults(definition)))
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, val::Union{Val{:OMEGAA}, Val{:OMEGAB}})
-    k = unpack_val(val)
+@keyword :PROPS (:OMEGAA, :OMEGAB) RecordsKeyword records = :regional
+
+function parse_keyword!(data, outer_data, units, cfg, f,
+        definition::Union{RecordsKeyword{:OMEGAA}, RecordsKeyword{:OMEGAB}})
+    k = keyword_name(definition)
     data["$k"] = parse_compositional_helper!(f, outer_data, data, "$k")
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:LBCCOEF})
-    rec = read_record(f)
-    defaults = [0.1023, 0.023364, 0.058533, -0.040758, 0.0093324]
-    data["LBCCOEF"] = parse_defaulted_line(rec, defaults)
-end
+@keyword :PROPS :LBCCOEF RecordKeyword defaults = [0.1023, 0.023364, 0.058533, -0.040758, 0.0093324]
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:STCOND})
+@keyword :PROPS :STCOND RecordKeyword units = (:relative_temperature, :pressure)
+
+function parse_keyword!(data, outer_data, units, cfg, f, definition::RecordKeyword{:STCOND})
     std = parse_deck_vector(f)
     @assert length(std) == 2
-    swap_unit_system_axes!(std, units, [:relative_temperature, :pressure])
+    swap_unit_system_axes!(std, units, keyword_units(definition))
     data["STCOND"] = std
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:BIC})
+@keyword :PROPS :BIC RecordsKeyword records = :regional
+
+function parse_keyword!(data, outer_data, units, cfg, f, ::RecordsKeyword{:BIC})
     n = compositional_number_of_components(outer_data)
     out = []
     for i in 1:number_of_tables(outer_data, :eosnum)
@@ -85,186 +95,221 @@ function parse_compositional_helper!(f, outer_data, data, k; table_type = :eosnu
     return out
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:ACF})
+@keyword :PROPS :ACF RecordsKeyword records = :regional
+
+function parse_keyword!(data, outer_data, units, cfg, f, ::RecordsKeyword{:ACF})
     data["ACF"] = parse_compositional_helper!(f, outer_data, data, "ACF")
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:ZCRIT})
+@keyword :PROPS :ZCRIT RecordsKeyword records = :regional
+
+function parse_keyword!(data, outer_data, units, cfg, f, ::RecordsKeyword{:ZCRIT})
     data["ZCRIT"] = parse_compositional_helper!(f, outer_data, data, "ZCRIT")
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:SSHIFT})
+@keyword :PROPS :SSHIFT RecordsKeyword records = :regional
+
+function parse_keyword!(data, outer_data, units, cfg, f, ::RecordsKeyword{:SSHIFT})
     data["SSHIFT"] = parse_compositional_helper!(f, outer_data, data, "SSHIFT")
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:SSHIFTS})
+@keyword :PROPS :SSHIFTS RecordsKeyword records = :regional
+
+function parse_keyword!(data, outer_data, units, cfg, f, ::RecordsKeyword{:SSHIFTS})
     data["SSHIFTS"] = parse_compositional_helper!(f, outer_data, data, "SSHIFTS"; table_type = :surface_eosnum)
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:PARACHOR})
+@keyword :PROPS :PARACHOR RecordsKeyword records = :regional warning = PARSER_JUTULDARCY_MISSING_SUPPORT
+
+function parse_keyword!(data, outer_data, units, cfg, f, ::RecordsKeyword{:PARACHOR})
     parser_message(cfg, outer_data, "PARACHOR", PARSER_JUTULDARCY_MISSING_SUPPORT)
     # TODO: Units.
     data["PARACHOR"] = parse_compositional_helper!(f, outer_data, data, "PARACHOR")
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:VCRITVIS})
+@keyword :PROPS :VCRITVIS RecordsKeyword records = :regional warning = PARSER_JUTULDARCY_MISSING_SUPPORT
+
+function parse_keyword!(data, outer_data, units, cfg, f, ::RecordsKeyword{:VCRITVIS})
     parser_message(cfg, outer_data, "VCRITVIS", PARSER_JUTULDARCY_MISSING_SUPPORT)
     # TODO: Units.
     data["VCRITVIS"] = parse_compositional_helper!(f, outer_data, data, "VCRITVIS")
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:ZCRITVIS})
+@keyword :PROPS :ZCRITVIS RecordsKeyword records = :regional warning = PARSER_JUTULDARCY_MISSING_SUPPORT
+
+function parse_keyword!(data, outer_data, units, cfg, f, ::RecordsKeyword{:ZCRITVIS})
     parser_message(cfg, outer_data, "ZCRITVIS", PARSER_JUTULDARCY_MISSING_SUPPORT)
     # TODO: Units.
     data["ZCRITVIS"] = parse_compositional_helper!(f, outer_data, data, "ZCRITVIS")
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:ZI})
+@keyword :PROPS :ZI RecordsKeyword records = :regional warning = PARSER_JUTULDARCY_MISSING_SUPPORT
+
+function parse_keyword!(data, outer_data, units, cfg, f, ::RecordsKeyword{:ZI})
     parser_message(cfg, outer_data, "ZI", PARSER_JUTULDARCY_MISSING_SUPPORT)
     data["ZI"] = parse_compositional_helper!(f, outer_data, data, "ZI")
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:PCRIT})
+@keyword :PROPS :PCRIT RecordsKeyword units = :pressure records = :regional
+
+function parse_keyword!(data, outer_data, units, cfg, f, definition::RecordsKeyword{:PCRIT})
     p_c = parse_compositional_helper!(f, outer_data, data, "PCRIT")
-    swap_unit_system!(p_c, units, :pressure)
+    swap_unit_system!(p_c, units, keyword_units(definition))
     data["PCRIT"] = p_c
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:TCRIT})
+@keyword :PROPS :TCRIT RecordsKeyword units = :absolute_temperature records = :regional
+
+function parse_keyword!(data, outer_data, units, cfg, f, definition::RecordsKeyword{:TCRIT})
     p_c = parse_compositional_helper!(f, outer_data, data, "TCRIT")
-    swap_unit_system!(p_c, units, :absolute_temperature)
+    swap_unit_system!(p_c, units, keyword_units(definition))
     data["TCRIT"] = p_c
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:MW})
+@keyword :PROPS :MW RecordsKeyword units = :molar_mass records = :regional
+
+function parse_keyword!(data, outer_data, units, cfg, f, definition::RecordsKeyword{:MW})
     mw = parse_compositional_helper!(f, outer_data, data, "MW")
-    swap_unit_system!(mw, units, :molar_mass)
+    swap_unit_system!(mw, units, keyword_units(definition))
     data["MW"] = mw
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:VCRIT})
+@keyword :PROPS :VCRIT RecordsKeyword units = :critical_volume records = :regional
+
+function parse_keyword!(data, outer_data, units, cfg, f, definition::RecordsKeyword{:VCRIT})
     V = parse_compositional_helper!(f, outer_data, data, "VCRIT")
-    swap_unit_system!(V, units, :critical_volume)
+    swap_unit_system!(V, units, keyword_units(definition))
     data["VCRIT"] = V
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, v::Val{:PLYVISC})
-    k = unpack_val(v)
+@keyword :PROPS :PLYVISC RecordsKeyword units = (:concentration, :identity) records = :regional
+
+function parse_keyword!(data, outer_data, units, cfg, f, definition::RecordsKeyword{:PLYVISC})
+    k = keyword_name(definition)
     npvt = number_of_tables(outer_data, :pvtnum)
     ply_tab = parse_region_matrix_table(f, npvt)
     for tab in ply_tab
-        swap_unit_system_axes!(tab, units, (:concentration, :identity))
+        swap_unit_system_axes!(tab, units, keyword_units(definition))
     end
     data["$k"] = ply_tab
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, v::Val{:PLYROCK})
-    k = unpack_val(v)
+@keyword :PROPS :PLYROCK RecordsKeyword units = (:identity, :identity, :density, :identity, :identity) records = :regional
+
+function parse_keyword!(data, outer_data, units, cfg, f, definition::RecordsKeyword{:PLYROCK})
+    k = keyword_name(definition)
     nsat = number_of_tables(outer_data, :satnum)
     ply_tab = parse_region_matrix_table(f, nsat)
     for tab in ply_tab
-        swap_unit_system_axes!(tab, units, (:identity, :identity, :density, :identity, :identity))
+        swap_unit_system_axes!(tab, units, keyword_units(definition))
     end
     data["$k"] = map(vec, ply_tab)
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, v::Val{:PLYADS})
-    k = unpack_val(v)
+@keyword :PROPS :PLYADS RecordsKeyword units = (:concentration, :identity) records = :regional
+
+function parse_keyword!(data, outer_data, units, cfg, f, definition::RecordsKeyword{:PLYADS})
+    k = keyword_name(definition)
     nsat = number_of_tables(outer_data, :satnum)
     ply_tab = parse_region_matrix_table(f, nsat)
     for tab in ply_tab
-        swap_unit_system_axes!(tab, units, (:concentration, :identity))
+        swap_unit_system_axes!(tab, units, keyword_units(definition))
     end
     data["$k"] = ply_tab
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, v::Val{:PLMIXPAR})
-    k = unpack_val(v)
+@keyword :PROPS :PLMIXPAR RecordsKeyword records = :regional
+
+function parse_keyword!(data, outer_data, units, cfg, f, definition::RecordsKeyword{:PLMIXPAR})
+    k = keyword_name(definition)
     nreg = number_of_tables(outer_data, :nplmix)
     ply_tab = parse_region_matrix_table(f, nreg)
     data["$k"] = map(only, ply_tab)
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, v::Val{:PLYMAX})
-    k = unpack_val(v)
+@keyword :PROPS :PLYMAX RecordsKeyword units = (:concentration, :concentration) records = :regional
+
+function parse_keyword!(data, outer_data, units, cfg, f, definition::RecordsKeyword{:PLYMAX})
+    k = keyword_name(definition)
     nreg = number_of_tables(outer_data, :nplmix)
     ply_tab = parse_region_matrix_table(f, nreg)
     for tab in ply_tab
-        swap_unit_system_axes!(tab, units, (:concentration, :concentration))
+        swap_unit_system_axes!(tab, units, keyword_units(definition))
     end
     data["$k"] = map(vec, ply_tab)
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, v::Union{Val{:SOMGAS}, Val{:SOMWAT}})
-    k = unpack_val(v)
-    ns = number_of_tables(outer_data, :satnum)
-    data["$k"] = parse_region_matrix_table(f, ns)
+struct SaturationTable{K, U} <: SaturationTableKeyword{K}
+    units::U
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, v::Union{Val{:SWOF}, Val{:SGOF}, Val{:SLGOF}})
-    k = unpack_val(v)
-    sat_tab = parse_saturation_table(f, outer_data)
-    for tab in sat_tab
-        swap_unit_system_axes!(tab, units, (:identity, :identity, :identity, :pressure))
-    end
-    data["$k"] = sat_tab
-end
+SaturationTable{K}(; units = nothing) where K = SaturationTable{K, typeof(units)}(units)
+keyword_units(def::SaturationTable) = def.units
 
-function parse_keyword!(data, outer_data, units, cfg, f, v::Union{Val{:SWFN}, Val{:SGFN}})
-    k = unpack_val(v)
-    sat_tab = parse_saturation_table(f, outer_data)
-    for tab in sat_tab
-        swap_unit_system_axes!(tab, units, (:identity, :identity, :pressure))
-    end
-    data["$k"] = sat_tab
-end
+@keyword :PROPS (:SWOF, :SGOF, :SLGOF) SaturationTable units = (:identity, :identity, :identity, :pressure)
+@keyword :PROPS (:SWFN, :SGFN, :GSF) SaturationTable units = (:identity, :identity, :pressure)
+@keyword :PROPS (:SOF2, :SOF3, :WSF, :SOMGAS, :SOMWAT) SaturationTable
 
-function parse_keyword!(data, outer_data, units, cfg, f, v::Union{Val{:SOF2}, Val{:SOF3}})
-    k = unpack_val(v)
-    sat_tab = parse_saturation_table(f, outer_data)
-    data["$k"] = sat_tab
-end
-
-function parse_keyword!(data, outer_data, units, cfg, f, v::Union{Val{:WSF}, Val{:GSF}})
-    k = unpack_val(v)
-    sat_tab = parse_saturation_table(f, outer_data)
-    if k == :GSF
-        for tab in sat_tab
-            swap_unit_system_axes!(tab, units, (:identity, :identity, :pressure))
+function parse_keyword!(data, outer_data, units, cfg, f, def::SaturationTableKeyword)
+    tables = parse_saturation_table(f, outer_data)
+    column_units = keyword_units(def)
+    if !isnothing(column_units)
+        for table in tables
+            swap_unit_system_axes!(table, units, column_units)
         end
     end
-    data["$k"] = sat_tab
+    return data[String(keyword_name(def))] = tables
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:PVDG})
+@keyword :PROPS :PVDG RecordsKeyword units = (:pressure, :gas_formation_volume_factor, :viscosity) records = :regional
+
+function parse_keyword!(data, outer_data, units, cfg, f, definition::RecordsKeyword{:PVDG})
     pvdg = parse_dead_pvt_table(f, outer_data)
     for tab in pvdg
-        swap_unit_system_axes!(tab, units, (:pressure, :gas_formation_volume_factor, :viscosity))
+        swap_unit_system_axes!(tab, units, keyword_units(definition))
     end
     data["PVDG"] = pvdg
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:PVTO})
+@keyword(:PROPS, :PVTO, RecordsKeyword,
+    records = :regional,
+    units = (key = :u_rs,
+        data = (:pressure, :liquid_formation_volume_factor, :viscosity)),
+)
+
+function parse_keyword!(data, outer_data, units, cfg, f, definition::RecordsKeyword{:PVTO})
     pvto = parse_live_pvt_table(f, outer_data)
     for tab in pvto
-        swap_unit_system_axes!(tab["data"], units, (:pressure, :liquid_formation_volume_factor, :viscosity))
-        swap_unit_system!(tab["key"], units, :u_rs)
+        swap_unit_system_axes!(tab["data"], units, keyword_units(definition).data)
+        swap_unit_system!(tab["key"], units, keyword_units(definition).key)
     end
     data["PVTO"] = pvto
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:PVTG})
+@keyword(:PROPS, :PVTG, RecordsKeyword,
+    records = :regional,
+    units = (key = :pressure,
+        data = (:u_rv, :gas_formation_volume_factor, :viscosity)),
+)
+
+function parse_keyword!(data, outer_data, units, cfg, f, definition::RecordsKeyword{:PVTG})
     pvtg = parse_live_pvt_table(f, outer_data)
     for tab in pvtg
-        swap_unit_system_axes!(tab["data"], units, (:u_rv, :gas_formation_volume_factor, :viscosity))
-        swap_unit_system!(tab["key"], units, :pressure)
+        swap_unit_system_axes!(tab["data"], units, keyword_units(definition).data)
+        swap_unit_system!(tab["key"], units, keyword_units(definition).key)
     end
     data["PVTG"] = pvtg
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:PVTW})
-    tdims = [NaN, NaN, NaN, NaN, 0.0]
-    utypes = (:pressure, :liquid_formation_volume_factor, :compressibility, :viscosity, :compressibility)
+@keyword(:PROPS, :PVTW, RecordsKeyword,
+    defaults = [NaN, NaN, NaN, NaN, 0.0],
+    units = (:pressure, :liquid_formation_volume_factor, :compressibility, :viscosity, :compressibility),
+    records = :regional,
+)
+
+function parse_keyword!(data, outer_data, units, cfg, f, definition::RecordsKeyword{:PVTW})
+    tdims = keyword_defaults(definition)
+    utypes = keyword_units(definition)
     nreg = number_of_tables(outer_data, :pvtnum)
     out = []
     for i = 1:nreg
@@ -277,9 +322,15 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:PVTW})
     data["PVTW"] = out
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:PVCDO})
-    tdims = [NaN, NaN, NaN, NaN, NaN]
-    utypes = (:pressure, :liquid_formation_volume_factor, :compressibility, :viscosity, :compressibility)
+@keyword(:PROPS, :PVCDO, RecordsKeyword,
+    defaults = [NaN, NaN, NaN, NaN, NaN],
+    units = (:pressure, :liquid_formation_volume_factor, :compressibility, :viscosity, :compressibility),
+    records = :regional,
+)
+
+function parse_keyword!(data, outer_data, units, cfg, f, definition::RecordsKeyword{:PVCDO})
+    tdims = keyword_defaults(definition)
+    utypes = keyword_units(definition)
     nreg = number_of_tables(outer_data, :pvtnum)
     out = []
     for i = 1:nreg
@@ -292,51 +343,70 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:PVCDO})
     data["PVCDO"] = out
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:PVDO})
+@keyword :PROPS :PVDO RecordsKeyword units = (:pressure, :liquid_formation_volume_factor, :viscosity) records = :regional
+
+function parse_keyword!(data, outer_data, units, cfg, f, definition::RecordsKeyword{:PVDO})
     pvdo = parse_dead_pvt_table(f, outer_data)
     for tab in pvdo
-        swap_unit_system_axes!(tab, units, (:pressure, :liquid_formation_volume_factor, :viscosity))
+        swap_unit_system_axes!(tab, units, keyword_units(definition))
     end
     data["PVDO"] = pvdo
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:VISCREF})
+@keyword(:PROPS, :VISCREF, RecordsKeyword,
+    defaults = [NaN, NaN, NaN],
+    units = (:pressure, :u_rs, :id),
+    records = :regional,
+    support = :partial,
+    warning = PARSER_PARTIAL_SUPPORT,
+)
+
+function parse_keyword!(data, outer_data, units, cfg, f, definition::RecordsKeyword{:VISCREF})
     nreg = number_of_tables(outer_data, :pvtnum)
     viscref = []
-    tdims = [NaN, NaN, NaN]
+    tdims = keyword_defaults(definition)
     for tab in 1:nreg
         rec = read_record(f)
         tab = parse_defaulted_line(rec, tdims)
         # TODO: Last entry here is API related, should have a unit added.
-        swap_unit_system_axes!(tab, units, (:pressure, :u_rs, :id))
+        swap_unit_system_axes!(tab, units, keyword_units(definition))
         push!(viscref, tab)
     end
     parser_message(cfg, outer_data, "VISCREF", PARSER_PARTIAL_SUPPORT)
     data["VISCREF"] = viscref
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, v::Val{:ROCKTAB})
+@keyword :PROPS :ROCKTAB RecordsKeyword units = :pressure records = :regional
+
+function parse_keyword!(data, outer_data, units, cfg, f, definition::RecordsKeyword{:ROCKTAB})
     nrock = outer_data["RUNSPEC"]["ROCKCOMP"][2]
     tables = parse_region_matrix_table(f, nrock)
     for tab in tables
         for i in axes(tab, 1)
-            tab[i, 1] = swap_unit_system(tab[i, 1], units, :pressure)
+            tab[i, 1] = swap_unit_system(tab[i, 1], units, keyword_units(definition))
         end
     end
     data["ROCKTAB"] = tables
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:SPECHEAT})
+@keyword(:PROPS, :SPECHEAT, RecordsKeyword,
+    units = (:relative_temperature, :mass_heat_capacity, :mass_heat_capacity, :mass_heat_capacity),
+    records = :regional,
+)
+
+function parse_keyword!(data, outer_data, units, cfg, f, definition::RecordsKeyword{:SPECHEAT})
     nreg = number_of_tables(outer_data, :pvtnum)
     speacheat = parse_region_matrix_table(f, nreg)
     for tab in speacheat
-        swap_unit_system_axes!(tab, units, (:relative_temperature, :mass_heat_capacity, :mass_heat_capacity, :mass_heat_capacity))
+        swap_unit_system_axes!(tab, units, keyword_units(definition))
     end
     data["SPECHEAT"] = speacheat
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:TRACER})
-    records = parse_defaulted_group(f, ["", "", "", "", 0, ""])
+@keyword :PROPS :TRACER RecordsKeyword defaults = ["", "", "", "", 0, ""]
+
+function parse_keyword!(data, outer_data, units, cfg, f, definition::RecordsKeyword{:TRACER})
+    records = parse_defaulted_group(f, keyword_defaults(definition))
     names = String[]
     for rec in records
         name, phase = rec[1:2]
@@ -348,30 +418,45 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:TRACER})
     data["TRACER"] = records
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:SPECROCK})
+@keyword :PROPS :SPECROCK RecordsKeyword units = (:relative_temperature, :volume_heat_capacity) records = :regional
+
+function parse_keyword!(data, outer_data, units, cfg, f, definition::RecordsKeyword{:SPECROCK})
     nreg = number_of_tables(outer_data, :satnum)
     specrock = parse_region_matrix_table(f, nreg)
     for tab in specrock
-        swap_unit_system_axes!(tab, units, (:relative_temperature, :volume_heat_capacity))
+        swap_unit_system_axes!(tab, units, keyword_units(definition))
     end
     data["SPECROCK"] = specrock
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, v::Union{Val{:WATVISCT}, Val{:OILVISCT}, Val{:GASVISCT}})
-    k = unpack_val(v)
+@keyword :PROPS (:WATVISCT, :OILVISCT, :GASVISCT) RecordsKeyword units = (:relative_temperature, :viscosity) records = :regional
+
+function parse_keyword!(data, outer_data, units, cfg, f,
+        definition::Union{RecordsKeyword{:WATVISCT}, RecordsKeyword{:OILVISCT}, RecordsKeyword{:GASVISCT}})
+    k = keyword_name(definition)
     nreg = number_of_tables(outer_data, :pvtnum)
     visct = parse_region_matrix_table(f, nreg)
     for tab in visct
-        swap_unit_system_axes!(tab, units, (:relative_temperature, :viscosity))
+        swap_unit_system_axes!(tab, units, keyword_units(definition))
     end
     data["$k"] = visct
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:WATDENT})
+@keyword(:PROPS, :WATDENT, RecordsKeyword,
+    records = :regional,
+    defaults = [293.15, 3.0e-4, 3.0e-6],
+    units = (:absolute_temperature, :thermal_expansion_c1, :thermal_expansion_c2),
+)
+
+function keyword_defaults(def::RecordsKeyword{:WATDENT}, outer_data, units)
+    return defaults_for_unit(units.from, keyword_units(def); metric = keyword_defaults(def))
+end
+
+function parse_keyword!(data, outer_data, units, cfg, f, definition::RecordsKeyword{:WATDENT})
     nreg = number_of_tables(outer_data, :pvtnum)
     watdent = []
-    uids = (:absolute_temperature, :thermal_expansion_c1, :thermal_expansion_c2)
-    tdims = defaults_for_unit(units.from, uids, metric = [293.15, 3.0e-4, 3.0e-6])
+    uids = keyword_units(definition)
+    tdims = keyword_defaults(definition, outer_data, units)
     for tab in 1:nreg
         rec = read_record(f)
         tab = parse_defaulted_line(rec, tdims)
@@ -381,9 +466,15 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:WATDENT})
     data["WATDENT"] = watdent
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:ROCK})
-    tdims = [NaN, NaN, NaN, NaN, NaN, NaN]
-    utypes = [:pressure, :compressibility, :compressibility, :compressibility, :id, :id]
+@keyword(:PROPS, :ROCK, RecordsKeyword,
+    defaults = [NaN, NaN, NaN, NaN, NaN, NaN],
+    units = [:pressure, :compressibility, :compressibility, :compressibility, :id, :id],
+    records = :regional,
+)
+
+function parse_keyword!(data, outer_data, units, cfg, f, definition::RecordsKeyword{:ROCK})
+    tdims = keyword_defaults(definition)
+    utypes = keyword_units(definition)
     out = []
     nreg = number_of_tables(outer_data, :pvtnum)
     for i = 1:nreg
@@ -395,7 +486,9 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:ROCK})
     data["ROCK"] = out
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:DIFFC})
+@keyword :PROPS :DIFFC RecordsKeyword records = :regional support = :ignored warning = PARSER_MISSING_SUPPORT
+
+function parse_keyword!(data, outer_data, units, cfg, f, ::RecordsKeyword{:DIFFC})
     parser_message(cfg, outer_data, "DIFFC", PARSER_MISSING_SUPPORT)
     nreg = number_of_tables(outer_data, :pvtnum)
     for i = 1:nreg
@@ -403,37 +496,28 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:DIFFC})
     end
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:COMPS})
+@keyword :PROPS :COMPS RecordKeyword defaults = [0]
+
+function parse_keyword!(data, outer_data, units, cfg, f, definition::RecordKeyword{:COMPS})
     rec = read_record(f)
-    ncomp = only(parse_defaulted_line(rec, [0]))
+    ncomp = only(parse_defaulted_line(rec, keyword_defaults(definition)))
     data["COMPS"] = ncomp
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, v::Union{
-            Val{:KRW},
-            Val{:KRWX},
-            Val{Symbol(":KRWX-")},
-            Val{:KRWY},
-            Val{Symbol(":KRWY-")},
-            Val{:KRWZ},
-            Val{Symbol(":KRWZ-")},
-            Val{:KRWR},
-            Val{:KRWRX},
-            Val{Symbol(":KRWRX-")},
-            Val{:KRWRY},
-            Val{Symbol(":KRWRY-")},
-            Val{:KRWRZ},
-            Val{Symbol(":KRWRZ-")},
-            }
-        )
-    k = unpack_val(v)
-    parser_message(cfg, outer_data, "$k", PARSER_JUTULDARCY_MISSING_SUPPORT)
-    parse_and_set_grid_data!(data, outer_data, units, cfg, f, k, unit = :id)
-end
+@keyword(:PROPS, (:KRW, :KRWX, :KRWY, :KRWZ, :KRWR, :KRWRX, :KRWRY, :KRWRZ), GridArrayKeyword,
+    edit_unit = nothing,
+    warning = PARSER_JUTULDARCY_MISSING_SUPPORT,
+)
+@keyword(:PROPS, (":KRWX-", ":KRWY-", ":KRWZ-", ":KRWRX-", ":KRWRY-", ":KRWRZ-"), GridArrayKeyword,
+    edit_unit = nothing,
+    warning = PARSER_JUTULDARCY_MISSING_SUPPORT,
+)
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:SCALECRS})
+@keyword :PROPS :SCALECRS RecordKeyword defaults = ["NO"]
+
+function parse_keyword!(data, outer_data, units, cfg, f, definition::RecordKeyword{:SCALECRS})
     rec = read_record(f)
-    scale = only(parse_defaulted_line(rec, ["NO"]))
+    scale = only(parse_defaulted_line(rec, keyword_defaults(definition)))
     scale = uppercase(scale)
     if scale == "Y"
         scale = "YES"
@@ -447,21 +531,25 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:SCALECRS})
     end
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:DENSITY})
-    tdims = [NaN, NaN, NaN]
+@keyword :PROPS :DENSITY RecordsKeyword defaults = [NaN, NaN, NaN] units = :density records = :regional
+
+function parse_keyword!(data, outer_data, units, cfg, f, definition::RecordsKeyword{:DENSITY})
+    tdims = keyword_defaults(definition)
     nreg = number_of_tables(outer_data, :pvtnum)
     out = []
     for i = 1:nreg
         rec = read_record(f)
         t = parse_defaulted_line(rec, tdims)
-        swap_unit_system!(t, units, :density)
+        swap_unit_system!(t, units, keyword_units(definition))
         push!(out, t)
     end
     data["DENSITY"] = out
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:GRAVITY})
-    tdims = [45.5, 1.0, 0.7773]
+@keyword :PROPS :GRAVITY RecordsKeyword defaults = [45.5, 1.0, 0.7773] records = :regional
+
+function parse_keyword!(data, outer_data, units, cfg, f, definition::RecordsKeyword{:GRAVITY})
+    tdims = keyword_defaults(definition)
     file_units = current_unit_system(outer_data)
     if file_units == :field
         rho_wat = 62.4
@@ -487,28 +575,34 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:GRAVITY})
     data["DENSITY"] = out
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Union{Val{:RSCONST}, Val{:RSCONSTT}})
+@keyword :PROPS (:RSCONST, :RSCONSTT) RecordKeyword defaults = [NaN, NaN] support = :partial warning = PARSER_PARTIAL_SUPPORT
+
+function parse_keyword!(data, outer_data, units, cfg, f,
+        definition::Union{RecordKeyword{:RSCONST}, RecordKeyword{:RSCONSTT}})
     rec = read_record(f)
     # TODO: This is missing units.
-    tdims = [NaN, NaN]
+    tdims = keyword_defaults(definition)
     parsed = parse_defaulted_line(rec, tdims, required_num = length(tdims), keyword = "RSCONST")
     parser_message(cfg, outer_data, "RSCONST", PARSER_PARTIAL_SUPPORT)
     data["RSCONST"] = parsed
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:FILLEPS})
-    data["FILLEPS"] = true
-end
+@keyword(:PROPS, :ROCKOPTS, RecordKeyword,
+    defaults = ["PRESSURE", "NOSTORE", "PVTNUM", "DEFLATION"],
+    warning = PARSER_JUTULDARCY_MISSING_SUPPORT,
+)
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:ROCKOPTS})
+function parse_keyword!(data, outer_data, units, cfg, f, definition::RecordKeyword{:ROCKOPTS})
     rec = read_record(f)
-    tdims = ["PRESSURE", "NOSTORE", "PVTNUM", "DEFLATION"]
+    tdims = keyword_defaults(definition)
     parsed = parse_defaulted_line(rec, tdims)
     parser_message(cfg, outer_data, "ROCKOPTS", PARSER_JUTULDARCY_MISSING_SUPPORT)
     data["ROCKOPTS"] = parsed
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:AQUTAB})
+@keyword :PROPS :AQUTAB RecordsKeyword records = :regional support = :ignored warning = PARSER_MISSING_SUPPORT
+
+function parse_keyword!(data, outer_data, units, cfg, f, ::RecordsKeyword{:AQUTAB})
     num = outer_data["RUNSPEC"]["AQUDIMS"][3]-1
     for i in 1:num
         skip_record(f)
@@ -516,31 +610,29 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:AQUTAB})
     parser_message(cfg, outer_data, "AQUTAB", PARSER_MISSING_SUPPORT)
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:AQUCT})
+@keyword :PROPS :AQUCT RecordsKeyword support = :ignored warning = PARSER_MISSING_SUPPORT
+
+function parse_keyword!(data, outer_data, units, cfg, f, ::RecordsKeyword{:AQUCT})
     skip_record(f)
     parser_message(cfg, outer_data, "AQUCT", PARSER_MISSING_SUPPORT)
 end
 
+@keyword :PROPS :SWATINIT GridArrayKeyword
 
-function parse_keyword!(data, outer_data, units, cfg, f, v::Val{:SWATINIT})
-    k = unpack_val(v)
-    parse_and_set_grid_data!(data, outer_data, units, cfg, f, k, unit = unit_type(k))
-end
+@keyword :PROPS (:DIFCCOG, :DIFFCOIL, :DIFFCGAS, :DIFFCWAT, :DIFFCWG) RecordKeyword units = :diffusivity
 
-function unit_type(::Val{:SWATINIT})
-    return :id
-end
-
-const DIFFUSION_TYPE = Union{Val{:DIFCCOG}, Val{:DIFFCOIL}, Val{:DIFFCGAS}, Val{:DIFFCWAT}, Val{:DIFFCWG}}
-
-function parse_keyword!(data, outer_data, units, cfg, f, val::DIFFUSION_TYPE)
-    k = unpack_val(val)
+function parse_keyword!(data, outer_data, units, cfg, f,
+        definition::Union{
+            RecordKeyword{:DIFCCOG}, RecordKeyword{:DIFFCOIL}, RecordKeyword{:DIFFCGAS},
+            RecordKeyword{:DIFFCWAT}, RecordKeyword{:DIFFCWG}
+        })
+    k = keyword_name(definition)
     n = compositional_number_of_components(outer_data)
     out = zeros(n)
     val = parse_deck_vector(f)
     nv = length(val)
     @assert nv <= n "$k has more entries ($nv) than components ($n)"
     out[1:nv] = val
-    swap_unit_system!(out, units, :diffusivity)
+    swap_unit_system!(out, units, keyword_units(definition))
     data["$k"] = out
 end

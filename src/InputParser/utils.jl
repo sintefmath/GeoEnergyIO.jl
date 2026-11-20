@@ -415,61 +415,6 @@ function parse_region_matrix_table(f, nreg)
     return out
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, v::Val{T}) where T
-    # Keywords where we read a single record and don't do anything proper
-    found = false
-    kw_str = "$T"
-    for (kw, num, msg) in KEYWORD_SKIP_LIST
-        if kw != T
-            continue
-        end
-        if !isnothing(msg)
-            parser_message(cfg, outer_data, "$kw", msg)
-        end
-        if num == 0
-            # Single word keywords are trivial to parse, just set a true flag.
-            data[kw_str] = true
-        elseif num == 1
-            data[kw_str] = read_record(f)
-        else
-            skip_record(f)
-        end
-        found = true
-        break
-    end
-
-    if !found
-        section = outer_data["CURRENT_SECTION"]
-        if startswith(kw_str, "TVDPF")
-            values = parse_deck_vector(f)
-            if !isempty(values) && all(iszero, values)
-                # Some exported decks write one zero per layer for a zero profile.
-                # This is unambiguous even when it is not a depth/concentration table.
-                data[kw_str] = [0.0 0.0; 1.0 0.0]
-                if isodd(length(values))
-                    parser_message(cfg, outer_data, kw_str, "Interpreting an all-zero record as a uniform zero tracer profile.", important = true)
-                end
-            else
-                @assert iseven(length(values)) && length(values) >= 4 "$kw_str requires depth/concentration pairs."
-                table = permutedims(reshape(values, 2, :))
-                swap_unit_system_axes!(table, units, (:length, :id))
-                @assert all(diff(table[:, 1]) .> 0) "$kw_str depths must be increasing."
-                data[kw_str] = table
-            end
-        elseif startswith(kw_str, "TVDP")
-            parser_message(cfg, outer_data, kw_str, PARSER_MISSING_SUPPORT)
-            read_record(f)
-        elseif section == :REGIONS
-            data[kw_str] = parse_and_set_grid_data!(data, outer_data, units, cfg, f, T, T = Int)
-        elseif section in (:GRID, :EDIT, :SOLUTION)
-            data[kw_str] = parse_and_set_grid_data!(data, outer_data, units, cfg, f, T, T = Float64)
-        else
-            error("Unhandled keyword $T in $section encountered.")
-        end
-    end
-    return data
-end
-
 function failure_print_line_context(f; kw = nothing)
     lno, line = failure_line_number(f)
     jutul_message("Parser", "Parsing halted at line $lno.\nContext: $(f.name):", color = :red)
@@ -729,9 +674,13 @@ function unit_type(x::Symbol)
     return unit_type(Val(x))
 end
 
-function unit_type(::Val{k}) where k
-    if !(k in (:FIPNUM, :EQLNUM, :ACTNUM, :PVTNUM, :EOSNUM, :SATNUM, :EQLNUM, :KRW, :KRO, :KRG))
-        @warn "Unit type not defined for $k."
+function unit_type(name::Val{K}) where K
+    unit = keyword_edit_unit(keyword_definition(name))
+    if !isnothing(unit)
+        return unit
+    end
+    if !(K in (:KRW, :KRO, :KRG))
+        @warn "Unit type not defined for $K."
     end
     return :id
 end
@@ -793,7 +742,4 @@ function keyword_default_value(x::AbstractString, T::Type)
     return keyword_default_value(Val(Symbol(x)), T)
 end
 
-function keyword_default_value(x::Val{X}, T::Type) where X
-    X::Symbol
-    return zero(T)
-end
+keyword_default_value(name::Val, T::Type) = keyword_default_value(keyword_definition(name), T)

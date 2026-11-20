@@ -1,3 +1,59 @@
+struct GridArrayKeyword{K, T} <: SingleRecordKeyword{K}
+    default::T
+    units::Symbol
+    edit_unit::Union{Symbol, Nothing}
+    warning::Union{PARSER_WARNING, Nothing}
+    endpoint::Bool
+end
+
+function GridArrayKeyword{K}(; default = 0.0, units = :id, edit_unit = units, warning = nothing,
+        endpoint = false) where K
+    return GridArrayKeyword{K, typeof(default)}(default, units, edit_unit, warning, endpoint)
+end
+
+keyword_defaults(def::GridArrayKeyword) = def.default
+keyword_units(def::GridArrayKeyword) = def.units
+keyword_edit_unit(def::GridArrayKeyword) = def.edit_unit
+keyword_warning(def::GridArrayKeyword) = def.warning
+
+function parse_keyword!(data, outer_data, units, cfg, f, def::GridArrayKeyword{K, T}) where {K, T}
+    report_keyword_warning(cfg, outer_data, def)
+    return parse_and_set_grid_data!(data, outer_data, units, cfg, f, K;
+        unit = keyword_units(def), T = T, default = keyword_defaults(def))
+end
+
+function keyword_default_value(def::GridArrayKeyword, T::Type)
+    if def.endpoint
+        @assert T == Float64
+        return NaN
+    end
+    return zero(T)
+end
+
+const GridLengthKeyword = Union{RecordKeyword{:COORD}, RecordKeyword{:ZCORN},
+    RecordKeyword{:DX}, RecordKeyword{:DY}, RecordKeyword{:DZ}, RecordKeyword{:TOPS}}
+keyword_edit_unit(def::GridLengthKeyword) = keyword_units(def)
+
+@keyword :GRID (:PERMX, :PERMY, :PERMZ) GridArrayKeyword units = :permeability
+@keyword :GRID (:PORV, :MINPVV) GridArrayKeyword units = :liquid_volume_reservoir
+@keyword :GRID :DEPTH GridArrayKeyword units = :length
+@keyword :GRID (:PORO, :NTG, :DIPAZIMUTH, :DIPANGLE) GridArrayKeyword
+@keyword :GRID (
+    :SWL, :SGL, :SWCR, :SWU, :SGCR, :SGU, :SOWCR, :SOGCR,
+    :ISWL, :ISGL, :ISWCR, :ISWU, :ISGCR, :ISGU, :ISOWCR, :ISOGCR
+) GridArrayKeyword endpoint = true
+@keyword :GRID (:MULTX, :MULTY, :MULTZ, "MULTX-", "MULTY-", "MULTZ-") GridArrayKeyword default = 1.0
+@keyword :GRID :MULTPV GridArrayKeyword default = 1.0 edit_unit = nothing
+@keyword :GRID (:THCONR, :THCROCK, :THCWATER, :THCOIL, :THCGAS, :THCSOLID, :THCAVE) GridArrayKeyword units = :rock_conductivity
+@keyword :GRID (:PRATIO, :BIOTCOEF) GridArrayKeyword edit_unit = nothing
+@keyword :GRID :YMODULE GridArrayKeyword units = :gigapascal edit_unit = nothing
+@keyword :REGIONS (
+    :FIPNUM, :PVTNUM, :SATNUM, :EQLNUM, :ROCKNUM, :IMBNUM, :MULTNUM, :FIPZON, :OPERNUM, :EOSNUM
+) GridArrayKeyword default = 0
+@keyword :REGIONS :FLUXNUM GridArrayKeyword default = 0 warning = PARSER_JUTULDARCY_MISSING_SUPPORT
+
+@keyword :GRID :INIT FlagKeyword
+
 function parse_and_set_grid_data!(data, outer_data, units, cfg, f, k; unit = :id, T = Float64, default = zero(T))
     bdims = Tuple(get_boxdims(outer_data))
     cdims = Tuple(get_cartdims(outer_data))
@@ -21,30 +77,27 @@ end
 
 function finish_current_section!(data, units, cfg, outer_data, ::Val{:GRID})
     if !haskey(data, "MINPV")
-        io = IOBuffer("1e-6\n/\n")
+        io = IOBuffer("/\n")
         parse_keyword!(data, outer_data, units, cfg, io, Val(:MINPV))
     end
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:GRIDFILE})
-    rec = read_record(f)
-    tdims = [0, 1];
-    data["GRIDFILE"] = parse_defaulted_line(rec, tdims)
-end
+@keyword :GRID :GRIDFILE RecordKeyword defaults = [0, 1]
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Union{Val{:MINPORV}, Val{:MINPV}})
+@keyword :GRID (:MINPORV, :MINPV) RecordKeyword defaults = [1e-6] units = :volume
+
+function parse_keyword!(data, outer_data, units, cfg, f,
+        definition::Union{RecordKeyword{:MINPORV}, RecordKeyword{:MINPV}})
     rec = read_record(f)
-    tdims = [1e-6];
+    tdims = keyword_defaults(definition)
     rec = parse_defaulted_line(rec, tdims)
-    rec = swap_unit_system!(rec, units, :volume)
+    rec = swap_unit_system!(rec, units, keyword_units(definition))
     data["MINPV"] = only(rec)
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:INIT})
-    data["INIT"] = true
-end
+@keyword :GRID :COORDSYS RecordKeyword support = :ignored warning = PARSER_MISSING_SUPPORT
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:COORDSYS})
+function parse_keyword!(data, outer_data, units, cfg, f, ::RecordKeyword{:COORDSYS})
     read_record(f)
     parser_message(cfg, outer_data, "COORDSYS", PARSER_MISSING_SUPPORT)
 end
@@ -58,28 +111,36 @@ function check_unit(unit_str, units, kw)
     end
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:FILEUNIT})
+@keyword :GRID :FILEUNIT RecordKeyword
+
+function parse_keyword!(data, outer_data, units, cfg, f, ::RecordKeyword{:FILEUNIT})
     rec = strip(only(read_record(f)))
     check_unit(rec, units, "FILEUNIT")
     data["FILEUNIT"] = rec
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:GRIDUNIT})
+@keyword :GRID :GRIDUNIT RecordKeyword defaults = ["Default", "MAP"]
+
+function parse_keyword!(data, outer_data, units, cfg, f, definition::RecordKeyword{:GRIDUNIT})
     rec = read_record(f)
-    tdims = ["Default", "MAP"]
+    tdims = keyword_defaults(definition)
     v = parse_defaulted_line(rec, tdims)
     check_unit(v[1], units, "GRIDUNIT")
     data["GRIDUNIT"] = v
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:MAPUNITS})
+@keyword :GRID :MAPUNITS RecordKeyword defaults = ["Default"]
+
+function parse_keyword!(data, outer_data, units, cfg, f, definition::RecordKeyword{:MAPUNITS})
     rec = read_record(f)
-    tdims = ["Default"]
+    tdims = keyword_defaults(definition)
     v = parse_defaulted_line(rec, tdims)
     data["MAPUNITS"] = only(v)
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:GDORIENT})
+@keyword :GRID :GDORIENT RecordKeyword support = :raw warning = PARSER_MISSING_SUPPORT
+
+function parse_keyword!(data, outer_data, units, cfg, f, ::RecordKeyword{:GDORIENT})
     # TODO: This needs to be handled
     partial_parse!(data, outer_data, units, cfg, f, :GDORIENT)
 end
@@ -90,66 +151,33 @@ function partial_parse!(data, outer_data, units, cfg, f, k::Symbol)
     data["$k"] = rec
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:MAPAXES})
+@keyword :GRID :MAPAXES RecordKeyword
+
+function parse_keyword!(data, outer_data, units, cfg, f, ::RecordKeyword{:MAPAXES})
     rec = parse_deck_vector(f, Float64)
     data["MAPAXES"] = rec
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:COORD})
+@keyword :GRID :COORD RecordKeyword units = :length
+
+function parse_keyword!(data, outer_data, units, cfg, f, definition::RecordKeyword{:COORD})
     coord = parse_deck_vector(f, Float64)
-    coord = swap_unit_system_fast!(coord, units, Val(:length))
+    coord = swap_unit_system_fast!(coord, units, Val(keyword_units(definition)))
     data["COORD"] = coord
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:ZCORN})
+@keyword :GRID :ZCORN RecordKeyword units = :length
+
+function parse_keyword!(data, outer_data, units, cfg, f, definition::RecordKeyword{:ZCORN})
     zcorn = parse_deck_vector(f, Float64)
-    zcorn = swap_unit_system_fast!(zcorn, units, Val(:length))
+    zcorn = swap_unit_system_fast!(zcorn, units, Val(keyword_units(definition)))
     data["ZCORN"] = zcorn
 end
 
-function unit_type(::Union{Val{:COORD}, Val{:ZCORN}, Val{:DEPTH}})
-    return :length
-end
+@keyword :GRID :MULTREGT RecordsKeyword defaults = [-1, -1, 1.0, "XYZ", "ALL", "M"] warning = PARSER_JUTULDARCY_PARTIAL_SUPPORT
 
-function parse_keyword!(data, outer_data, units, cfg, f, v::Union{Val{:PERMX}, Val{:PERMY}, Val{:PERMZ}, Val{:PORV}, Val{:DEPTH}, Val{:MINPVV}})
-    k = unpack_val(v)
-    parse_and_set_grid_data!(data, outer_data, units, cfg, f, k, unit = unit_type(k))
-end
-
-function unit_type(::Union{Val{:PERMX}, Val{:PERMY}, Val{:PERMZ}})
-    return :permeability
-end
-
-function parse_keyword!(data, outer_data, units, cfg, f, v::Union{Val{:DIPAZIMUTH}, Val{:DIPANGLE}})
-    k = unpack_val(v)
-    parse_and_set_grid_data!(data, outer_data, units, cfg, f, k, unit = unit_type(k))
-end
-
-function unit_type(::Union{Val{:DIPAZIMUTH}, Val{:DIPANGLE}})
-    return :id
-end
-
-const ENDPOINT_TYPE = Union{
-    Val{:SWL}, Val{:SGL}, Val{:SWCR}, Val{:SWU}, Val{:SGCR}, Val{:SGU}, Val{:SOWCR}, Val{:SOGCR},
-    Val{:ISWL}, Val{:ISGL}, Val{:ISWCR}, Val{:ISWU}, Val{:ISGCR}, Val{:ISGU}, Val{:ISOWCR}, Val{:ISOGCR}
-}
-
-function parse_keyword!(data, outer_data, units, cfg, f, v::ENDPOINT_TYPE)
-    k = unpack_val(v)
-    parse_and_set_grid_data!(data, outer_data, units, cfg, f, k, unit = unit_type(k))
-end
-
-function unit_type(::ENDPOINT_TYPE)
-    return :id
-end
-
-function keyword_default_value(x::ENDPOINT_TYPE, T::Type)
-    @assert T == Float64
-    return NaN
-end
-
-function parse_keyword!(data, outer_data, units, cfg, f, v::Val{:MULTREGT})
-    defaults = [-1, -1, 1.0, "XYZ", "ALL", "M"]
+function parse_keyword!(data, outer_data, units, cfg, f, definition::RecordsKeyword{:MULTREGT})
+    defaults = keyword_defaults(definition)
     mreg = []
     while true
         rec = read_record(f)
@@ -166,121 +194,51 @@ function parse_keyword!(data, outer_data, units, cfg, f, v::Val{:MULTREGT})
     data["MULTREGT"] = mreg
 end
 
-const MULTXYZ_TYPE = Union{Val{:MULTX}, Val{:MULTY}, Val{:MULTZ},Val{Symbol("MULTX-")}, Val{Symbol("MULTY-")}, Val{Symbol("MULTZ-")}}
+@keyword :GRID (:POELCOEF, :THELCOEF, :THERMEXR) RecordKeyword support = :partial warning = PARSER_PARTIAL_SUPPORT
 
-function parse_keyword!(data, outer_data, units, cfg, f, v::MULTXYZ_TYPE)
-    k = unpack_val(v)
-    parse_and_set_grid_data!(data, outer_data, units, cfg, f, k, unit = :id, default = 1.0)
-end
-
-function unit_type(::MULTXYZ_TYPE)
-    return :id
-end
-
-const THERMAL_CONDUCTIVITY_TYPE = Union{Val{:THCONR}, Val{:THCROCK}, Val{:THCWATER}, Val{:THCOIL}, Val{:THCGAS}, Val{:THCSOLID}, Val{:THCAVE}}
-
-function parse_keyword!(data, outer_data, units, cfg, f, v::THERMAL_CONDUCTIVITY_TYPE)
-    k = unpack_val(v)
-    parse_and_set_grid_data!(data, outer_data, units, cfg, f, k, unit = unit_type(k))
-end
-
-function unit_type(::THERMAL_CONDUCTIVITY_TYPE)
-    return :rock_conductivity
-end
-
-function parse_keyword!(data, outer_data, units, cfg, f, v::Val{:MULTPV})
-    k = unpack_val(v)
-    parse_and_set_grid_data!(data, outer_data, units, cfg, f, k, default = 1.0)
-end
-
-function parse_keyword!(data, outer_data, units, cfg, f, v::Union{Val{:PRATIO}, Val{:BIOTCOEF}})
-    k = unpack_val(v)
-    parse_and_set_grid_data!(data, outer_data, units, cfg, f, k)
-end
-
-function parse_keyword!(data, outer_data, units, cfg, f, v::Union{Val{:YMODULE}})
-    k = unpack_val(v)
-    parse_and_set_grid_data!(data, outer_data, units, cfg, f, k, unit = :gigapascal)
-end
-
-function parse_keyword!(data, outer_data, units, cfg, f, v::Union{Val{:POELCOEF}, Val{:THELCOEF}, Val{:THERMEXR}})
-    k = unpack_val(v)
+function parse_keyword!(data, outer_data, units, cfg, f,
+        definition::Union{RecordKeyword{:POELCOEF}, RecordKeyword{:THELCOEF}, RecordKeyword{:THERMEXR}})
+    k = keyword_name(definition)
     vals = parse_grid_vector(f, get_cartdims(outer_data), Float64)
     parser_message(cfg, outer_data, "$k", PARSER_PARTIAL_SUPPORT)
     data["$k"] = vals
 end
 
-const REGION_TYPE = Union{Val{:FIPNUM}, Val{:PVTNUM}, Val{:SATNUM}, Val{:EQLNUM}, Val{:ROCKNUM}, Val{:IMBNUM}, Val{:MULTNUM}, Val{:FIPZON}, Val{:FLUXNUM}, Val{:OPERNUM}, Val{:MULTNUM}, Val{:EOSNUM}}
+@keyword :GRID (:DX, :DY, :DZ) RecordKeyword units = :length
 
-function parse_keyword!(data, outer_data, units, cfg, f, v::REGION_TYPE)
-    k = unpack_val(v)
-    if k == :FLUXNUM
-        parser_message(cfg, outer_data, "FLUXNUM", PARSER_JUTULDARCY_MISSING_SUPPORT)
-    end
-    parse_and_set_grid_data!(data, outer_data, units, cfg, f, k, T = Int)
-end
-
-function unit_type(::REGION_TYPE)
-    return :id
-end
-
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:PORO})
-    parse_and_set_grid_data!(data, outer_data, units, cfg, f, :PORO)
-end
-
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:NTG})
-    parse_and_set_grid_data!(data, outer_data, units, cfg, f, :NTG)
-end
-
-function unit_type(::Union{Val{:PORO}, Val{:NTG}})
-    return :id
-end
-
-function unit_type(::Val{:PORV})
-    return :liquid_volume_reservoir
-end
-
-function unit_type(::Val{:MINPVV})
-    return :liquid_volume_reservoir
-end
-
-function parse_keyword!(data, outer_data, units, cfg, f, v::Union{Val{:DX}, Val{:DY}, Val{:DZ}})
-    k = unpack_val(v)
+function parse_keyword!(data, outer_data, units, cfg, f,
+        definition::Union{RecordKeyword{:DX}, RecordKeyword{:DY}, RecordKeyword{:DZ}})
+    k = keyword_name(definition)
     Δ = parse_grid_vector(f, get_cartdims(outer_data), Float64)
-    swap_unit_system_fast!(Δ, units, Val(:length))
+    swap_unit_system_fast!(Δ, units, Val(keyword_units(definition)))
     data["$k"] = Δ
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, v::Union{Val{:DXV}, Val{:DYV}, Val{:DZV}})
-    k = unpack_val(v)
+@keyword :GRID (:DXV, :DYV, :DZV) RecordKeyword units = :length
+
+function parse_keyword!(data, outer_data, units, cfg, f,
+        definition::Union{RecordKeyword{:DXV}, RecordKeyword{:DYV}, RecordKeyword{:DZV}})
+    k = keyword_name(definition)
     Δ = parse_deck_vector(f, Float64)
-    swap_unit_system_fast!(Δ, units, Val(:length))
+    swap_unit_system_fast!(Δ, units, Val(keyword_units(definition)))
     data["$k"] = Δ
 end
 
-function unit_type(::Union{Val{:DX}, Val{:DY}, Val{:DZ}})
-    return :length
-end
+@keyword :GRID :TOPS RecordKeyword units = :length
 
-
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:TOPS})
+function parse_keyword!(data, outer_data, units, cfg, f, definition::RecordKeyword{:TOPS})
     tops = parse_deck_vector(f, Float64)
-    data["TOPS"] = swap_unit_system!(tops, units, Val(:length))
+    data["TOPS"] = swap_unit_system!(tops, units, Val(keyword_units(definition)))
 end
 
-function unit_type(::Val{:TOPS})
-    return :length
-end
-
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:NNC})
-    defaults = Union{Int, Float64}[
+@keyword :GRID :NNC RecordsKeyword defaults = Union{Int, Float64}[
         -1, -1, -1, -1, -1, -1, # First six are mandatory, 2x I, J, K for pair
         0.0, 0.0, -1, -1, -1, -1, -1, -1, 0.0, NaN, NaN
-    ]
-    eachunit = fill(:id, 17)
-    eachunit[7] = :transmissibility
-    eachunit[16] = :area
-    eachunit[17] = :permeability
+    ] units = (:id, :id, :id, :id, :id, :id, :transmissibility, :id, :id, :id, :id, :id, :id, :id, :id, :area, :permeability)
+
+function parse_keyword!(data, outer_data, units, cfg, f, definition::RecordsKeyword{:NNC})
+    defaults = keyword_defaults(definition)
+    eachunit = keyword_units(definition)
 
     nnc = []
     while true
@@ -295,7 +253,9 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:NNC})
     data["NNC"] = nnc
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:DIMENS})
+@keyword :GRID :DIMENS RecordKeyword
+
+function parse_keyword!(data, outer_data, units, cfg, f, ::RecordKeyword{:DIMENS})
     rec = read_record(f)
     to_int = x -> Parsers.parse(Int, x)
     d = to_int.(filter!(x -> length(x) > 0, split(only(rec), DECK_SPLIT_REGEX)))
@@ -303,25 +263,34 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:DIMENS})
     set_cartdims!(outer_data, d)
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:SPECGRID})
+@keyword :GRID :SPECGRID RecordKeyword defaults = [1, 1, 1, 1, "F"]
+
+function parse_keyword!(data, outer_data, units, cfg, f, definition::RecordKeyword{:SPECGRID})
     rec = read_record(f)
-    tdims = [1, 1, 1, 1, "F"]
+    tdims = keyword_defaults(definition)
     data["SPECGRID"] = parse_defaulted_line(rec, tdims)
     set_cartdims!(outer_data, data["SPECGRID"][1:3])
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:PINCH})
+@keyword(:GRID, :PINCH, RecordKeyword,
+    defaults = [0.001, "GAP", Inf, "TOPBOT", "TOP"],
+    units = (:length, :id, :length, :id, :id),
+    warning = PARSER_JUTULDARCY_PARTIAL_SUPPORT,
+)
+
+function parse_keyword!(data, outer_data, units, cfg, f, definition::RecordKeyword{:PINCH})
     rec = read_record(f)
-    tdims = [0.001, "GAP", Inf, "TOPBOT", "TOP"]
+    tdims = keyword_defaults(definition)
     parser_message(cfg, outer_data, "PINCH", PARSER_JUTULDARCY_PARTIAL_SUPPORT)
     parsed = parse_defaulted_line(rec, tdims)
-    swap_unit_system_axes!(parsed, units, [:length, :id, :length, :id, :id])
+    swap_unit_system_axes!(parsed, units, keyword_units(definition))
     data["PINCH"] = parsed
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:FAULTS})
-    read_record
-    tdims = ["NAME", -1, -1, -1, -1, -1, -1, "XYZ_IJK"]
+@keyword :GRID :FAULTS RecordsKeyword defaults = ["NAME", -1, -1, -1, -1, -1, -1, "XYZ_IJK"]
+
+function parse_keyword!(data, outer_data, units, cfg, f, definition::RecordsKeyword{:FAULTS})
+    tdims = keyword_defaults(definition)
     if !haskey(data, "FAULTS")
         data["FAULTS"] = Dict{String, Any}()
     end
@@ -347,9 +316,10 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:FAULTS})
     end
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:MULTFLT})
-    d = "*"
-    tdims = [d, 1.0, 1.0]
+@keyword :GRID :MULTFLT RecordsKeyword defaults = ["*", 1.0, 1.0]
+
+function parse_keyword!(data, outer_data, units, cfg, f, definition::RecordsKeyword{:MULTFLT})
+    tdims = keyword_defaults(definition)
     faults = outer_data["GRID"]["FAULTS"]
     out = parse_defaulted_group_well(f, tdims, faults);
     if !haskey(data, "MULTFLT")
@@ -360,23 +330,24 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:MULTFLT})
     end
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:AQUNUM})
-    def_and_u = [
-        (1, :id), # Aquifer no
-        (-1, :id), # I
-        (-1, :id), # J
-        (-1, :id), # K
-        (NaN, :area), # surface area to aquifer
-        (NaN, :length), # length of aquifer
-        (NaN, :id), # poro of aquifer
-        (NaN, :permeability), # perm of aquifer
-        (NaN, :length), # depth of aquifer
-        (NaN, :pressure), # initial pressure aquifer
-        (1, :id), # PVTNUM for aquifer
-        (1, :id), # SATNUM for aquifer
-    ]
-    defaults = map(first, def_and_u)
-    utypes = map(last, def_and_u)
+@keyword :GRID :AQUNUM RecordsKeyword fields = [
+    (1, :id), # Aquifer no
+    (-1, :id), # I
+    (-1, :id), # J
+    (-1, :id), # K
+    (NaN, :area), # surface area to aquifer
+    (NaN, :length), # length of aquifer
+    (NaN, :id), # poro of aquifer
+    (NaN, :permeability), # perm of aquifer
+    (NaN, :length), # depth of aquifer
+    (NaN, :pressure), # initial pressure aquifer
+    (1, :id), # PVTNUM for aquifer
+    (1, :id), # SATNUM for aquifer
+]
+
+function parse_keyword!(data, outer_data, units, cfg, f, definition::RecordsKeyword{:AQUNUM})
+    defaults = keyword_defaults(definition)
+    utypes = keyword_units(definition)
     out = []
     while true
         rec = read_record(f)
@@ -390,24 +361,25 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:AQUNUM})
     data["AQUNUM"] = out
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:AQUCON})
-    def_and_u = [
-        (1, :id), # Aquifer no
-        (1, :id), # I start
-        (1, :id), # I stop
-        (1, :id), # J start
-        (1, :id), # J stop
-        (1, :id), # K start
-        (1, :id), # K stop
-        ("Defaulted", :id), # Face orientation, I+, I-, ...
-        (1.0, :id), # Trans multiplier
-        (0, :id), # Type of trans calculator to use
-        ("NO", :id), # Allow internal aquifer connections
-        (1.0, :id), # Unsupported?
-        (1.0, :id) # Unsupported?
-    ]
-    defaults = map(first, def_and_u)
-    utypes = map(last, def_and_u)
+@keyword :GRID :AQUCON RecordsKeyword fields = [
+    (1, :id), # Aquifer no
+    (1, :id), # I start
+    (1, :id), # I stop
+    (1, :id), # J start
+    (1, :id), # J stop
+    (1, :id), # K start
+    (1, :id), # K stop
+    ("Defaulted", :id), # Face orientation, I+, I-, ...
+    (1.0, :id), # Trans multiplier
+    (0, :id), # Type of trans calculator to use
+    ("NO", :id), # Allow internal aquifer connections
+    (1.0, :id), # Unsupported?
+    (1.0, :id) # Unsupported?
+]
+
+function parse_keyword!(data, outer_data, units, cfg, f, definition::RecordsKeyword{:AQUCON})
+    defaults = keyword_defaults(definition)
+    utypes = keyword_units(definition)
     out = []
     while true
         rec = read_record(f)

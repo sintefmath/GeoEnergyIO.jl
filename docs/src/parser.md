@@ -21,15 +21,18 @@ spe1_pth = GeoEnergyIO.test_input_file_path("SPE1", "SPE1.DATA")
 spe1 = parse_data_file(spe1_pth)
 ```
 
+See the [deck keyword reference](keywords.md) for supported keywords and
+their record layouts.
+
 ### Handling unsupported keywords
 
-Not all keywords are supported by the parser, but not all keywords are important. The input format is such that it is difficult to automatically skip keywords, but you an manually add keywords to the skip list:
+Use the skip list to tell the parser how to consume an unsupported keyword.
 
 ```@docs
 GeoEnergyIO.InputParser.skip_kw!
 ```
 
-Adding keywords to the skip list is not persistent across Julia sessions and can be added to the top of your script. Contributions to the global skip list defined in the `__init__` function of the parser are welcome.
+The parser ships with definitions for common skipped keywords. Add your own skip rules at the top of your script to register them in each Julia session.
 
 ```@example
 using GeoEnergyIO

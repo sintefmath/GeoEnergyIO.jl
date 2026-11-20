@@ -1,69 +1,58 @@
+@keyword :RUNSPEC (:NOECHO, :ECHO) FlagKeyword support = :ignored
+
+@keyword :RUNSPEC (
+    :METRIC, :FIELD, :WATER, :POLYMER, :OIL, :GAS, :DISGAS, :GASWAT, :DIFFUSE,
+    :CO2STOR, :CO2STORE, :NOHYST, :CART, :AIM, :HWELLS, :PRCORR, :MONITOR, :THERMAL,
+    :MECH, :VAPOIL, :UNIFOUT, :UNIFIN, :CPR
+) FlagKeyword
+
+@keyword :RUNSPEC :SAVE RecordKeyword support = :raw
+
+@keyword :RUNSPEC (:NUMRES, :MULTSAVE) RecordKeyword support = :ignored
+
 function finish_current_section!(data, units, cfg, outer_data, ::Val{:RUNSPEC})
 
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:SKIPREST})
-    parser_message(cfg, outer_data, "SKIPREST", PARSER_MISSING_SUPPORT)
-end
+@keyword :RUNSPEC :SKIPREST FlagKeyword support = :ignored warning = PARSER_MISSING_SUPPORT
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:NOECHO})
-    # Do nothing
-end
+@keyword :RUNSPEC :WPOTCALC RecordKeyword defaults = ["YES", "DEFAULTED"]
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:ECHO})
-    # Do nothing
-end
+@keyword :RUNSPEC :MESSAGES RecordKeyword support = :ignored warning = PARSER_MISSING_SUPPORT
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:WPOTCALC})
+@keyword :RUNSPEC :START RecordKeyword defaults = [1, "JAN", 1970, "00:00:00"]
+
+function parse_keyword!(data, outer_data, units, cfg, f, definition::RecordKeyword{:START})
     rec = read_record(f)
-    d = parse_defaulted_line(rec, ["YES", "DEFAULTED"])
-    data["WPOTCALC"] = d
-end
-
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:MESSAGES})
-    parser_message(cfg, outer_data, "MESSAGES", PARSER_MISSING_SUPPORT)
-    rec = read_record(f)
-    # TODO: Process the record.
-end
-
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:START})
-    rec = read_record(f)
-    tdims = [1, "JAN", 1970, "00:00:00"];
+    tdims = keyword_defaults(definition)
     start = parse_defaulted_line(rec, tdims)
     data["START"] = convert_date_kw(start)
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:TITLE})
+@keyword :RUNSPEC :TITLE TextKeyword
+
+function parse_keyword!(data, outer_data, units, cfg, f, ::TextKeyword{:TITLE})
     m = readline(f)
     m = strip(m)
     data["TITLE"] = m
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:METRIC})
-    data["METRIC"] = true
-end
+@keyword :RUNSPEC :TEMP FlagKeyword support = :flag
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:FIELD})
-    data["FIELD"] = true
-end
-
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:WATER})
-    data["WATER"] = true
-end
-
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:POLYMER})
-    data["POLYMER"] = true
-end
-
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:TEMP})
+function parse_keyword!(data, outer_data, units, cfg, f, ::FlagKeyword{:TEMP})
     # Enable thermal setup, retaining TEMP so the simulator can omit pressure
     # work in the transported energy for the temperature-model formulation.
     data["THERMAL"] = true
     data["TEMP"] = true
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:TRACERS})
-    defaults = [0, 0, 0, 0, "NODIFF", 12, 1, "NO", NaN, NaN, 1.0, 0]
+@keyword(:RUNSPEC, :TRACERS, RecordKeyword,
+    defaults = [0, 0, 0, 0, "NODIFF", 12, 1, "NO", NaN, NaN, 1.0, 0],
+    warning = PARSER_JUTULDARCY_PARTIAL_SUPPORT,
+)
+
+function parse_keyword!(data, outer_data, units, cfg, f, definition::RecordKeyword{:TRACERS})
+    defaults = keyword_defaults(definition)
     rec = parse_defaulted_line(read_record(f), defaults)
     if rec[5] != "NODIFF"
         parser_message(cfg, outer_data, "TRACERS", PARSER_JUTULDARCY_PARTIAL_SUPPORT,
@@ -72,48 +61,9 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:TRACERS})
     data["TRACERS"] = rec
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:OIL})
-    data["OIL"] = true
-end
+@keyword :RUNSPEC :PATHS RecordsKeyword
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:GAS})
-    data["GAS"] = true
-end
-
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:DISGAS})
-    data["DISGAS"] = true
-end
-
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:GASWAT})
-    data["GASWAT"] = true
-end
-
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:DIFFUSE})
-    data["DIFFUSE"] = true
-end
-
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:CO2STOR})
-    data["CO2STOR"] = true
-end
-
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:CO2STORE})
-    data["CO2STORE"] = true
-end
-
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:NOHYST})
-    data["NOHYST"] = true
-end
-
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:CART})
-    data["CART"] = true
-end
-
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:SAVE})
-    data["SAVE"] = read_record(f)
-end
-
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:PATHS})
-    defaults = ["Default", "Default"]
+function parse_keyword!(data, outer_data, units, cfg, f, ::RecordsKeyword{:PATHS})
     if !haskey(data, "PATHS")
         data["PATHS"] = Dict{String, String}()
     end
@@ -137,9 +87,14 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:PATHS})
     return pths
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:EHYSTR})
+@keyword(:RUNSPEC, :EHYSTR, RecordKeyword,
+    defaults = [0.1, -1000, 1.0, 0.1, "BOTH", "RETR", "DRAIN", "DEFAULT", "NO", "NO", "NO", 0.0, 0],
+    warning = PARSER_JUTULDARCY_PARTIAL_SUPPORT,
+)
+
+function parse_keyword!(data, outer_data, units, cfg, f, definition::RecordKeyword{:EHYSTR})
     rec = read_record(f)
-    defaults = [0.1, -1000, 1.0, 0.1, "BOTH", "RETR", "DRAIN", "DEFAULT", "NO", "NO", "NO", 0.0, 0]
+    defaults = keyword_defaults(definition)
     h = parse_defaulted_line(rec, defaults)
     if h[2] == -1000
         if haskey(outer_data, "RUNSPEC")
@@ -171,21 +126,16 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:EHYSTR})
     data["EHYSTR"] = h
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:RADIAL})
-    parser_message(cfg, outer_data, "RADIAL", PARSER_JUTULDARCY_MISSING_SUPPORT)
-    data["RADIAL"] = true
-end
+@keyword :RUNSPEC :RADIAL FlagKeyword warning = PARSER_JUTULDARCY_MISSING_SUPPORT
 
-function parse_keyword!(data, outer_data, units, cfg, f, v::Union{Val{:STONE1}, Val{:STONE2}, Val{:BAKER1}, Val{:BAKER2}})
-    k = unpack_val(v)
-    parser_message(cfg, outer_data, "$k", PARSER_JUTULDARCY_MISSING_SUPPORT)
-    data["$k"] = true
-end
+@keyword :RUNSPEC (:STONE1, :STONE2, :BAKER1, :BAKER2) FlagKeyword support = :flag warning = PARSER_JUTULDARCY_MISSING_SUPPORT
 
-function parse_keyword!(data, outer_data, units, cfg, f, v::Val{:MISCSTR})
+@keyword :RUNSPEC :MISCSTR RecordKeyword defaults = [NaN, NaN, NaN] warning = PARSER_JUTULDARCY_MISSING_SUPPORT
+
+function parse_keyword!(data, outer_data, units, cfg, f, definition::RecordKeyword{:MISCSTR})
     parser_message(cfg, outer_data, "MISCSTR", PARSER_JUTULDARCY_MISSING_SUPPORT)
     rec = read_record(f)
-    tdims = [NaN, NaN, NaN];
+    tdims = keyword_defaults(definition)
     l = parse_defaulted_line(rec, tdims)
     @assert !isnan(l[1])
     for i in 2:3
@@ -201,57 +151,11 @@ function parse_keyword!(data, outer_data, units, cfg, f, v::Val{:MISCSTR})
     data["MISCSTR"] = l
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:AIM})
-    data["AIM"] = true
-end
+@keyword :RUNSPEC :EXTRAPMS RecordKeyword defaults = [0] warning = PARSER_JUTULDARCY_MISSING_SUPPORT
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:HWELLS})
-    data["HWELLS"] = true
-end
-
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:PRCORR})
-    data["PRCORR"] = true
-end
-
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:MONITOR})
-    data["MONITOR"] = true
-end
-
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:THERMAL})
-    data["THERMAL"] = true
-end
-
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:MECH})
-    data["MECH"] = true
-end
-
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:VAPOIL})
-    data["VAPOIL"] = true
-end
-
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:UNIFOUT})
-    data["UNIFOUT"] = true
-end
-
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:UNIFIN})
-    data["UNIFIN"] = true
-end
-
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:CPR})
-    data["CPR"] = true
-end
-
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:NUMRES})
-    read_record(f)
-end
-
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:MULTSAVE})
-    read_record(f)
-end
-
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:EXTRAPMS})
+function parse_keyword!(data, outer_data, units, cfg, f, definition::RecordKeyword{:EXTRAPMS})
     rec = read_record(f)
-    tdims = [0]
+    tdims = keyword_defaults(definition)
     v = only(parse_defaulted_line(rec, tdims))
     if v > 0
         parser_message(cfg, outer_data, "EXTRAPMS", PARSER_JUTULDARCY_MISSING_SUPPORT)
@@ -259,24 +163,24 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:EXTRAPMS})
     data["EXTRAPMS"] = v
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:ACTDIMS})
-    rec = read_record(f)
-    tdims = [2, 50, 80, 3]
-    data["ACTDIMS"] = parse_defaulted_line(rec, tdims)
-end
+@keyword :RUNSPEC :ACTDIMS RecordKeyword defaults = [2, 50, 80, 3]
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:TABDIMS})
-    rec = read_record(f)
-    tdims = [1, 1, 20, 20, 1, 20, 20, 1,
+@keyword :RUNSPEC :TABDIMS RecordKeyword defaults = [1, 1, 20, 20, 1, 20, 20, 1,
              1, -1, 10,  1, -1,  0,  0, -1,
-             10, 10, 10, -1,  5,  5,  5,  0, -1];
+             10, 10, 10, -1,  5,  5,  5,  0, -1]
+
+function parse_keyword!(data, outer_data, units, cfg, f, definition::RecordKeyword{:TABDIMS})
+    rec = read_record(f)
+    tdims = keyword_defaults(definition)
     # TODO: Special logic for -1 entries
     data["TABDIMS"] = parse_defaulted_line(rec, tdims)
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:SMRYDIMS})
+@keyword :RUNSPEC :SMRYDIMS RecordKeyword defaults = [-1]
+
+function parse_keyword!(data, outer_data, units, cfg, f, definition::RecordKeyword{:SMRYDIMS})
     rec = read_record(f)
-    tdims = [-1]
+    tdims = keyword_defaults(definition)
     val = only(parse_defaulted_line(rec, tdims))
     if val == -1
         val = 10000
@@ -284,39 +188,21 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:SMRYDIMS})
     data["SMRYDIMS"] = val
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:UDADIMS})
-    rec = read_record(f)
-    tdims = [0, 0, 100]
-    data["UDADIMS"] = parse_defaulted_line(rec, tdims)
-end
+@keyword :RUNSPEC :UDADIMS RecordKeyword defaults = [0, 0, 100]
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:UDQDIMS})
-    rec = read_record(f)
-    tdims = [16, 16, 0, 0, 0, 0, 0, 0, 0, 0, "N"]
-    data["UDQDIMS"] = parse_defaulted_line(rec, tdims)
-end
+@keyword :RUNSPEC :UDQDIMS RecordKeyword defaults = [16, 16, 0, 0, 0, 0, 0, 0, 0, 0, "N"]
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:FAULTDIM})
-    rec = read_record(f)
-    tdims = [0];
-    data["FAULTDIM"] = parse_defaulted_line(rec, tdims)
-end
+@keyword :RUNSPEC :FAULTDIM RecordKeyword defaults = [0]
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:GRIDOPTS})
-    rec = read_record(f)
-    tdims = ["NO", 0, 0];
-    data["GRIDOPTS"] = parse_defaulted_line(rec, tdims)
-end
+@keyword :RUNSPEC :GRIDOPTS RecordKeyword defaults = ["NO", 0, 0]
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:ROCKCOMP})
-    rec = read_record(f)
-    tdims = ["REVERS", 1, "NO", "CZ", 0.0];
-    data["ROCKCOMP"] = parse_defaulted_line(rec, tdims)
-end
+@keyword :RUNSPEC :ROCKCOMP RecordKeyword defaults = ["REVERS", 1, "NO", "CZ", 0.0]
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:ENDSCALE})
+@keyword :RUNSPEC :ENDSCALE RecordKeyword defaults = ["NODIR", "REVERS", 1, 20, 0]
+
+function parse_keyword!(data, outer_data, units, cfg, f, definition::RecordKeyword{:ENDSCALE})
     rec = read_record(f)
-    tdims = ["NODIR", "REVERS", 1, 20, 0];
+    tdims = keyword_defaults(definition)
     props = get_section(outer_data, :PROPS, set_current = false)
     if !haskey(props, "SCALECRS")
         props["SCALECRS"] = "NO"
@@ -324,57 +210,27 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:ENDSCALE})
     data["ENDSCALE"] = parse_defaulted_line(rec, tdims)
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:EQLDIMS})
-    rec = read_record(f)
-    tdims = [1, 100, 50, 1, 50];
-    data["EQLDIMS"] = parse_defaulted_line(rec, tdims)
-end
+@keyword :RUNSPEC :EQLDIMS RecordKeyword defaults = [1, 100, 50, 1, 50]
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:MSGFILE})
-    rec = read_record(f)
-    tdims = [1];
-    data["MSGFILE"] = parse_defaulted_line(rec, tdims)
-end
+@keyword :RUNSPEC :MSGFILE RecordKeyword defaults = [1]
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:REGDIMS})
-    rec = read_record(f)
-    tdims = [1, 1, 0, 0, 0, 1, 0, 0, 0, 1];
-    data["REGDIMS"] = parse_defaulted_line(rec, tdims)
-end
+@keyword :RUNSPEC :REGDIMS RecordKeyword defaults = [1, 1, 0, 0, 0, 1, 0, 0, 0, 1]
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:WELLDIMS})
-    rec = read_record(f)
-    tdims = [0, 0, 0, 0, 5, 10, 5, 4, 3, 0, 1, 1, 10, 201]
-    data["WELLDIMS"] = parse_defaulted_line(rec, tdims)
-end
+@keyword :RUNSPEC :WELLDIMS RecordKeyword defaults = [0, 0, 0, 0, 5, 10, 5, 4, 3, 0, 1, 1, 10, 201]
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:WSEGDIMS})
-    rec = read_record(f)
-    tdims = [0, 1, 1, 0]
-    data["WSEGDIMS"] = parse_defaulted_line(rec, tdims)
-end
+@keyword :RUNSPEC :WSEGDIMS RecordKeyword defaults = [0, 1, 1, 0]
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:VFPPDIMS})
-    rec = read_record(f)
-    tdims = [0, 0, 0, 0, 0, 0]
-    data["VFPPDIMS"] = parse_defaulted_line(rec, tdims)
-end
+@keyword :RUNSPEC :VFPPDIMS RecordKeyword defaults = [0, 0, 0, 0, 0, 0]
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:VFPIDIMS})
-    rec = read_record(f)
-    tdims = [0, 0, 0]
-    data["VFPIDIMS"] = parse_defaulted_line(rec, tdims)
-end
+@keyword :RUNSPEC :VFPIDIMS RecordKeyword defaults = [0, 0, 0]
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:AQUDIMS})
-    rec = read_record(f)
-    tdims = [1, 1, 1, 36, 1, 1, 0, 0]
-    data["AQUDIMS"] = parse_defaulted_line(rec, tdims)
-end
+@keyword :RUNSPEC :AQUDIMS RecordKeyword defaults = [1, 1, 1, 36, 1, 1, 0, 0]
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:MISCIBLE})
+@keyword :RUNSPEC :MISCIBLE RecordKeyword defaults = [1, 20, "NONE"] warning = PARSER_JUTULDARCY_MISSING_SUPPORT
+
+function parse_keyword!(data, outer_data, units, cfg, f, definition::RecordKeyword{:MISCIBLE})
     rec = read_record(f)
-    tdims = [1, 20, "NONE"]
+    tdims = keyword_defaults(definition)
     parser_message(cfg, outer_data, "MISCIBLE", PARSER_JUTULDARCY_MISSING_SUPPORT)
     data["MISCIBLE"] = parse_defaulted_line(rec, tdims)
 end

@@ -5,6 +5,7 @@ using Test
     @test isempty(Test.detect_ambiguities(GeoEnergyIO.InputParser))
 end
 
+include("keyword_definitions.jl")
 include("pinch_keyword.jl")
 include("tuning.jl")
 include("corner_geometry.jl")

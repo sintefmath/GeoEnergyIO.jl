@@ -2,30 +2,41 @@ function finish_current_section!(data, units, cfg, outer_data, ::Val{:EDIT})
 
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:BOX})
+@keyword :EDIT :BOX RecordKeyword
+
+keyword_defaults(::RecordKeyword{:BOX}, bounds) = collect(bounds)
+
+function parse_keyword!(data, outer_data, units, cfg, f, definition::RecordKeyword{:BOX})
     rec = read_record(f)
-    tdims = [1];
     gdata = get_section(outer_data, :GRID, set_current = false)
     l, u = gdata["CURRENT_BOX"]
     il, jl, kl = l
     iu, ju, ku = u
 
-    il, iu, jl, ju, kl, ku = parse_defaulted_line(rec, [il, iu, jl, ju, kl, ku])
+    il, iu, jl, ju, kl, ku = parse_defaulted_line(rec, keyword_defaults(definition, (il, iu, jl, ju, kl, ku)))
     gdata["CURRENT_BOX"] = (lower = (il, jl, kl), upper = (iu, ju, ku))
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:ENDBOX})
+@keyword :EDIT :ENDBOX FlagKeyword
+
+function parse_keyword!(data, outer_data, units, cfg, f, ::FlagKeyword{:ENDBOX})
     reset_current_box!(outer_data)
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, kval::Union{Val{:COPY}, Val{:ADD}, Val{:MULTIPLY}})
-    k = unpack_val(kval)
+edit_box_defaults(def, bounds...) = [keyword_defaults(def); bounds...]
+
+@keyword :EDIT :COPY RecordsKeyword defaults = ["Default", "Default"]
+@keyword :EDIT :ADD RecordsKeyword defaults = ["Default", NaN]
+
+function parse_keyword!(data, outer_data, units, cfg, f,
+        definition::Union{RecordsKeyword{:COPY}, RecordsKeyword{:ADD}})
+    k = keyword_name(definition)
     is_copy = k == :COPY
     rec = read_record(f)
     gdata = get_section(outer_data, :GRID, set_current = false)
     l, u = gdata["CURRENT_BOX"]
     dims = get_cartdims(outer_data)
-    d = "Default"
+    d, d_op = keyword_defaults(definition)
 
     il = l[1]
     iu = u[1]
@@ -33,14 +44,9 @@ function parse_keyword!(data, outer_data, units, cfg, f, kval::Union{Val{:COPY},
     ju = u[2]
     kl = l[3]
     ku = u[3]
-    if is_copy
-        d_op = d
-    else
-        d_op = NaN
-    end
 
     while length(rec) > 0
-        parsed = parse_defaulted_line(rec, [d, d_op, il, iu, jl, ju, kl, ku])
+        parsed = parse_defaulted_line(rec, edit_box_defaults(definition, il, iu, jl, ju, kl, ku))
         if is_copy
             dst = parsed[2]
             src = parsed[1]
@@ -92,14 +98,16 @@ function parse_keyword!(data, outer_data, units, cfg, f, kval::Union{Val{:COPY},
     end
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, kval::Val{:MULTIREG})
-    k = unpack_val(kval)
+@keyword :EDIT :MULTIREG RecordsKeyword defaults = ["Name", 0.0, -1, "M"]
+
+function parse_keyword!(data, outer_data, units, cfg, f, definition::RecordsKeyword{:MULTIREG})
+    k = keyword_name(definition)
     rec = read_record(f)
     gdata = get_section(outer_data, :GRID, set_current = false)
     dims = get_cartdims(outer_data)
 
     while length(rec) > 0
-        dst, val, fluxreg, regtype = parse_defaulted_line(rec, ["Name", 0.0, -1, "M"])
+        dst, val, fluxreg, regtype = parse_defaulted_line(rec, keyword_defaults(definition))
         @assert dst != "Name" "Name cannot be defaulted for MULTIREG"
         if dst == "PORV"
             # We hack this in by setting PVMULT instead.
@@ -125,7 +133,9 @@ function parse_keyword!(data, outer_data, units, cfg, f, kval::Val{:MULTIREG})
     end
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:OPERATE})
+@keyword :EDIT :OPERATE RecordsKeyword defaults = (name = "Default", parameters = (NaN, NaN))
+
+function parse_keyword!(data, outer_data, units, cfg, f, definition::RecordsKeyword{:OPERATE})
     rec = read_record(f)
     gdata = get_section(outer_data, :GRID, set_current = false)
     l, u = gdata["CURRENT_BOX"]
@@ -139,8 +149,8 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:OPERATE})
     ku = u[3]
 
     while length(rec) > 0
-        d = "Default"
-        parsed = parse_defaulted_line(rec, [d, il, iu, jl, ju, kl, ku, d, d, NaN, NaN])
+        d = keyword_defaults(definition).name
+        parsed = parse_defaulted_line(rec, [d, il, iu, jl, ju, kl, ku, d, d, keyword_defaults(definition).parameters...])
         target = parsed[1]
         op = parsed[8]
         source = parsed[9]
@@ -272,7 +282,9 @@ function get_operation_section(outer_data, kw)
     return missing
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:MULTIPLY})
+@keyword :EDIT :MULTIPLY RecordsKeyword defaults = ["Default", 1.0]
+
+function parse_keyword!(data, outer_data, units, cfg, f, definition::RecordsKeyword{:MULTIPLY})
     # TODO: Merge shared code with COPY
     rec = read_record(f)
     grid = outer_data["GRID"]
@@ -287,8 +299,7 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:MULTIPLY})
     ku = u[3]
 
     while length(rec) > 0
-        d = "Default"
-        parsed = parse_defaulted_line(rec, [d, 1.0, il, iu, jl, ju, kl, ku])
+        parsed = parse_defaulted_line(rec, edit_box_defaults(definition, il, iu, jl, ju, kl, ku))
         dst = parsed[1]
         factor = parsed[2]
         @assert dst != "Default"
@@ -327,7 +338,6 @@ function apply_multiply!(target::AbstractVector, factor, I, J, K, dims)
     apply_multiply!(reshape(target, dims), factor, I, J, K, dims)
 end
 
-
 function apply_multiply!(target, factor, I, J, K, dims)
     for i in I[1]:I[2]
         for j in J[1]:J[2]
@@ -338,7 +348,9 @@ function apply_multiply!(target, factor, I, J, K, dims)
     end
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:EQUALS})
+@keyword :EDIT :EQUALS RecordsKeyword defaults = ["Default", 1.0]
+
+function parse_keyword!(data, outer_data, units, cfg, f, definition::RecordsKeyword{:EQUALS})
     # TODO: Merge shared code with COPY
     rec = read_record(f)
     l, u = outer_data["GRID"]["CURRENT_BOX"]
@@ -352,8 +364,7 @@ function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:EQUALS})
     ku = u[3]
 
     while length(rec) > 0
-        d = "Default"
-        parsed = parse_defaulted_line(rec, [d, 1.0, il, iu, jl, ju, kl, ku])
+        parsed = parse_defaulted_line(rec, edit_box_defaults(definition, il, iu, jl, ju, kl, ku))
         dst = parsed[1]
         u = unit_type(dst)
         constval = swap_unit_system(parsed[2], units, u)
@@ -386,15 +397,19 @@ function apply_equals!(target, constval, I, J, K, dims)
     end
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:MAXVALUE})
-    edit_apply_clamping!(f, outer_data, units, min)
+@keyword :EDIT :MAXVALUE RecordsKeyword defaults = ["Default", 1.0]
+
+function parse_keyword!(data, outer_data, units, cfg, f, definition::RecordsKeyword{:MAXVALUE})
+    edit_apply_clamping!(f, outer_data, units, definition, min)
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:MINVALUE})
-    edit_apply_clamping!(f, outer_data, units, max)
+@keyword :EDIT :MINVALUE RecordsKeyword defaults = ["Default", 1.0]
+
+function parse_keyword!(data, outer_data, units, cfg, f, definition::RecordsKeyword{:MINVALUE})
+    edit_apply_clamping!(f, outer_data, units, definition, max)
 end
 
-function edit_apply_clamping!(f, outer_data, units, FUNCTION)
+function edit_apply_clamping!(f, outer_data, units, definition, FUNCTION)
     rec = read_record(f)
     l, u = outer_data["GRID"]["CURRENT_BOX"]
     dims = outer_data["GRID"]["cartDims"]
@@ -407,8 +422,7 @@ function edit_apply_clamping!(f, outer_data, units, FUNCTION)
     ku = u[3]
 
     while length(rec) > 0
-        d = "Default"
-        parsed = parse_defaulted_line(rec, [d, 1.0, il, iu, jl, ju, kl, ku])
+        parsed = parse_defaulted_line(rec, edit_box_defaults(definition, il, iu, jl, ju, kl, ku))
         dst = parsed[1]
         u = unit_type(dst)
         lim = swap_unit_system(parsed[2], units, u)
@@ -437,10 +451,12 @@ function apply_minmax!(target, lim, I, J, K, dims, F)
     end
 end
 
-function parse_keyword!(data, outer_data, units, cfg, f, ::Val{:EDITNNC})
+@keyword :EDIT :EDITNNC RecordsKeyword defaults = [-1, -1, -1, -1, -1, -1, 1.0, 0, 0, 0, 0, "X+", "X+", 0.0]
+
+function parse_keyword!(data, outer_data, units, cfg, f, definition::RecordsKeyword{:EDITNNC})
     rec = read_record(f)
     while length(rec) > 0
-        parsed = parse_defaulted_line(rec, [-1, -1, -1, -1, -1, -1, 1.0, 0, 0, 0, 0, "X+", "X+", 0.0])
+        parsed = parse_defaulted_line(rec, keyword_defaults(definition))
         i1 = parsed[1]
         j1 = parsed[2]
         k1 = parsed[3]
